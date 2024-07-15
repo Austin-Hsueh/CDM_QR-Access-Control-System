@@ -1,0 +1,512 @@
+[
+    {
+      "Id": 1,
+      "period": "一期",
+      "factory": "MW",
+      "manufName": "裁切",
+      "creator": "Branch",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 2,
+      "period": "一期",
+      "factory": "AB",
+      "manufName": "收料",
+      "creator": "Deirdre",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "C方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 3,
+      "period": "一期",
+      "factory": "MW",
+      "manufName": "裁切",
+      "creator": "Sullivan",
+      "counterMeasureCategory": "A類",
+      "counterMeasureProject": "C方案",
+      "counterMeasureContent": "A內容"
+    },
+    {
+      "Id": 4,
+      "period": "三期",
+      "factory": "AB",
+      "manufName": "裁切",
+      "creator": "David",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "C內容"
+    },
+    {
+      "Id": 5,
+      "period": "一期",
+      "factory": "MW",
+      "manufName": "鉚端",
+      "creator": "Mosley",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "C內容"
+    },
+    {
+      "Id": 6,
+      "period": "二期",
+      "factory": "MW",
+      "manufName": "收料",
+      "creator": "Mollie",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "A內容"
+    },
+    {
+      "Id": 7,
+      "period": "三期",
+      "factory": "JY",
+      "manufName": "收料",
+      "creator": "Cynthia",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 8,
+      "period": "一期",
+      "factory": "MW",
+      "manufName": "鉚端",
+      "creator": "Johnston",
+      "counterMeasureCategory": "A類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "A內容"
+    },
+    {
+      "Id": 9,
+      "period": "三期",
+      "factory": "MW",
+      "manufName": "鉚端",
+      "creator": "Marianne",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "C方案",
+      "counterMeasureContent": "C內容"
+    },
+    {
+      "Id": 10,
+      "period": "三期",
+      "factory": "JY",
+      "manufName": "裁切",
+      "creator": "Malinda",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "C方案",
+      "counterMeasureContent": "C內容"
+    },
+    {
+      "Id": 11,
+      "period": "三期",
+      "factory": "AB",
+      "manufName": "鉚端",
+      "creator": "Wanda",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 12,
+      "period": "一期",
+      "factory": "AB",
+      "manufName": "收料",
+      "creator": "Rosie",
+      "counterMeasureCategory": "A類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "A內容"
+    },
+    {
+      "Id": 13,
+      "period": "三期",
+      "factory": "MW",
+      "manufName": "收料",
+      "creator": "Rosa",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "A內容"
+    },
+    {
+      "Id": 14,
+      "period": "三期",
+      "factory": "JY",
+      "manufName": "裁切",
+      "creator": "Adela",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "C方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 15,
+      "period": "一期",
+      "factory": "MW",
+      "manufName": "檢驗",
+      "creator": "Spencer",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 16,
+      "period": "一期",
+      "factory": "JY",
+      "manufName": "裁切",
+      "creator": "Tabitha",
+      "counterMeasureCategory": "A類",
+      "counterMeasureProject": "C方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 17,
+      "period": "一期",
+      "factory": "AB",
+      "manufName": "裁切",
+      "creator": "Garcia",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "A內容"
+    },
+    {
+      "Id": 18,
+      "period": "一期",
+      "factory": "AB",
+      "manufName": "裁切",
+      "creator": "Cohen",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "C內容"
+    },
+    {
+      "Id": 19,
+      "period": "三期",
+      "factory": "MW",
+      "manufName": "裁切",
+      "creator": "Taylor",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "A內容"
+    },
+    {
+      "Id": 20,
+      "period": "一期",
+      "factory": "JY",
+      "manufName": "鉚端",
+      "creator": "Dana",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "A內容"
+    },
+    {
+      "Id": 21,
+      "period": "二期",
+      "factory": "JY",
+      "manufName": "鉚端",
+      "creator": "Wagner",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "C方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 22,
+      "period": "三期",
+      "factory": "AB",
+      "manufName": "鉚端",
+      "creator": "Juliet",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "C內容"
+    },
+    {
+      "Id": 23,
+      "period": "二期",
+      "factory": "JY",
+      "manufName": "裁切",
+      "creator": "Huber",
+      "counterMeasureCategory": "A類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "C內容"
+    },
+    {
+      "Id": 24,
+      "period": "三期",
+      "factory": "MW",
+      "manufName": "裁切",
+      "creator": "Mayer",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 25,
+      "period": "一期",
+      "factory": "MW",
+      "manufName": "裁切",
+      "creator": "Puckett",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "C內容"
+    },
+    {
+      "Id": 26,
+      "period": "一期",
+      "factory": "JY",
+      "manufName": "裁切",
+      "creator": "Deloris",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "C方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 27,
+      "period": "三期",
+      "factory": "MW",
+      "manufName": "檢驗",
+      "creator": "Bowen",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 28,
+      "period": "三期",
+      "factory": "AB",
+      "manufName": "檢驗",
+      "creator": "Cotton",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "C內容"
+    },
+    {
+      "Id": 29,
+      "period": "二期",
+      "factory": "JY",
+      "manufName": "裁切",
+      "creator": "Salazar",
+      "counterMeasureCategory": "A類",
+      "counterMeasureProject": "C方案",
+      "counterMeasureContent": "C內容"
+    },
+    {
+      "Id": 30,
+      "period": "一期",
+      "factory": "JY",
+      "manufName": "收料",
+      "creator": "Caroline",
+      "counterMeasureCategory": "A類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "C內容"
+    },
+    {
+      "Id": 31,
+      "period": "三期",
+      "factory": "JY",
+      "manufName": "檢驗",
+      "creator": "Lois",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "C方案",
+      "counterMeasureContent": "C內容"
+    },
+    {
+      "Id": 32,
+      "period": "二期",
+      "factory": "AB",
+      "manufName": "裁切",
+      "creator": "Carrillo",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "A內容"
+    },
+    {
+      "Id": 33,
+      "period": "二期",
+      "factory": "JY",
+      "manufName": "裁切",
+      "creator": "Elizabeth",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "A內容"
+    },
+    {
+      "Id": 34,
+      "period": "三期",
+      "factory": "JY",
+      "manufName": "裁切",
+      "creator": "Callahan",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "C內容"
+    },
+    {
+      "Id": 35,
+      "period": "一期",
+      "factory": "JY",
+      "manufName": "收料",
+      "creator": "Keri",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "C內容"
+    },
+    {
+      "Id": 36,
+      "period": "二期",
+      "factory": "AB",
+      "manufName": "鉚端",
+      "creator": "Livingston",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 37,
+      "period": "三期",
+      "factory": "AB",
+      "manufName": "收料",
+      "creator": "Hester",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 38,
+      "period": "三期",
+      "factory": "JY",
+      "manufName": "鉚端",
+      "creator": "Estes",
+      "counterMeasureCategory": "A類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 39,
+      "period": "三期",
+      "factory": "AB",
+      "manufName": "裁切",
+      "creator": "Marsh",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "A內容"
+    },
+    {
+      "Id": 40,
+      "period": "一期",
+      "factory": "AB",
+      "manufName": "裁切",
+      "creator": "Mabel",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "A內容"
+    },
+    {
+      "Id": 41,
+      "period": "二期",
+      "factory": "AB",
+      "manufName": "收料",
+      "creator": "Flynn",
+      "counterMeasureCategory": "A類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "A內容"
+    },
+    {
+      "Id": 42,
+      "period": "一期",
+      "factory": "AB",
+      "manufName": "鉚端",
+      "creator": "Mclean",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 43,
+      "period": "二期",
+      "factory": "MW",
+      "manufName": "裁切",
+      "creator": "Stokes",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "A內容"
+    },
+    {
+      "Id": 44,
+      "period": "三期",
+      "factory": "JY",
+      "manufName": "收料",
+      "creator": "Sampson",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "A內容"
+    },
+    {
+      "Id": 45,
+      "period": "二期",
+      "factory": "JY",
+      "manufName": "鉚端",
+      "creator": "Samantha",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 46,
+      "period": "三期",
+      "factory": "AB",
+      "manufName": "裁切",
+      "creator": "Rivera",
+      "counterMeasureCategory": "B類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "C內容"
+    },
+    {
+      "Id": 47,
+      "period": "一期",
+      "factory": "MW",
+      "manufName": "檢驗",
+      "creator": "Buckley",
+      "counterMeasureCategory": "A類",
+      "counterMeasureProject": "B方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 48,
+      "period": "三期",
+      "factory": "AB",
+      "manufName": "檢驗",
+      "creator": "Fitzgerald",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 49,
+      "period": "二期",
+      "factory": "MW",
+      "manufName": "收料",
+      "creator": "Reese",
+      "counterMeasureCategory": "A類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "B內容"
+    },
+    {
+      "Id": 50,
+      "period": "三期",
+      "factory": "JY",
+      "manufName": "收料",
+      "creator": "Brewer",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "A方案",
+      "counterMeasureContent": "C內容"
+    },
+    {
+      "Id": 51,
+      "period": "二期",
+      "factory": "JY",
+      "manufName": "收料",
+      "creator": "Natalia",
+      "counterMeasureCategory": "C類",
+      "counterMeasureProject": "C方案",
+      "counterMeasureContent": "A內容"
+    }
+  ]

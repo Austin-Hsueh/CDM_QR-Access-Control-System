@@ -1,0 +1,75 @@
+    {
+        "id": 1,
+        "factoryArea": "Topaz",
+        "factorys": [
+            {
+                "id": 1,
+                "factory": "Grenelefe"
+            },
+            {
+                "id": 2,
+                "factory": "Spelter"
+            }
+        ],
+        "remark": "Hooper Street"
+    },
+    {
+        "id": 2,
+        "factoryArea": "Holtville",
+        "factorys": [
+            {
+                "id": 1,
+                "factory": "Chamizal"
+            },
+            {
+                "id": 2,
+                "factory": "Dupuyer"
+            }
+        ],
+        "remark": "Ainslie Street"
+    },
+    {
+        "id": 3,
+        "factoryArea": "Murillo",
+        "factorys": [
+            {
+                "id": 1,
+                "factory": "Churchill"
+            },
+            {
+                "id": 2,
+                "factory": "Linwood"
+            }
+        ],
+        "remark": "Vandervoort Avenue"
+    },
+    {
+        "id": 4,
+        "factoryArea": "Edinburg",
+        "factorys": [
+            {
+                "id": 1,
+                "factory": "Deercroft"
+            },
+            {
+                "id": 2,
+                "factory": "Freetown"
+            }
+        ],
+        "remark": "Oceanview Avenue"
+    },
+    {
+        "id": 5,
+        "factoryArea": "Blue",
+        "factorys": [
+            {
+                "id": 1,
+                "factory": "Gadsden"
+            },
+            {
+                "id": 2,
+                "factory": "Soham"
+            }
+        ],
+        "remark": "Strong Place"
+    }

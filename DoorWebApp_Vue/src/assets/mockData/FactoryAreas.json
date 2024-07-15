@@ -1,0 +1,461 @@
+[
+    {
+      "id": 1,
+      "factoryAreaName": "Topaz",
+      "factorys": [
+        "Grenelefe",
+        "Spelter"
+      ],
+      "remark": "Hooper Street"
+    },
+    {
+      "id": 2,
+      "factoryAreaName": "Holtville",
+      "factorys": [
+        "Chamizal",
+        "Dupuyer"
+      ],
+      "remark": "Ainslie Street"
+    },
+    {
+      "id": 3,
+      "factoryAreaName": "Murillo",
+      "factorys": [
+        "Churchill",
+        "Linwood"
+      ],
+      "remark": "Vandervoort Avenue"
+    },
+    {
+      "id": 4,
+      "factoryAreaName": "Edinburg",
+      "factorys": [
+        "Deercroft",
+        "Freetown"
+      ],
+      "remark": "Oceanview Avenue"
+    },
+    {
+      "id": 5,
+      "factoryAreaName": "Blue",
+      "factorys": [
+        "Gadsden",
+        "Soham"
+      ],
+      "remark": "Strong Place"
+    },
+    {
+      "id": 6,
+      "factoryAreaName": "Weeksville",
+      "factorys": [
+        "Wilmington",
+        "Manila"
+      ],
+      "remark": "Gerry Street"
+    },
+    {
+      "id": 7,
+      "factoryAreaName": "Northchase",
+      "factorys": [
+        "Welda",
+        "Roulette"
+      ],
+      "remark": "Newport Street"
+    },
+    {
+      "id": 8,
+      "factoryAreaName": "Shrewsbury",
+      "factorys": [
+        "Englevale",
+        "Cutter"
+      ],
+      "remark": "Delmonico Place"
+    },
+    {
+      "id": 9,
+      "factoryAreaName": "Turah",
+      "factorys": [
+        "Morriston",
+        "Mammoth"
+      ],
+      "remark": "Tudor Terrace"
+    },
+    {
+      "id": 10,
+      "factoryAreaName": "Staples",
+      "factorys": [
+        "Independence",
+        "Forbestown"
+      ],
+      "remark": "Vanderveer Street"
+    },
+    {
+      "id": 11,
+      "factoryAreaName": "Rosedale",
+      "factorys": [
+        "Oasis",
+        "Vernon"
+      ],
+      "remark": "Norman Avenue"
+    },
+    {
+      "id": 12,
+      "factoryAreaName": "Albrightsville",
+      "factorys": [
+        "Riceville",
+        "Gordon"
+      ],
+      "remark": "Norwood Avenue"
+    },
+    {
+      "id": 13,
+      "factoryAreaName": "Onton",
+      "factorys": [
+        "Bannock",
+        "Laurelton"
+      ],
+      "remark": "Tompkins Avenue"
+    },
+    {
+      "id": 14,
+      "factoryAreaName": "Kipp",
+      "factorys": [
+        "Brecon",
+        "Roosevelt"
+      ],
+      "remark": "Lafayette Avenue"
+    },
+    {
+      "id": 15,
+      "factoryAreaName": "Barclay",
+      "factorys": [
+        "Rehrersburg",
+        "Caledonia"
+      ],
+      "remark": "Kay Court"
+    },
+    {
+      "id": 16,
+      "factoryAreaName": "Mahtowa",
+      "factorys": [
+        "Homeworth",
+        "Morningside"
+      ],
+      "remark": "Hampton Place"
+    },
+    {
+      "id": 17,
+      "factoryAreaName": "Davenport",
+      "factorys": [
+        "Brewster",
+        "Alden"
+      ],
+      "remark": "Schenectady Avenue"
+    },
+    {
+      "id": 18,
+      "factoryAreaName": "Chapin",
+      "factorys": [
+        "Conway",
+        "Gracey"
+      ],
+      "remark": "Noble Street"
+    },
+    {
+      "id": 19,
+      "factoryAreaName": "Thomasville",
+      "factorys": [
+        "Snowville",
+        "Chestnut"
+      ],
+      "remark": "Elton Street"
+    },
+    {
+      "id": 20,
+      "factoryAreaName": "Avoca",
+      "factorys": [
+        "Ellerslie",
+        "Gloucester"
+      ],
+      "remark": "Beayer Place"
+    },
+    {
+      "id": 21,
+      "factoryAreaName": "Nile",
+      "factorys": [
+        "Waukeenah",
+        "Farmington"
+      ],
+      "remark": "Just Court"
+    },
+    {
+      "id": 22,
+      "factoryAreaName": "Stouchsburg",
+      "factorys": [
+        "Maury",
+        "Yonah"
+      ],
+      "remark": "Court Street"
+    },
+    {
+      "id": 23,
+      "factoryAreaName": "Cornfields",
+      "factorys": [
+        "Swartzville",
+        "Snelling"
+      ],
+      "remark": "Aviation Road"
+    },
+    {
+      "id": 24,
+      "factoryAreaName": "Brazos",
+      "factorys": [
+        "Rote",
+        "Cannondale"
+      ],
+      "remark": "Dikeman Street"
+    },
+    {
+      "id": 25,
+      "factoryAreaName": "Blandburg",
+      "factorys": [
+        "Tecolotito",
+        "Rosburg"
+      ],
+      "remark": "Lyme Avenue"
+    },
+    {
+      "id": 26,
+      "factoryAreaName": "Rivera",
+      "factorys": [
+        "Enlow",
+        "Hemlock"
+      ],
+      "remark": "Columbia Place"
+    },
+    {
+      "id": 27,
+      "factoryAreaName": "Elliott",
+      "factorys": [
+        "Martinez",
+        "Nord"
+      ],
+      "remark": "Glen Street"
+    },
+    {
+      "id": 28,
+      "factoryAreaName": "Kidder",
+      "factorys": [
+        "Movico",
+        "Allendale"
+      ],
+      "remark": "Oliver Street"
+    },
+    {
+      "id": 29,
+      "factoryAreaName": "Elwood",
+      "factorys": [
+        "Yogaville",
+        "Shawmut"
+      ],
+      "remark": "Harbor Court"
+    },
+    {
+      "id": 30,
+      "factoryAreaName": "Marenisco",
+      "factorys": [
+        "Whipholt",
+        "Brandermill"
+      ],
+      "remark": "Fairview Place"
+    },
+    {
+      "id": 31,
+      "factoryAreaName": "Sutton",
+      "factorys": [
+        "Ryderwood",
+        "Lynn"
+      ],
+      "remark": "Meeker Avenue"
+    },
+    {
+      "id": 32,
+      "factoryAreaName": "Mapletown",
+      "factorys": [
+        "Hayes",
+        "Orick"
+      ],
+      "remark": "Kent Avenue"
+    },
+    {
+      "id": 33,
+      "factoryAreaName": "Woodruff",
+      "factorys": [
+        "Lydia",
+        "Catherine"
+      ],
+      "remark": "Eaton Court"
+    },
+    {
+      "id": 34,
+      "factoryAreaName": "Valle",
+      "factorys": [
+        "Finzel",
+        "Duryea"
+      ],
+      "remark": "Lincoln Avenue"
+    },
+    {
+      "id": 35,
+      "factoryAreaName": "Gibbsville",
+      "factorys": [
+        "Lindisfarne",
+        "Helen"
+      ],
+      "remark": "Moffat Street"
+    },
+    {
+      "id": 36,
+      "factoryAreaName": "Martell",
+      "factorys": [
+        "Norfolk",
+        "Connerton"
+      ],
+      "remark": "Pulaski Street"
+    },
+    {
+      "id": 37,
+      "factoryAreaName": "Ilchester",
+      "factorys": [
+        "Corinne",
+        "Iola"
+      ],
+      "remark": "Meserole Street"
+    },
+    {
+      "id": 38,
+      "factoryAreaName": "Waiohinu",
+      "factorys": [
+        "Joes",
+        "Siglerville"
+      ],
+      "remark": "Tennis Court"
+    },
+    {
+      "id": 39,
+      "factoryAreaName": "Greenfields",
+      "factorys": [
+        "Kansas",
+        "Fresno"
+      ],
+      "remark": "Sackett Street"
+    },
+    {
+      "id": 40,
+      "factoryAreaName": "Robinette",
+      "factorys": [
+        "Yettem",
+        "Cresaptown"
+      ],
+      "remark": "Fillmore Avenue"
+    },
+    {
+      "id": 41,
+      "factoryAreaName": "Hall",
+      "factorys": [
+        "Grimsley",
+        "Jacksonburg"
+      ],
+      "remark": "Dwight Street"
+    },
+    {
+      "id": 42,
+      "factoryAreaName": "Mayfair",
+      "factorys": [
+        "Adamstown",
+        "Greenwich"
+      ],
+      "remark": "Boardwalk "
+    },
+    {
+      "id": 43,
+      "factoryAreaName": "Goodville",
+      "factorys": [
+        "Selma",
+        "Bradenville"
+      ],
+      "remark": "Lorraine Street"
+    },
+    {
+      "id": 44,
+      "factoryAreaName": "Hilltop",
+      "factorys": [
+        "Allison",
+        "Ticonderoga"
+      ],
+      "remark": "Montieth Street"
+    },
+    {
+      "id": 45,
+      "factoryAreaName": "Summerset",
+      "factorys": [
+        "Roberts",
+        "Wollochet"
+      ],
+      "remark": "Brooklyn Road"
+    },
+    {
+      "id": 46,
+      "factoryAreaName": "Mulino",
+      "factorys": [
+        "Monument",
+        "Zeba"
+      ],
+      "remark": "Durland Place"
+    },
+    {
+      "id": 47,
+      "factoryAreaName": "Hondah",
+      "factorys": [
+        "Taft",
+        "Biddle"
+      ],
+      "remark": "Williams Place"
+    },
+    {
+      "id": 48,
+      "factoryAreaName": "Gerton",
+      "factorys": [
+        "Kaka",
+        "Tuskahoma"
+      ],
+      "remark": "Amber Street"
+    },
+    {
+      "id": 49,
+      "factoryAreaName": "Lutsen",
+      "factorys": [
+        "Detroit",
+        "Grayhawk"
+      ],
+      "remark": "Clifford Place"
+    },
+    {
+      "id": 50,
+      "factoryAreaName": "Konterra",
+      "factorys": [
+        "Deltaville",
+        "Westerville"
+      ],
+      "remark": "Reeve Place"
+    },
+    {
+      "id": 51,
+      "factoryAreaName": "Brady",
+      "factorys": [
+        "Sussex",
+        "Biehle"
+      ],
+      "remark": "Brooklyn Avenue"
+    }
+  ]

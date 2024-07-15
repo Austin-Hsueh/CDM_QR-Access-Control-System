@@ -1,0 +1,47 @@
+[
+    {
+      "id": 1,
+      "factoryArea": "Topaz",
+      "factorys": [
+        "Grenelefe",
+        "Spelter"
+      ],
+      "remark": "Hooper Street"
+    },
+    {
+      "id": 2,
+      "factoryArea": "Holtville",
+      "factorys": [
+        "Chamizal",
+        "Dupuyer"
+      ],
+      "remark": "Ainslie Street"
+    },
+    {
+      "id": 3,
+      "factoryArea": "Murillo",
+      "factorys": [
+        "Churchill",
+        "Linwood"
+      ],
+      "remark": "Vandervoort Avenue"
+    },
+    {
+      "id": 4,
+      "factoryArea": "Edinburg",
+      "factorys": [
+        "Deercroft",
+        "Freetown"
+      ],
+      "remark": "Oceanview Avenue"
+    },
+    {
+      "id": 5,
+      "factoryArea": "Blue",
+      "factorys": [
+        "Gadsden",
+        "Soham"
+      ],
+      "remark": "Strong Place"
+    }
+  ]

@@ -39,8 +39,8 @@ namespace DoorWebApp.Models.DTO
 
 
         /// <summary>
-        /// QRcode
+        /// qrcode
         /// </summary>
-        public string QRcode { get; set; }
+        public string qrcode { get; set; }
     }
 }

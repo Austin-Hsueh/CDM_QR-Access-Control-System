@@ -23,6 +23,10 @@
         /// </summary>
         public string email { get; set; }
 
+        /// <summary>
+        /// 密碼
+        /// </summary>
+        public string password { get; set; }
 
         /// <summary>
         /// 上次登入時間
