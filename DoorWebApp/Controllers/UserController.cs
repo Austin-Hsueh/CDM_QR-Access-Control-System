@@ -93,45 +93,13 @@ namespace DoorWebApp.Controllers
                 //LDAPAccountAttritube AccountAttritube = GetAccountAttritube(loginInDTO.username);
 
                 // 5. 更新帳號資訊(或是建立LDAP帳號於LocalDB(如果原本不存在的話))
-                if (targetUserEntity == null)
-                {
-                    var DefaultUserRole = ctx.TblRoles.Where(x => x.Id == 2).ToList(); //RoleId 1:Administrator, 2:User
+                targetUserEntity.LastLoginIP = accessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "N/A";
+                targetUserEntity.LastLoginTime = DateTime.Now;
 
-                    TblUser NewLDAPUser = new TblUser
-                    {
-                        Username = loginInDTO.username,
-                        Secret = "",
-                        locale = Enum.TryParse(loginInDTO.locale, out LocaleType localeParseResult) ? localeParseResult : LocaleType.en_us,
-                        AccountType = LoginAccountType.LDAP,
-                        IsEnable = true,
-                        IsDelete = false,
-                        Roles = DefaultUserRole,
-                        LastLoginIP = accessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "N/A",
-                        LastLoginTime = DateTime.Now,
-                        ModifiedTime = DateTime.Now,
-                        CreateTime = DateTime.Now,
-                    };
-
-                    log.LogInformation($"[{Request.Path}] Create account, ({loginInDTO.username})");
-                    ctx.TblUsers.Add(NewLDAPUser);
-                    int EffectRow = ctx.SaveChanges();
-                    log.LogInformation($"[{Request.Path}] Account created. (EffectRow:{EffectRow})");
-
-                    auditLog.WriteAuditLog(AuditActType.Modify, $"創建LDAP帳號物件: {loginInDTO.username}", loginInDTO.username);
-
-                    targetUserEntity = NewLDAPUser;
-                }
-                else
-                {
-                    targetUserEntity.LastLoginIP = accessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "N/A";
-                    targetUserEntity.LastLoginTime = DateTime.Now;
-
-                    log.LogInformation($"[{Request.Path}] Update account attritube.");
-                    int EffectRow = ctx.SaveChanges();
-                    log.LogInformation($"[{Request.Path}] Account updated. (EffectRow:{EffectRow})");
-                }
-
-
+                log.LogInformation($"[{Request.Path}] Update account attritube.");
+                int EffectRow = ctx.SaveChanges();
+                log.LogInformation($"[{Request.Path}] Account updated. (EffectRow:{EffectRow})");
+                
 
                 // 6. 撈取使用者權限清單
                 var UserPermissions = GetUserPermissionListByUserId(targetUserEntity.Id);
@@ -143,7 +111,6 @@ namespace DoorWebApp.Controllers
                 log.LogInformation($"[{Request.Path}] Token generated.");
 
 
-                
                 // 8. 登入成功
                 log.LogInformation($"[{Request.Path}] User login success!");
                 auditLog.WriteAuditLog(AuditActType.Login, $"User login ({loginInDTO.username})", loginInDTO.username);
@@ -159,7 +126,7 @@ namespace DoorWebApp.Controllers
                     token = token,
                     locale = targetUserEntity.locale,
                     permissionIds = UserPermissions,
-                    QRcode = "QRcode"
+                    qrcode = "QRcode"
                 };
 
                 return Ok(res);
@@ -196,6 +163,7 @@ namespace DoorWebApp.Controllers
                         displayName = x.DisplayName,
                         email = x.Email,
                         lastLoginTime = x.LastLoginTime.HasValue ? x.LastLoginTime.Value.ToString("yyyy/MM/dd HH:mm:ss") : "",
+                        password = x.Secret,
                         roles = x.Roles
                         .Select(y => new Role {
                             Id = y.Id,
@@ -443,7 +411,7 @@ namespace DoorWebApp.Controllers
                 }
 
                 string pwd_md5 = password.ToMD5();
-                bool LocalAccountVerifyResult = UserEntity.Secret == pwd_md5;
+                bool LocalAccountVerifyResult = UserEntity.Secret?.ToMD5() == pwd_md5;
 
                 if (!LocalAccountVerifyResult)
                 {
