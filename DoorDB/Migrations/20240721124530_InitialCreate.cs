@@ -35,37 +35,12 @@ namespace DoorWebDB.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "tblPermission",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false, comment: "權限項目Id")
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    PermissionGroupId = table.Column<int>(type: "int", nullable: false, comment: "權限項目所屬群組([tblPermissionGroup].[Id])"),
-                    Name = table.Column<string>(type: "longtext", nullable: false, comment: "權限項目名稱")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    NameI18n = table.Column<string>(type: "longtext", nullable: false, comment: "權限項目名稱(i18n)")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    IsEnable = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    IsDelete = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    DateFrom = table.Column<DateTime>(type: "datetime(6)", nullable: false, comment: "權限時間起"),
-                    DateTo = table.Column<DateTime>(type: "datetime(6)", nullable: false, comment: "權限時訖"),
-                    PermissionLevel = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_tblPermission", x => x.Id);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
                 name: "tblPermissionGroup",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     Name = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    NameI18n = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
@@ -133,6 +108,8 @@ namespace DoorWebDB.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Email = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
+                    Phone = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     locale = table.Column<int>(type: "int", nullable: false),
                     AccountType = table.Column<string>(type: "varchar(10)", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -151,24 +128,32 @@ namespace DoorWebDB.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "TblPermissionTblUser",
+                name: "tblPermission",
                 columns: table => new
                 {
-                    PermissionsId = table.Column<int>(type: "int", nullable: false),
-                    UsersId = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false, comment: "權限項目Id")
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    UserId = table.Column<int>(type: "int", nullable: false, comment: "權限項目所屬使用者([tblUser].[Id])"),
+                    IsEnable = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    IsDelete = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DateFrom = table.Column<string>(type: "varchar(10)", nullable: false, comment: "權限日期起")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    DateTo = table.Column<string>(type: "varchar(10)", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    TimeFrom = table.Column<string>(type: "varchar(5)", nullable: false, comment: "權限時間起")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    TimeTo = table.Column<string>(type: "varchar(5)", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Days = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    PermissionLevel = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TblPermissionTblUser", x => new { x.PermissionsId, x.UsersId });
+                    table.PrimaryKey("PK_tblPermission", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_TblPermissionTblUser_tblPermission_PermissionsId",
-                        column: x => x.PermissionsId,
-                        principalTable: "tblPermission",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_TblPermissionTblUser_tblUser_UsersId",
-                        column: x => x.UsersId,
+                        name: "FK_tblPermission_tblUser_UserId",
+                        column: x => x.UserId,
                         principalTable: "tblUser",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -225,15 +210,40 @@ namespace DoorWebDB.Migrations
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
+            migrationBuilder.CreateTable(
+                name: "TblPermissionTblPermissionGroup",
+                columns: table => new
+                {
+                    PermissionGroupsId = table.Column<int>(type: "int", nullable: false),
+                    PermissionsId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TblPermissionTblPermissionGroup", x => new { x.PermissionGroupsId, x.PermissionsId });
+                    table.ForeignKey(
+                        name: "FK_TblPermissionTblPermissionGroup_tblPermission_PermissionsId",
+                        column: x => x.PermissionsId,
+                        principalTable: "tblPermission",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TblPermissionTblPermissionGroup_tblPermissionGroup_Permissio~",
+                        column: x => x.PermissionGroupsId,
+                        principalTable: "tblPermissionGroup",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
             migrationBuilder.InsertData(
                 table: "tblPermissionGroup",
-                columns: new[] { "Id", "Name", "NameI18n" },
+                columns: new[] { "Id", "Name" },
                 values: new object[,]
                 {
-                    { 51, "大門", "" },
-                    { 52, "Car教室", "" },
-                    { 53, "Sunny教室", "" },
-                    { 54, "儲藏室", "" }
+                    { 1, "大門" },
+                    { 2, "Car教室" },
+                    { 3, "Sunny教室" },
+                    { 4, "儲藏室" }
                 });
 
             migrationBuilder.InsertData(
@@ -241,21 +251,48 @@ namespace DoorWebDB.Migrations
                 columns: new[] { "Id", "CanDelete", "CreatedTime", "CreatorUserId", "Description", "IsDelete", "IsEnable", "ModifiedTime", "Name" },
                 values: new object[,]
                 {
-                    { 1, false, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7569), 1, "管理者", false, true, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7570), "Admin" },
-                    { 2, false, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7573), 1, "老師", false, true, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7574), "User" },
-                    { 3, false, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7576), 1, "學生", false, true, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7577), "User" },
-                    { 4, false, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7579), 1, "值班人員", false, true, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7580), "User" }
+                    { 1, false, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(274), 1, "管理者", false, true, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(275), "Admin" },
+                    { 2, false, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(278), 1, "老師", false, true, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(279), "User" },
+                    { 3, false, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(281), 1, "學生", false, true, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(281), "User" },
+                    { 4, false, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(284), 1, "值班人員", false, true, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(285), "User" }
                 });
 
             migrationBuilder.InsertData(
                 table: "tblUser",
-                columns: new[] { "Id", "AccountType", "CreateTime", "DisplayName", "Email", "IsDelete", "IsEnable", "LastLoginIP", "LastLoginTime", "ModifiedTime", "Secret", "Username", "locale" },
-                values: new object[] { 51, "LOCAL", new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7552), "Administrator", "", false, true, "", null, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7563), "1qaz2wsx", "admin", 1 });
+                columns: new[] { "Id", "AccountType", "CreateTime", "DisplayName", "Email", "IsDelete", "IsEnable", "LastLoginIP", "LastLoginTime", "ModifiedTime", "Phone", "Secret", "Username", "locale" },
+                values: new object[] { 51, "LOCAL", new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(253), "Administrator", "", false, true, "", null, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(266), "0", "1qaz2wsx", "admin", 1 });
+
+            migrationBuilder.InsertData(
+                table: "TblRoleTblUser",
+                columns: new[] { "RolesId", "UsersId" },
+                values: new object[] { 1, 51 });
+
+            migrationBuilder.InsertData(
+                table: "tblPermission",
+                columns: new[] { "Id", "DateFrom", "DateTo", "Days", "IsDelete", "IsEnable", "PermissionLevel", "TimeFrom", "TimeTo", "UserId" },
+                values: new object[] { 1, "2024/07/21", "2124/07/21", "1,2,3,4,5,6,7", false, true, 1, "00:00", "24:00", 51 });
+
+            migrationBuilder.InsertData(
+                table: "TblPermissionTblPermissionGroup",
+                columns: new[] { "PermissionGroupsId", "PermissionsId" },
+                values: new object[,]
+                {
+                    { 1, 1 },
+                    { 2, 1 },
+                    { 3, 1 },
+                    { 4, 1 }
+                });
 
             migrationBuilder.CreateIndex(
-                name: "IX_TblPermissionTblUser_UsersId",
-                table: "TblPermissionTblUser",
-                column: "UsersId");
+                name: "IX_tblPermission_UserId",
+                table: "tblPermission",
+                column: "UserId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TblPermissionTblPermissionGroup_PermissionsId",
+                table: "TblPermissionTblPermissionGroup",
+                column: "PermissionsId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TblQRCodeStorageTblUser_UsersId",
@@ -274,10 +311,7 @@ namespace DoorWebDB.Migrations
                 name: "tblAuditLog");
 
             migrationBuilder.DropTable(
-                name: "tblPermissionGroup");
-
-            migrationBuilder.DropTable(
-                name: "TblPermissionTblUser");
+                name: "TblPermissionTblPermissionGroup");
 
             migrationBuilder.DropTable(
                 name: "TblQRCodeStorageTblUser");
@@ -287,6 +321,9 @@ namespace DoorWebDB.Migrations
 
             migrationBuilder.DropTable(
                 name: "tblPermission");
+
+            migrationBuilder.DropTable(
+                name: "tblPermissionGroup");
 
             migrationBuilder.DropTable(
                 name: "tblQRCodeStorage");

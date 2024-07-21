@@ -24,23 +24,11 @@ namespace DoorDB
         public int Id { get; set; }
 
         /// <summary>
-        /// 權限項目所屬群組([tblPermissionGroup].[Id])
+        /// 權限項目所屬使用者([tblUser].[Id])
         /// </summary>
-        [Comment("權限項目所屬群組([tblPermissionGroup].[Id])")]
-        public int PermissionGroupId { get; set; }
+        [Comment("權限項目所屬使用者([tblUser].[Id])")]
+        public int UserId { get; set; }
 
-        /// <summary>
-        /// 權限項目名稱
-        /// </summary>
-        [Comment("權限項目名稱")]
-        public string Name { get; set; }
-
-        /// <summary>
-        /// 權限項目名稱(i18n)
-        /// 權限時間
-        /// </summary>
-        [Comment("權限項目名稱(i18n)")]
-        public string NameI18n { get; set; }
 
         /// <summary>
         /// 是否啟用
@@ -82,7 +70,7 @@ namespace DoorDB
         public string TimeTo { get; set; }
 
         /// <summary>
-        /// 權限一周哪幾天
+        /// 權限一周哪幾天 1,2,3,4,5,6,7 一~日
         /// </summary>
         /// [Comment("權限一周哪幾天")]
         public string Days { get; set; }
@@ -93,7 +81,9 @@ namespace DoorDB
         [Required]
         public int PermissionLevel { get; set; }
 
-        public virtual List<TblUser> Users { set; get; }
+        //public virtual List<TblUser> Users { set; get; }
+        public List<TblPermissionGroup> PermissionGroups { set; get; }
+        public TblUser User { set; get; }
         //public virtual ICollection<TblRolePermission> RolePermissions { set; get; }
     }
 }

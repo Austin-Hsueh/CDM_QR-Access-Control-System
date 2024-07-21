@@ -55,13 +55,18 @@ namespace DoorWebDB.Migrations
                         .HasColumnType("int")
                         .HasComment("權限項目Id");
 
-                    b.Property<DateTime>("DateFrom")
-                        .HasColumnType("datetime(6)")
-                        .HasComment("權限時間起");
+                    b.Property<string>("DateFrom")
+                        .IsRequired()
+                        .HasColumnType("varchar(10)")
+                        .HasComment("權限日期起");
 
-                    b.Property<DateTime>("DateTo")
-                        .HasColumnType("datetime(6)")
-                        .HasComment("權限時訖");
+                    b.Property<string>("DateTo")
+                        .IsRequired()
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<string>("Days")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.Property<bool>("IsDelete")
                         .HasColumnType("tinyint(1)");
@@ -69,26 +74,43 @@ namespace DoorWebDB.Migrations
                     b.Property<bool>("IsEnable")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasComment("權限項目名稱");
-
-                    b.Property<string>("NameI18n")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasComment("權限項目名稱(i18n)");
-
-                    b.Property<int>("PermissionGroupId")
-                        .HasColumnType("int")
-                        .HasComment("權限項目所屬群組([tblPermissionGroup].[Id])");
-
                     b.Property<int>("PermissionLevel")
                         .HasColumnType("int");
 
+                    b.Property<string>("TimeFrom")
+                        .IsRequired()
+                        .HasColumnType("varchar(5)")
+                        .HasComment("權限時間起");
+
+                    b.Property<string>("TimeTo")
+                        .IsRequired()
+                        .HasColumnType("varchar(5)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasComment("權限項目所屬使用者([tblUser].[Id])");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
                     b.ToTable("tblPermission");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            DateFrom = "2024/07/21",
+                            DateTo = "2124/07/21",
+                            Days = "1,2,3,4,5,6,7",
+                            IsDelete = false,
+                            IsEnable = true,
+                            PermissionLevel = 1,
+                            TimeFrom = "00:00",
+                            TimeTo = "24:00",
+                            UserId = 51
+                        });
                 });
 
             modelBuilder.Entity("DoorDB.TblPermissionGroup", b =>
@@ -101,10 +123,6 @@ namespace DoorWebDB.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<string>("NameI18n")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
                     b.HasKey("Id");
 
                     b.ToTable("tblPermissionGroup");
@@ -112,27 +130,23 @@ namespace DoorWebDB.Migrations
                     b.HasData(
                         new
                         {
-                            Id = 51,
-                            Name = "大門",
-                            NameI18n = ""
+                            Id = 1,
+                            Name = "大門"
                         },
                         new
                         {
-                            Id = 52,
-                            Name = "Car教室",
-                            NameI18n = ""
+                            Id = 2,
+                            Name = "Car教室"
                         },
                         new
                         {
-                            Id = 53,
-                            Name = "Sunny教室",
-                            NameI18n = ""
+                            Id = 3,
+                            Name = "Sunny教室"
                         },
                         new
                         {
-                            Id = 54,
-                            Name = "儲藏室",
-                            NameI18n = ""
+                            Id = 4,
+                            Name = "儲藏室"
                         });
                 });
 
@@ -211,48 +225,48 @@ namespace DoorWebDB.Migrations
                         {
                             Id = 1,
                             CanDelete = false,
-                            CreatedTime = new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7569),
+                            CreatedTime = new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(274),
                             CreatorUserId = 1,
                             Description = "管理者",
                             IsDelete = false,
                             IsEnable = true,
-                            ModifiedTime = new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7570),
+                            ModifiedTime = new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(275),
                             Name = "Admin"
                         },
                         new
                         {
                             Id = 2,
                             CanDelete = false,
-                            CreatedTime = new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7573),
+                            CreatedTime = new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(278),
                             CreatorUserId = 1,
                             Description = "老師",
                             IsDelete = false,
                             IsEnable = true,
-                            ModifiedTime = new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7574),
+                            ModifiedTime = new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(279),
                             Name = "User"
                         },
                         new
                         {
                             Id = 3,
                             CanDelete = false,
-                            CreatedTime = new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7576),
+                            CreatedTime = new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(281),
                             CreatorUserId = 1,
                             Description = "學生",
                             IsDelete = false,
                             IsEnable = true,
-                            ModifiedTime = new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7577),
+                            ModifiedTime = new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(281),
                             Name = "User"
                         },
                         new
                         {
                             Id = 4,
                             CanDelete = false,
-                            CreatedTime = new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7579),
+                            CreatedTime = new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(284),
                             CreatorUserId = 1,
                             Description = "值班人員",
                             IsDelete = false,
                             IsEnable = true,
-                            ModifiedTime = new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7580),
+                            ModifiedTime = new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(285),
                             Name = "User"
                         });
                 });
@@ -293,6 +307,10 @@ namespace DoorWebDB.Migrations
                     b.Property<DateTime>("ModifiedTime")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
                     b.Property<string>("Secret")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -313,32 +331,55 @@ namespace DoorWebDB.Migrations
                         {
                             Id = 51,
                             AccountType = "LOCAL",
-                            CreateTime = new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7552),
+                            CreateTime = new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(253),
                             DisplayName = "Administrator",
                             Email = "",
                             IsDelete = false,
                             IsEnable = true,
                             LastLoginIP = "",
-                            ModifiedTime = new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7563),
+                            ModifiedTime = new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(266),
+                            Phone = "0",
                             Secret = "1qaz2wsx",
                             Username = "admin",
                             locale = 1
                         });
                 });
 
-            modelBuilder.Entity("TblPermissionTblUser", b =>
+            modelBuilder.Entity("TblPermissionTblPermissionGroup", b =>
                 {
+                    b.Property<int>("PermissionGroupsId")
+                        .HasColumnType("int");
+
                     b.Property<int>("PermissionsId")
                         .HasColumnType("int");
 
-                    b.Property<int>("UsersId")
-                        .HasColumnType("int");
+                    b.HasKey("PermissionGroupsId", "PermissionsId");
 
-                    b.HasKey("PermissionsId", "UsersId");
+                    b.HasIndex("PermissionsId");
 
-                    b.HasIndex("UsersId");
+                    b.ToTable("TblPermissionTblPermissionGroup");
 
-                    b.ToTable("TblPermissionTblUser");
+                    b.HasData(
+                        new
+                        {
+                            PermissionGroupsId = 1,
+                            PermissionsId = 1
+                        },
+                        new
+                        {
+                            PermissionGroupsId = 2,
+                            PermissionsId = 1
+                        },
+                        new
+                        {
+                            PermissionGroupsId = 3,
+                            PermissionsId = 1
+                        },
+                        new
+                        {
+                            PermissionGroupsId = 4,
+                            PermissionsId = 1
+                        });
                 });
 
             modelBuilder.Entity("TblQRCodeStorageTblUser", b =>
@@ -369,19 +410,37 @@ namespace DoorWebDB.Migrations
                     b.HasIndex("UsersId");
 
                     b.ToTable("TblRoleTblUser");
+
+                    b.HasData(
+                        new
+                        {
+                            RolesId = 1,
+                            UsersId = 51
+                        });
                 });
 
-            modelBuilder.Entity("TblPermissionTblUser", b =>
+            modelBuilder.Entity("DoorDB.TblPermission", b =>
                 {
-                    b.HasOne("DoorDB.TblPermission", null)
-                        .WithMany()
-                        .HasForeignKey("PermissionsId")
+                    b.HasOne("DoorDB.TblUser", "User")
+                        .WithOne("Permission")
+                        .HasForeignKey("DoorDB.TblPermission", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DoorDB.TblUser", null)
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TblPermissionTblPermissionGroup", b =>
+                {
+                    b.HasOne("DoorDB.TblPermissionGroup", null)
                         .WithMany()
-                        .HasForeignKey("UsersId")
+                        .HasForeignKey("PermissionGroupsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DoorDB.TblPermission", null)
+                        .WithMany()
+                        .HasForeignKey("PermissionsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -413,6 +472,12 @@ namespace DoorWebDB.Migrations
                         .WithMany()
                         .HasForeignKey("UsersId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DoorDB.TblUser", b =>
+                {
+                    b.Navigation("Permission")
                         .IsRequired();
                 });
 #pragma warning restore 612, 618

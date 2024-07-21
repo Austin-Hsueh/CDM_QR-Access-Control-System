@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -27,11 +28,6 @@ namespace DoorDB
         public string Name { get; set; }
 
 
-
-        /// <summary>
-        /// 權限項目群組名稱(i18n)
-        /// </summary>
-        public string NameI18n { get; set; }
-
+        public ICollection<TblPermission> Permissions { get; set; }
     }
 }

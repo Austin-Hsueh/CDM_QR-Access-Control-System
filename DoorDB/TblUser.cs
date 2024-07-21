@@ -45,6 +45,12 @@ namespace DoorDB
 
 
         /// <summary>
+        /// 電話
+        /// </summary>
+        public string Phone { get; set; } = "";
+
+
+        /// <summary>
         /// 使用語言
         /// </summary>
         public LocaleType locale { get; set; } = LocaleType.en_us;
@@ -93,7 +99,7 @@ namespace DoorDB
 
 
         public virtual List<TblRole> Roles { set; get; }
-        public virtual List<TblPermission> Permissions { set; get; }
+        public TblPermission Permission { set; get; }
 
         public virtual List<TblQRCodeStorage> QRCodes { set; get; }
     }

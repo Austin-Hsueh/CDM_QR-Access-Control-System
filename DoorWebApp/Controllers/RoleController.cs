@@ -134,7 +134,7 @@ namespace DoorWebApp.Controllers
 
                 #region 2. 建立權限角色
                 // 2-1. 取出指定的權限清單
-                List<TblPermission> RolePermissions = ctx.TblPermissions
+                List<TblPermission> RolePermissions = ctx.TblPermission
                     .Where(x => roleInfoDTO.permissionIds.Contains(x.Id))
                     .ToList();
 

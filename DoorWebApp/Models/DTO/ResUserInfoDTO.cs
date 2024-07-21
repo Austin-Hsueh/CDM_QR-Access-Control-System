@@ -24,17 +24,13 @@
         public string email { get; set; }
 
         /// <summary>
-        /// 密碼
+        /// 電話
         /// </summary>
-        public string password { get; set; }
+        public string phone { get; set; }
 
-        /// <summary>
-        /// 上次登入時間
-        /// </summary>
-        public string lastLoginTime { set; get; }
+        public int roleid { set; get; }
 
-
-        public List<Role> roles { set; get; } 
+        public string roleName { set; get; } 
 
     }
 }
