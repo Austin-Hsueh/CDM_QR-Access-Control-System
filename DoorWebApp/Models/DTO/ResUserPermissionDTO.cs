@@ -2,7 +2,7 @@
 
 namespace DoorWebApp.Models.DTO
 {
-    public class ResUserAuthInfoDTO
+    public class ResUserPermissionDTO
     {
         /// <summary>
         /// JWT
@@ -35,6 +35,6 @@ namespace DoorWebApp.Models.DTO
         /// <summary>
         /// 權限清單
         /// </summary>
-        public List<int> permissionIds { get; set; }
+        public List<string> permissionNames { get; set; }
     }
 }

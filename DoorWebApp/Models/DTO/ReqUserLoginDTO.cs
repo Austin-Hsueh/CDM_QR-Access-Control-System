@@ -2,7 +2,7 @@
 
 namespace DoorWebApp.Models.DTO
 {
-    public class ResUserAuthInfoDTO
+    public class ReqUserLoginDTO
     {
         /// <summary>
         /// JWT

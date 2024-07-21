@@ -57,7 +57,7 @@ namespace DoorWebApp.Controllers
         [HttpPost("v1/User/login")]
         public IActionResult Login(ReqLoginDTO loginInDTO)
         {
-            APIResponse<ResUserAuthInfoDTO> res = new APIResponse<ResUserAuthInfoDTO>();
+            APIResponse<ReqUserLoginDTO> res = new APIResponse<ReqUserLoginDTO>();
             log.LogInformation($"[{Request.Path}] Login Request : {loginInDTO.username}/{loginInDTO.password}");
             try
             {
@@ -120,13 +120,12 @@ namespace DoorWebApp.Controllers
 
                 res.result = APIResultCode.success;
                 res.msg = "login_success";
-                res.content = new ResUserAuthInfoDTO
+                res.content = new ReqUserLoginDTO
                 {
                     userId = targetUserEntity.Id,
                     username = targetUserEntity.Username,
                     displayName = targetUserEntity.DisplayName,
-                    token = token,
-                    locale = targetUserEntity.locale
+                    token = token
                     //permissionIds = UserPermissions
                 };
 
@@ -150,14 +149,14 @@ namespace DoorWebApp.Controllers
         [HttpGet("v1/Users")]
         public IActionResult GetAllUsersWithRoles()
         {
-            APIResponse<List<ReqUserInfoDTO>> res = new APIResponse<List<ReqUserInfoDTO>>();
+            APIResponse<List<ResGetAllUsersDTO>> res = new APIResponse<List<ResGetAllUsersDTO>>();
 
             try
             {
                 var UserList = ctx.TblUsers
                     .Include(x => x.Roles)
                     .Where(x => x.IsDelete == false)
-                    .Select(x => new ReqUserInfoDTO()
+                    .Select(x => new ResGetAllUsersDTO()
                     {
                         userId = x.Id,
                         username = x.Username,
@@ -166,7 +165,9 @@ namespace DoorWebApp.Controllers
                         roleId = x.Roles.FirstOrDefault().Id,
                         roleName = x.Roles.FirstOrDefault().Name,
                         permissionNames = x.Permission.PermissionGroups
-                        .Select(y =>  y.Name).ToList()
+                        .Select(y =>  y.Name).ToList(),
+                        accessTime = x.Permission.DateFrom.ToString() + x.Permission.TimeFrom.ToString() + "~" + x.Permission.DateTo.ToString() + x.Permission.TimeTo.ToString(),
+                        accessDays = x.Permission.Days.Replace("1", "周一").Replace("2", "周二").Replace("3", "周三").Replace("4", "周四").Replace("5", "周五").Replace("6", "周六").Replace("7", "周日"),
                     })
                     .ToList();
 
@@ -197,7 +198,7 @@ namespace DoorWebApp.Controllers
         [HttpGet("v1/User/Permission")]
         public IActionResult Permission()
         {
-            APIResponse<ResUserAuthInfoDTO> res = new APIResponse<ResUserAuthInfoDTO>();
+            APIResponse<ResUserPermissionDTO> res = new APIResponse<ResUserPermissionDTO>();
 
             try
             {
@@ -222,14 +223,15 @@ namespace DoorWebApp.Controllers
 
                 res.result = APIResultCode.success;
                 res.msg = "refresh_success";
-                res.content = new ResUserAuthInfoDTO
+                res.content = new ResUserPermissionDTO
                 {
                     userId = targetUserEntity.Id,
                     username = targetUserEntity.Username,
                     displayName = targetUserEntity.DisplayName,
                     //token = token,
-                    locale = targetUserEntity.locale,
-                    permissionIds = UserPermissions
+                    qrcode = "qrcode",
+                    permissionNames = targetUserEntity.Permission.PermissionGroups
+                        .Select(y => y.Name).ToList()
                 };
 
 
@@ -244,6 +246,44 @@ namespace DoorWebApp.Controllers
             }
         }
 
+
+        /// <summary>
+        /// 取得使用者權限清單by 門id
+        /// </summary>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [HttpGet("v1/Users/Permission/{GroupId}/{UserName}")]
+        public IActionResult GroupPermission(int GroupId, string UserName = "")
+        {
+            APIResponse<ResUserPermissionDTO> res = new APIResponse<ResUserPermissionDTO>();
+
+            try
+            {
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                var UserList = ctx.TblUsers
+                    .Include(x => x.Roles)
+                    .Where(x => x.IsDelete == false)
+                    .Select(x => new ResUserPermissionDTO()
+                    {
+                        userId = x.Id,
+                        username = x.Username,
+                        displayName = x.DisplayName,
+                        permissionNames = x.Permission.PermissionGroups.Where(x => x.Id == GroupId)
+                        .Select(y => y.Name).ToList()
+                    })
+                    .ToList();
+
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
 
 
 
@@ -291,8 +331,7 @@ namespace DoorWebApp.Controllers
                     userId = targetUserEntity.Id,
                     username = targetUserEntity.Username,
                     displayName = targetUserEntity.DisplayName,
-                    token = token,
-                    locale = targetUserEntity.locale
+                    token = token
                     //permissionIds = UserPermissions
                 };
 
