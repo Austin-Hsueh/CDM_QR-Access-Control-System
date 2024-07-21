@@ -24,6 +24,8 @@ namespace DoorWebApp
 
             // Add services to the container.
             builder.Services.AddControllers();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
             builder.Services.AddTransient<AuditLogWritter>();
 
 
@@ -100,18 +102,31 @@ namespace DoorWebApp
             }
 
 
-            
+            // Configure the HTTP request pipeline.
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+                });
+            }
+
             app.UseStaticFiles();
             app.UseRouting();
 
             app.UseAuthentication();
+            if (app.Environment.IsDevelopment())
+                app.UseHttpsRedirection();
             app.UseAuthorization();
-
+            if (app.Environment.IsDevelopment())
+                app.MapControllers();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
             });
 
+            
 
 
             //於開發環境下可直接對接vue server (npm run serve)
@@ -124,7 +139,7 @@ namespace DoorWebApp
             //}
             //else
             //{
-                app.MapFallbackToFile("index.html");
+            app.MapFallbackToFile("index.html");
             //}
 
             app.Run();
