@@ -93,6 +93,7 @@ namespace DoorDB
 
 
         public virtual List<TblRole> Roles { set; get; }
+        public virtual List<TblPermission> Permissions { set; get; }
 
         public virtual List<TblQRCodeStorage> QRCodes { set; get; }
     }

@@ -63,7 +63,7 @@ namespace DoorDB
         public virtual List<TblUser> Users { set; get; }
 
         
-        public virtual List<TblPermission> Permissions { set; get; }
+        
 
         //public virtual ICollection<TblUser> Users { set; get; }
         //public virtual ICollection<TblUserRole> UserRoles { set; get; }

@@ -37,17 +37,31 @@ namespace DoorDB
 
         /// <summary>
         /// 權限項目名稱(i18n)
+        /// 權限時間
         /// </summary>
         [Comment("權限項目名稱(i18n)")]
         public string NameI18n { get; set; }
 
+
         /// <summary>
-        /// 權限等級 1 看 2 看+修改
+        /// 權限時間
+        /// </summary>
+        [Comment("權限時間起")]
+        public DateTime DateFrom { get; set; }
+
+        /// <summary>
+        /// 權限時間訖
+        /// </summary>
+        [Comment("權限時訖")]
+        public DateTime DateTo { get; set; }
+
+        /// <summary>
+        /// 權限等級 1  2  3
         /// </summary>
         [Required]
         public int PermissionLevel { get; set; }
 
-        public virtual List<TblRole> Roles { set; get; }
+        public virtual List<TblUser> Users { set; get; }
         //public virtual ICollection<TblRolePermission> RolePermissions { set; get; }
     }
 }

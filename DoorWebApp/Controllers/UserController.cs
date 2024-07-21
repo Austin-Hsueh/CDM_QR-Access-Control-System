@@ -451,12 +451,12 @@ namespace DoorWebApp.Controllers
         {
             var UserPermissions = ctx.TblUsers
                        .Include(x => x.Roles)
-                       .ThenInclude(x => x.Permissions)
+                       //.ThenInclude(x => x.Permissions)
                        .Where(x => x.Id == UserId)
                        .SelectMany(x =>
                            x.Roles.Where(y => y.IsDelete == false && y.IsEnable == true)
                        )
-                       .SelectMany(x => x.Permissions)
+                       //.SelectMany(x => x.Permissions)
                        .Select(x => x.Id)
                        .Distinct()
                        .OrderBy(x => x)

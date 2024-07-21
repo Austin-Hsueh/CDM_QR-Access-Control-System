@@ -35,7 +35,7 @@ namespace DoorWebApp.Controllers
             {
                 // 1. 撈出資料
                 var RoleList = ctx.TblRoles
-                    .Include(x=>x.Permissions)
+                    //.Include(x=>x.Permissions)
                     .Where(x => x.IsDelete == false)
                     .Select(x => new ResRoleInfoDTO()
                     {
@@ -44,7 +44,7 @@ namespace DoorWebApp.Controllers
                         creatorUserId = x.CreatorUserId,
                         isEnable = x.IsEnable,
                         description = x.Description,
-                        permissionIds = x.Permissions.Select(x => x.Id).ToList(),
+                        //permissionIds = x.Permissions.Select(x => x.Id).ToList(),
                         createTime = x.CreatedTime.ToString("yyyy-MM-dd HH:mm:ss")
                     })
                     .ToList();
@@ -63,7 +63,7 @@ namespace DoorWebApp.Controllers
                 res.msg = "success";
                 res.content = RoleList;
 
-                log.LogInformation($"[{Request.Path}] Role list query success! Total:{RoleList.Count}");
+                //log.LogInformation($"[{Request.Path}] Role list query success! Total:{RoleList.Count}");
 
                 return Ok(res);
             }
@@ -154,7 +154,7 @@ namespace DoorWebApp.Controllers
                     IsEnable = roleInfoDTO.isEnable,
                     ModifiedTime = DateTime.Now,
                     CanDelete = true,
-                    Permissions = RolePermissions
+                    //Permissions = RolePermissions
                 };
                 ctx.TblRoles.Add(NewRole);
                 log.LogInformation($"[{Request.Path}] Create Role : Name={NewRole.Name}, Description={NewRole.Description}, Permissions:{string.Join(";", RolePermissionIds)}");
@@ -212,7 +212,7 @@ namespace DoorWebApp.Controllers
                 }
 
                 // 2. 檢查目標權限角色是否存在
-                var RoleEntity = ctx.TblRoles.Include(x=>x.Permissions).FirstOrDefault(x => x.Id == RoleId);
+                var RoleEntity = ctx.TblRoles.FirstOrDefault(x => x.Id == RoleId);
                 if (RoleEntity == null)
                 {
                     log.LogWarning($"[{Request.Path}] Can not find role by id({RoleId})");
@@ -257,37 +257,37 @@ namespace DoorWebApp.Controllers
 
 
                 // 5. 比對權限清單(為了auditlog用)
-                List<int> RolePermissionsCurrent = RoleEntity.Permissions.Select(x => x.Id).ToList();
-                List<int> RolePermissionsAssign = roleInfoDTO.permissionIds;
+                //List<int> RolePermissionsCurrent = RoleEntity.Permissions.Select(x => x.Id).ToList();
+                //List<int> RolePermissionsAssign = roleInfoDTO.permissionIds;
 
-                List<int> PermissionIdToDelete = RolePermissionsCurrent.Except(RolePermissionsAssign).ToList();
-                List<int> PermissionIdToInsert = RolePermissionsAssign.Except(RolePermissionsCurrent).ToList();
+                //List<int> PermissionIdToDelete = RolePermissionsCurrent.Except(RolePermissionsAssign).ToList();
+                //List<int> PermissionIdToInsert = RolePermissionsAssign.Except(RolePermissionsCurrent).ToList();
 
-                log.LogInformation($"[{Request.Path}] PermissionIdToDelete : {string.Join(",", PermissionIdToDelete)}");
-                log.LogInformation($"[{Request.Path}] PermissionIdToInsert : {string.Join(",", PermissionIdToInsert)}");
-
-
-                // 6. 更新權限清單(如果需要的話)
-                if (PermissionIdToDelete.Count != 0 || PermissionIdToInsert.Count != 0)
-                {
-                    IsPropertyChange = true;
-
-                    var AssignPermissionEntities = ctx.TblPermissions
-                        .Where(x => RolePermissionsAssign.Contains(x.Id))
-                        .ToList();
-                    RoleEntity.Permissions.Clear();
-                    RoleEntity.Permissions.AddRange(AssignPermissionEntities);
-                }
-                else
-                {
-                    log.LogInformation($"[{Request.Path}] No need to modify permission list.");
-                }
+                //log.LogInformation($"[{Request.Path}] PermissionIdToDelete : {string.Join(",", PermissionIdToDelete)}");
+                //log.LogInformation($"[{Request.Path}] PermissionIdToInsert : {string.Join(",", PermissionIdToInsert)}");
 
 
-                // 6. 寫入資料庫
-                log.LogInformation($"[{Request.Path}] Save changes");
-                int EffectRow = ctx.SaveChanges();
-                log.LogInformation($"[{Request.Path}] Update success. (EffectRow:{EffectRow})");
+                //// 6. 更新權限清單(如果需要的話)
+                //if (PermissionIdToDelete.Count != 0 || PermissionIdToInsert.Count != 0)
+                //{
+                //    IsPropertyChange = true;
+
+                //    var AssignPermissionEntities = ctx.TblPermissions
+                //        .Where(x => RolePermissionsAssign.Contains(x.Id))
+                //        .ToList();
+                //    RoleEntity.Permissions.Clear();
+                //    RoleEntity.Permissions.AddRange(AssignPermissionEntities);
+                //}
+                //else
+                //{
+                //    log.LogInformation($"[{Request.Path}] No need to modify permission list.");
+                //}
+
+
+                //// 6. 寫入資料庫
+                //log.LogInformation($"[{Request.Path}] Save changes");
+                //int EffectRow = ctx.SaveChanges();
+                //log.LogInformation($"[{Request.Path}] Update success. (EffectRow:{EffectRow})");
 
 
 
@@ -295,7 +295,7 @@ namespace DoorWebApp.Controllers
                 res.result = APIResultCode.success;
                 res.msg = "success";
 
-                log.LogInformation($"[{Request.Path}] update role success : Id={RoleEntity.Id}, Name={RoleEntity.Name}, Description={RoleEntity.Description}, Permissions={string.Join(",", RolePermissionsAssign)}");
+                //log.LogInformation($"[{Request.Path}] update role success : Id={RoleEntity.Id}, Name={RoleEntity.Name}, Description={RoleEntity.Description}, Permissions={string.Join(",", RolePermissionsAssign)}");
 
                 if (IsPropertyChange)
                 {
