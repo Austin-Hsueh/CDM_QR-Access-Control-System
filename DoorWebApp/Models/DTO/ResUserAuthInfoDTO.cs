@@ -36,11 +36,5 @@ namespace DoorWebApp.Models.DTO
         /// 權限清單
         /// </summary>
         public List<int> permissionIds { get; set; }
-
-
-        /// <summary>
-        /// qrcode
-        /// </summary>
-        public string qrcode { get; set; }
     }
 }

@@ -45,6 +45,8 @@ namespace DoorWebDB.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     NameI18n = table.Column<string>(type: "longtext", nullable: false, comment: "權限項目名稱(i18n)")
                         .Annotation("MySql:CharSet", "utf8mb4"),
+                    IsEnable = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    IsDelete = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     DateFrom = table.Column<DateTime>(type: "datetime(6)", nullable: false, comment: "權限時間起"),
                     DateTo = table.Column<DateTime>(type: "datetime(6)", nullable: false, comment: "權限時訖"),
                     PermissionLevel = table.Column<int>(type: "int", nullable: false)
@@ -239,16 +241,16 @@ namespace DoorWebDB.Migrations
                 columns: new[] { "Id", "CanDelete", "CreatedTime", "CreatorUserId", "Description", "IsDelete", "IsEnable", "ModifiedTime", "Name" },
                 values: new object[,]
                 {
-                    { 1, false, new DateTime(2024, 7, 21, 9, 43, 35, 233, DateTimeKind.Local).AddTicks(1475), 1, "管理者", false, true, new DateTime(2024, 7, 21, 9, 43, 35, 233, DateTimeKind.Local).AddTicks(1477), "Admin" },
-                    { 2, false, new DateTime(2024, 7, 21, 9, 43, 35, 233, DateTimeKind.Local).AddTicks(1482), 1, "老師", false, true, new DateTime(2024, 7, 21, 9, 43, 35, 233, DateTimeKind.Local).AddTicks(1484), "User" },
-                    { 3, false, new DateTime(2024, 7, 21, 9, 43, 35, 233, DateTimeKind.Local).AddTicks(1487), 1, "學生", false, true, new DateTime(2024, 7, 21, 9, 43, 35, 233, DateTimeKind.Local).AddTicks(1489), "User" },
-                    { 4, false, new DateTime(2024, 7, 21, 9, 43, 35, 233, DateTimeKind.Local).AddTicks(1491), 1, "值班人員", false, true, new DateTime(2024, 7, 21, 9, 43, 35, 233, DateTimeKind.Local).AddTicks(1493), "User" }
+                    { 1, false, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7569), 1, "管理者", false, true, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7570), "Admin" },
+                    { 2, false, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7573), 1, "老師", false, true, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7574), "User" },
+                    { 3, false, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7576), 1, "學生", false, true, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7577), "User" },
+                    { 4, false, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7579), 1, "值班人員", false, true, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7580), "User" }
                 });
 
             migrationBuilder.InsertData(
                 table: "tblUser",
                 columns: new[] { "Id", "AccountType", "CreateTime", "DisplayName", "Email", "IsDelete", "IsEnable", "LastLoginIP", "LastLoginTime", "ModifiedTime", "Secret", "Username", "locale" },
-                values: new object[] { 51, "LOCAL", new DateTime(2024, 7, 21, 9, 43, 35, 233, DateTimeKind.Local).AddTicks(1452), "Administrator", "", false, true, "", null, new DateTime(2024, 7, 21, 9, 43, 35, 233, DateTimeKind.Local).AddTicks(1466), "1qaz2wsx", "admin", 1 });
+                values: new object[] { 51, "LOCAL", new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7552), "Administrator", "", false, true, "", null, new DateTime(2024, 7, 21, 12, 41, 29, 88, DateTimeKind.Local).AddTicks(7563), "1qaz2wsx", "admin", 1 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_TblPermissionTblUser_UsersId",

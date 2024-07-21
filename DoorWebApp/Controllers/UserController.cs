@@ -124,9 +124,8 @@ namespace DoorWebApp.Controllers
                     username = targetUserEntity.Username,
                     displayName = targetUserEntity.DisplayName,
                     token = token,
-                    locale = targetUserEntity.locale,
-                    permissionIds = UserPermissions,
-                    qrcode = "QRcode"
+                    locale = targetUserEntity.locale
+                    //permissionIds = UserPermissions
                 };
 
                 return Ok(res);
@@ -192,6 +191,64 @@ namespace DoorWebApp.Controllers
 
 
         /// <summary>
+        /// 取得使用者權限跟Qrcode
+        /// </summary>
+        /// <returns></returns>
+        [Authorize]
+        [HttpGet("v1/User/Permission")]
+        public IActionResult Permission()
+        {
+            APIResponse<ResUserAuthInfoDTO> res = new APIResponse<ResUserAuthInfoDTO>();
+
+            try
+            {
+                int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+                string OperatorUsername = User.Identity?.Name ?? "N/A";
+                log.LogInformation($"[{Request.Path}] Refresh token : id={OperatorId}, username={OperatorUsername})");
+
+
+                // 1. 資料檢核
+                var targetUserEntity = ctx.TblUsers.Where(x => x.Id == OperatorId).FirstOrDefault();
+                if (targetUserEntity == null)
+                {
+                    log.LogWarning($"[{Request.Path}] User (Id:{OperatorId}) not found");
+                    res.result = APIResultCode.user_not_found;
+                    res.msg = "查無使用者";
+                    return Ok(res);
+                }
+
+
+                // 2. 撈取使用者門禁權限清單
+                var UserPermissions = GetUserPermissionListByUserId(targetUserEntity.Id);
+
+                res.result = APIResultCode.success;
+                res.msg = "refresh_success";
+                res.content = new ResUserAuthInfoDTO
+                {
+                    userId = targetUserEntity.Id,
+                    username = targetUserEntity.Username,
+                    displayName = targetUserEntity.DisplayName,
+                    //token = token,
+                    locale = targetUserEntity.locale,
+                    //permissionIds = UserPermissions
+                };
+
+
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
+
+
+
+        /// <summary>
         /// 取得使用者基本資訊(使用Bearer Token(JWT)區分使用者)
         /// </summary>
         /// <returns></returns>
@@ -236,8 +293,8 @@ namespace DoorWebApp.Controllers
                     username = targetUserEntity.Username,
                     displayName = targetUserEntity.DisplayName,
                     token = token,
-                    locale = targetUserEntity.locale,
-                    permissionIds = UserPermissions
+                    locale = targetUserEntity.locale
+                    //permissionIds = UserPermissions
                 };
 
 
@@ -375,7 +432,7 @@ namespace DoorWebApp.Controllers
 
                 res.result = APIResultCode.success;
                 res.msg = "success";
-                res.content = UserPermissions;
+                //res.content = UserPermissions;
 
                 return Ok(res);
             }
@@ -447,22 +504,23 @@ namespace DoorWebApp.Controllers
         /// 取得使用者權限Id清單
         /// </summary>
         /// <returns></returns>
-        private List<int> GetUserPermissionListByUserId(int UserId)
+        private List<PermissionDTO> GetUserPermissionListByUserId(int UserId)
         {
+            List<PermissionDTO> result = new List<PermissionDTO>();
             var UserPermissions = ctx.TblUsers
-                       .Include(x => x.Roles)
-                       //.ThenInclude(x => x.Permissions)
+                       .Include(x => x.Permissions)
+                       .ThenInclude(x => x.PermissionGroupId)
                        .Where(x => x.Id == UserId)
                        .SelectMany(x =>
+                           
                            x.Roles.Where(y => y.IsDelete == false && y.IsEnable == true)
                        )
-                       //.SelectMany(x => x.Permissions)
                        .Select(x => x.Id)
                        .Distinct()
                        .OrderBy(x => x)
                        .ToList();
 
-            return UserPermissions;
+            return result;
         }
     }
 }
