@@ -25,5 +25,18 @@
             int month = MonthInteger % 100;
             return new DateTime(year, month, 1, 0, 0, 0);
         }
+
+        /// <summary>
+        /// "2124/07/21 12:13"  轉成 "2025-07-21T12:13:00"
+        /// </summary>
+        /// <param name="MonthInt"></param>
+        /// <returns></returns>
+        public static DateTime ToDateTimeFromStr(string dateString)
+        {
+            string format = "yyyy/MM/dd HH:mm";
+            DateTime dateTime;
+            DateTime.TryParseExact(dateString, format, null, System.Globalization.DateTimeStyles.None, out dateTime);
+            return dateTime;
+        }
     }
 }

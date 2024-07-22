@@ -17,6 +17,8 @@ using Microsoft.Extensions.Caching.Memory;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
+using DoorWebApp.Extensions;
+using System;
 
 namespace DoorWebApp.Controllers
 {
@@ -128,6 +130,53 @@ namespace DoorWebApp.Controllers
                     token = token
                     //permissionIds = UserPermissions
                 };
+
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
+        /// <summary>
+        /// 取得使用者清單(含角色資訊)
+        /// </summary>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [HttpGet("v1/Users1")]
+        public async Task<IActionResult> GetAllUsersWithRoles1()
+        {
+            APIResponse<List<ResGetAllUsersDTO>> res = new APIResponse<List<ResGetAllUsersDTO>>();
+
+            try
+            {
+                string format = "yyyy/MM/dd HH:mm";
+                var UserList = ctx.TblUsers
+                    .Include(x => x.Roles)
+                    .Where(x => x.IsDelete == false)
+                    .Select(x => new UserAccessProfile()
+                    {
+                        userAddr = (ushort)x.Id,
+                        isGrant = true,
+                        doorList = x.Permission.PermissionGroups
+                        .Select(y => y.Id).ToList(),
+                        beginTime = DateTimeExtension.ToDateTimeFromStr(x.Permission.DateFrom.ToString() + " " + x.Permission.TimeFrom.ToString()),
+                        endTime = DateTimeExtension.ToDateTimeFromStr(x.Permission.DateTo.ToString() + " " + x.Permission.TimeTo.ToString())
+                    })
+                    .ToList();
+      
+                var result = await SoyalAPI.SendUserAccessProfilesAsync(UserList);
+                return Ok("Profiles sent successfully.");
+                
+
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                //res.content = UserList;
+                //res.content = UserList;
 
                 return Ok(res);
             }
@@ -478,6 +527,14 @@ namespace DoorWebApp.Controllers
                 log.LogInformation($"[{Request.Path}] Create success. (EffectRow:{EffectRow})");
 
                 //5.寫入到門禁
+                //var client = new HttpClient();
+                //var request = new HttpRequestMessage(HttpMethod.Post, "http://127.0.0.1:1029/api/v1/UserAccessProfile");
+                //var content = new StringContent("{\r\n    \"profiles\" : [\r\n        { \r\n            \"userAddr\" : 200,\r\n            \"isGrant\": true,\r\n            \"doorList\": [1,2,3,4],\r\n            \"beginTime\": \"2024-07-22T13:00:00\",\r\n            \"endTime\": \"2025-07-22T15:25:00\"\r\n        },\r\n         { \r\n            \"userAddr\" : 201,\r\n            \"isGrant\": true,\r\n            \"doorList\": [1,2,3,4],\r\n            \"beginTime\": \"2024-07-22T13:00:00\",\r\n            \"endTime\": \"2025-07-22T15:25:00\"\r\n        }\r\n    ]\r\n}", null, "application/json");
+                //request.Content = content;
+                //var response = await client.SendAsync(request);
+                //response.EnsureSuccessStatusCode();
+                //Console.WriteLine(await response.Content.ReadAsStringAsync());
+
 
                 // 6. 回傳結果
                 res.result = APIResultCode.success;
