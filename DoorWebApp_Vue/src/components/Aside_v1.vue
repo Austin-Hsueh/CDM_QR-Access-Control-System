@@ -28,38 +28,38 @@
 
     <el-sub-menu
       index="2"
-      :disabled="!userInfoStore.permissions.some((x) => [210, 220, 231, 232, 241, 242, 310, 320, 331, 332, 341, 342].includes(x))"
+      
     >
       <template #title>
         <el-icon><Postcard class="m-0" /></el-icon>
         <span>{{ t("database_maintenance") }}</span>
       </template>
-      <el-menu-item index="/period_mgmt" :disabled="!userInfoStore.permissions.some((x) => [210, 220, 231, 232, 241, 242].includes(x))">{{
+      <el-menu-item index="/period_mgmt" >{{
         t("project_code")
       }}</el-menu-item>
-      <el-menu-item index="/pjcode_mgmt" :disabled="!userInfoStore.permissions.some((x) => [210, 220, 231, 232, 241, 242].includes(x))">{{
+      <el-menu-item index="/pjcode_mgmt" >{{
         t("TPS_team_code")
       }}</el-menu-item>
-      <el-menu-item index="/kaizen_new" :disabled="!userInfoStore.permissions.some((x) => x === 320)">
+      <el-menu-item index="/kaizen_new" >
         {{ t("create_kaizen_strategy") }}
       </el-menu-item>
-      <el-menu-item index="/kaizen_list" :disabled="!userInfoStore.permissions.some((x) => [310, 331, 332, 341, 342].includes(x))">
+      <el-menu-item index="/kaizen_list" >
         {{ t("modify_kaizen_strategy") }}
       </el-menu-item>
-      <el-menu-item index="/topPNInfo" :disabled="!userInfoStore.permissions.some((x) => [210, 220, 231, 232, 241, 242].includes(x))">
+      <el-menu-item index="/topPNInfo" >
         {{ t("create_new_part_no") }}
       </el-menu-item>
     </el-sub-menu>
 
-    <el-sub-menu index="3" :disabled="!userInfoStore.permissions.some((x) => [410, 420, 430, 440, 510, 520, 530, 540].includes(x))">
+    <el-sub-menu index="3" >
       <template #title>
         <el-icon><Setting class="m-0" /></el-icon>
         <span>{{ t("System_Settings") }}</span>
       </template>
-      <el-menu-item index="/ddl_mgmt" :disabled="!userInfoStore.permissions.some((x) => [410, 420, 430, 440].includes(x))">{{
+      <el-menu-item index="/ddl_mgmt" >{{
         t("add_del_items")
       }}</el-menu-item>
-      <el-menu-item index="/account_mgmt" :disabled="!userInfoStore.permissions.some((x) => [510, 520, 530, 540].includes(x))">{{
+      <el-menu-item index="/account_mgmt" >{{
         t("administration_authority")
       }}</el-menu-item>
     </el-sub-menu>

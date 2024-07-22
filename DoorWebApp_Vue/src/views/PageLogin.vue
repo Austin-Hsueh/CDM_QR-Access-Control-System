@@ -135,7 +135,6 @@ export default defineComponent({
           userInfoStore.userId = signinResult.userId;
           userInfoStore.username = signinResult.username;
           userInfoStore.displayName = signinResult.displayName;
-          userInfoStore.permissions = signinResult.permissionIds;
 
           //轉至主畫面
           router.replace({ path: "/" });

@@ -168,34 +168,34 @@ router.beforeEach(async (to, from) => {
   let IsGrant = true;
   switch (to.path) {
     case "/report_performance": //TPS改善成效 - 效益追蹤表
-      IsGrant = userPermission.some((x) => x === 110);
+      IsGrant = true;
       break;
 
     case "/report_manuf": // TPS改善資料庫 - 改善對策查詢
-      IsGrant = userPermission.some((x) => x === 210);
+      IsGrant = true;
       break;
 
     case "/kaizen_new": //資料庫維護 - 新增改善方案
-      IsGrant = userPermission.some((x) => x === 310);
+      IsGrant = true;
       break;
     case "/kaizen_list": //資料庫維護 - 改善對策修改
-      IsGrant = userPermission.some((x) => x === 310);
+      IsGrant = true;
       break;
     case "/topPNInfo": //資料庫維護 - 水平展開料號
-      IsGrant = userPermission.some((x) => x === 310);
+      IsGrant = true;
       break;
 
     case "/ddl_mgmt": //系統設定 - 新增/刪除項目
-      IsGrant = userPermission.some((x) => x === 410);
+      IsGrant = true;
       break;
     case "/period_mgmt": //系統設定 - 帳號設定頁
-      IsGrant = userPermission.some((x) => x === 410);
+      IsGrant = true;
       break;
     case "/pjcode_mgmt": //系統設定 - 組別代碼建立
-      IsGrant = userPermission.some((x) => x === 410);
+      IsGrant = true;
       break;
     case "/account_mgmt": //系統設定 - 帳號權限管理
-      IsGrant = userPermission.some((x) => x === 410);
+      IsGrant = true;
       break;
     case "/news":
       IsGrant = true;

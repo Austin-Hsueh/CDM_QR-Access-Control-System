@@ -85,6 +85,19 @@ namespace DoorWebApp
                     };
 
                 });
+
+            // Add CORS policy
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAllOrigins",
+                    builder =>
+                    {
+                        builder.AllowAnyOrigin()
+                               .AllowAnyMethod()
+                               .AllowAnyHeader();
+                    });
+            });
+
             #endregion
 
             #region App middleware
@@ -115,6 +128,8 @@ namespace DoorWebApp
             app.UseStaticFiles();
             app.UseRouting();
 
+            app.UseCors("AllowAllOrigins");
+
             app.UseAuthentication();
             if (app.Environment.IsDevelopment())
                 app.UseHttpsRedirection();
@@ -126,7 +141,7 @@ namespace DoorWebApp
                 endpoints.MapControllers();
             });
 
-            
+
 
 
             //於開發環境下可直接對接vue server (npm run serve)

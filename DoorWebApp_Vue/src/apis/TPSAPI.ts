@@ -7,6 +7,7 @@ import { useRouter } from "vue-router";
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import IReqLoginDTO from "@/models/dto/IReqLoginDTO";
 import IResUserAuthInfoDTO from "@/models/dto/IResUserAuthInfoDTO";
+import IResUserLoginDTO from "@/models/dto/IResUserLoginDTO";
 import IResManufMethodDTO from "@/models/dto/IResManufMethodDTO";
 import IReqManufMethodDTO from "@/models/dto/IReqManufMethodDTO";
 import IReqManufMethodProjectListDTO from "../models/dto/IReqReportManufKaizenListSearchCriteriaDTO";
@@ -49,7 +50,7 @@ class APIService {
     //const userInfoStore = useUserInfoStore();
 
     this.axiosInstance = axios.create({
-      baseURL: "/api",
+      baseURL: "http://localhost:8080/api",
     });
 
     this.axiosInstance.interceptors.request.use((config) => {
@@ -89,7 +90,7 @@ class APIService {
   //#region UserController : 使用者相關
   /** 使用者登入 */
   login(secret: IReqLoginDTO) {
-    return this.axiosInstance.post<IAPIResponse<IResUserAuthInfoDTO>>("v1/User/login", secret);
+    return this.axiosInstance.post<IAPIResponse<IResUserLoginDTO>>("v1/User/login", secret);
   }
 
   /** 取得使用者基本資訊(使用Bearer Token(JWT)區分使用者) */
