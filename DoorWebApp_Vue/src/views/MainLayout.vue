@@ -19,7 +19,7 @@
 <script lang="ts">
 import { defineComponent, toRefs, reactive, onMounted } from "vue";
 import Header from "@/components/Header.vue";
-import Aside from "@/components/Aside_v2.vue";
+import Aside from "@/components/Aside_v1.vue";
 export default defineComponent({
   components: {
     Header,

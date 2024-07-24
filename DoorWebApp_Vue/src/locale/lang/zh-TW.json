@@ -298,5 +298,15 @@
   "vender_lt_performance": "供應商L/T減少效益",
   "co2_emission": "碳排放",
   "database_maintain": "資料庫維護",
-  "pcs": "個"
+  "pcs": "個",
+
+
+
+  "_comment": "以下開始為音樂教室用",
+  "Access Control": "門禁管理",
+  "QRcode": "QRcode",
+  "Temporary QRcode": "臨時 QRcode",
+  "Account_Mgmt_Music": "帳號管理"
+
+
 }

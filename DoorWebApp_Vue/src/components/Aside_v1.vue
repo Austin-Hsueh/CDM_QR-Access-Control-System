@@ -12,58 +12,22 @@
     text-color="#fff"
     active-text-color="#ffd04b"
   >
-  <el-menu-item index="/news">
-      <el-icon><MagicStick /></el-icon>
-      <span>{{ t("news") }}</span>
+    <el-menu-item index="/accesscontrol">
+        <el-icon><Edit /></el-icon>
+        <span>{{ t("Access Control") }}</span>
     </el-menu-item>
-    
-    <el-sub-menu index="1">
-      <template #title>
-        <el-icon><Collection class="m-0" /></el-icon>
-        <span>{{ t("TPS_Kaizen_Database") }}</span>
-      </template>
-      <el-menu-item index="/report_manuf">{{ t("search_for_kaizen_strategy") }}</el-menu-item>
-      <el-menu-item index="/report_1">{{t('TPS_Performance_Tracking')}}</el-menu-item>
-    </el-sub-menu>
-
-    <el-sub-menu
-      index="2"
-      
-    >
-      <template #title>
-        <el-icon><Postcard class="m-0" /></el-icon>
-        <span>{{ t("database_maintenance") }}</span>
-      </template>
-      <el-menu-item index="/period_mgmt" >{{
-        t("project_code")
-      }}</el-menu-item>
-      <el-menu-item index="/pjcode_mgmt" >{{
-        t("TPS_team_code")
-      }}</el-menu-item>
-      <el-menu-item index="/kaizen_new" >
-        {{ t("create_kaizen_strategy") }}
-      </el-menu-item>
-      <el-menu-item index="/kaizen_list" >
-        {{ t("modify_kaizen_strategy") }}
-      </el-menu-item>
-      <el-menu-item index="/topPNInfo" >
-        {{ t("create_new_part_no") }}
-      </el-menu-item>
-    </el-sub-menu>
-
-    <el-sub-menu index="3" >
-      <template #title>
-        <el-icon><Setting class="m-0" /></el-icon>
-        <span>{{ t("System_Settings") }}</span>
-      </template>
-      <el-menu-item index="/ddl_mgmt" >{{
-        t("add_del_items")
-      }}</el-menu-item>
-      <el-menu-item index="/account_mgmt" >{{
-        t("administration_authority")
-      }}</el-menu-item>
-    </el-sub-menu>
-
+    <el-menu-item index="/qrcode">
+        <el-icon><Open /></el-icon>
+        <span>{{ t("QRcode") }}</span>
+    </el-menu-item>
+    <el-menu-item index="/temporaryqrcode">
+        <el-icon><MagicStick /></el-icon>
+        <span>{{ t("Temporary QRcode") }}</span>
+    </el-menu-item>
+    <el-menu-item index="/accountMgmt">
+        <el-icon><Setting /></el-icon>
+        <span>{{ t("Account_Mgmt_Music") }}</span>
+    </el-menu-item>
   </el-menu>
 </template>
 

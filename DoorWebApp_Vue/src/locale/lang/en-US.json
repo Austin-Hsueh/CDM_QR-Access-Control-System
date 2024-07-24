@@ -244,5 +244,13 @@
   "lt_performance": "Process L/T Perf.",
   "vender_lt_performance": "Vender L/T Prof.",
   "co2_emission": "CO2 Emission",
-  "pcs": "pcs."
+  "pcs": "pcs.",
+  
+
+
+  "_comment": "以下開始為音樂教室用",
+  "Access Control": "Access Control",
+  "QRcode": "QRcode",
+  "Temporary QRcode": "Temporary QRcode",
+  "Account_Mgmt_Music": "Accounts"
 }

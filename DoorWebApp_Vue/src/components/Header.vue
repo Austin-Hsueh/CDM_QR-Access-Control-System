@@ -28,7 +28,6 @@
             <el-dropdown-menu>
               <el-dropdown-item @click="onLangSelectChanged(LocaleType.en_us)"> English </el-dropdown-item>
               <el-dropdown-item @click="onLangSelectChanged(LocaleType.zh_tw)"> 繁體中文 </el-dropdown-item>
-              <el-dropdown-item @click="onLangSelectChanged(LocaleType.zh_cn)"> 简体中文 </el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>

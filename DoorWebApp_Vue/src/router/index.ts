@@ -16,6 +16,11 @@ import { useUserInfoStore } from "@/stores/UserInfoStore";
 import API from "@/apis/TPSAPI";
 import { APIResultCode } from "@/models/enums/APIResultCode";
 
+import AccessControl from '@/views/MusicAccessControl.vue';
+import QRcode from '@/views/MusicQRcode.vue';
+import MusicTemporaryQRcode from '@/views/MusicTemporaryQRcode.vue';
+import MusicAccountMgmt from '@/views/MusicAccountMgmt.vue';
+
 const routes: Array<RouteRecordRaw> = [
   {
     path: "/Login",
@@ -25,7 +30,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
     name: "root",
-    redirect: "/news",
+    redirect: "/qrcode",
     component: MainLayout,
     children: [
       {
@@ -87,6 +92,26 @@ const routes: Array<RouteRecordRaw> = [
         name: "news",
         component: PageBillboard,
       },
+      {
+        path: "accesscontrol",
+        name: "accesscontrol",
+        component: AccessControl,
+      },
+      {
+        path: "qrcode",
+        name: "qrcode",
+        component: QRcode,
+      },
+      {
+        path: "temporaryqrcode",
+        name: "temporaryqrcode",
+        component: MusicTemporaryQRcode,
+      },
+      {
+        path: "accountMgmt",
+        name: "accountMgmt",
+        component: MusicAccountMgmt,
+      }
     ],
   },
   // {

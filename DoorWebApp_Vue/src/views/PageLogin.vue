@@ -4,7 +4,7 @@
       <div class="d-flex flex-column justify-content-start align-items-center mb-3">
         <!-- <img class="mf-box-logo" src="../assets/Logo_01.png" alt="Logo" /> -->
         <!-- <img class="box-logo w-100 mt-3" src="../assets/logo.png" alt="Logo" /> -->
-        <span class="box-title my-2"></span>
+        <span class="box-title my-2">123456</span>
         <el-form @submit.prevent :model="loginData" :rules="loginFormRules" ref="loginForm">
           <el-form-item prop="username">
             <el-input
@@ -29,13 +29,12 @@
               tabindex="2"
             ></el-input>
           </el-form-item>
-          <!-- <el-form-item>
+          <el-form-item>
             <el-select class="w-100" v-model="loginData.locale" @change="onLangSelectChanged" :placeholder="t('select_language')">
               <el-option value="en_us" label="English" />
               <el-option value="zh_tw" label="繁體中文" />
-              <el-option value="zh_cn" label="简体中文" />
             </el-select>
-          </el-form-item> -->
+          </el-form-item>
           <el-form-item>
             <el-checkbox v-model="loginData.isKeepLogin">{{ t("Remember_me") }}</el-checkbox>
           </el-form-item>
@@ -129,6 +128,7 @@ export default defineComponent({
 
           //signin success!
           const signinResult = signinResponse.data.content;
+          console.log(signinResponse.data);
           console.log(`token:${signinResponse.data.content}`);
 
           userInfoStore.setToken(signinResult.token, state.loginData.isKeepLogin);
