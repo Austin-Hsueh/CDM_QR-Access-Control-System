@@ -589,7 +589,7 @@ namespace DoorWebApp.Controllers
                 int UserId = User.Claims.Where(x => x.Type == "Id").Select(x=>int.Parse(x.Value)).FirstOrDefault();
                 string OperatorUsername = User.Identity?.Name?? "N/A";
 
-                log.LogInformation($"[{Request.Path}] Update user roles. UserId:{UserId}");
+                log.LogInformation($"[{Request.Path}] Update user. UserId:{UserId}");
                 // 1. 資料檢核
                 var UserEntity = ctx.TblUsers.Include(x=> x.Roles).Where(x => x.Id == UserId).FirstOrDefault();
                 if (UserEntity == null)
@@ -761,16 +761,17 @@ namespace DoorWebApp.Controllers
         /// <param name="UserId"></param>
         /// <param name=""></param>
         /// <returns></returns>
-        [HttpPatch("v1/User/Permission/{UserId}")]
-        public IActionResult UpdateUserPerMission(int UserId, PermissionDTO PermissionDTO)
+        [Authorize]
+        [HttpPatch("v1/User/Permission")]
+        public IActionResult UpdateUserPerMission(ReqPermissionDTO PermissionDTO)
         {
             APIResponse res = new APIResponse();
             try
             {
-                int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+                int UserId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
                 string OperatorUsername = User.Identity?.Name ?? "N/A";
 
-                log.LogInformation($"[{Request.Path}] Update user roles. UserId:{UserId}");
+                log.LogInformation($"[{Request.Path}] Update user 門禁的門. UserId:{UserId}");
                 // 1. 資料檢核
                 var UserEntity = ctx.TblUsers.Include(x => x.Roles).Where(x => x.Id == UserId).FirstOrDefault();
                 if (UserEntity == null)
@@ -787,7 +788,7 @@ namespace DoorWebApp.Controllers
 
                 // 2. 更新資料
                 //更新角色
-                var AssignPermissionEntities = ctx.TblPermission.Where(x => x.UserId == UserId).First();
+                var AssignPermissionEntities = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == UserId).First();
                 AssignPermissionEntities.DateFrom = PermissionDTO.datefrom;
                 AssignPermissionEntities.DateTo = PermissionDTO.dateto;
                 AssignPermissionEntities.TimeFrom = PermissionDTO.timefrom;
@@ -795,7 +796,7 @@ namespace DoorWebApp.Controllers
                 AssignPermissionEntities.Days = string.Join(",", PermissionDTO.days);
 
                 AssignPermissionEntities.PermissionGroups.Clear();
-                var permissionGroups = ctx.TblPermissionGroup.Where(x => PermissionDTO.permissions.Contains(x.Id)).ToList();
+                var permissionGroups = ctx.TblPermissionGroup.Where(x => PermissionDTO.groupIds.Contains(x.Id)).ToList();
                 AssignPermissionEntities.PermissionGroups.AddRange(permissionGroups);
 
                 // 3. 存檔
@@ -804,7 +805,7 @@ namespace DoorWebApp.Controllers
                 log.LogInformation($"[{Request.Path}] Update success. (EffectRow:{EffectRow})");
 
                 // 4. 寫入稽核紀錄
-                auditLog.WriteAuditLog(AuditActType.Modify, $"Update user  Permission:{string.Join(",", PermissionDTO.permissions)}, EffectRow:{EffectRow}", OperatorUsername);
+                auditLog.WriteAuditLog(AuditActType.Modify, $"Update user  Permission:{string.Join(",", PermissionDTO.groupIds)}, EffectRow:{EffectRow}", OperatorUsername);
 
                 res.result = APIResultCode.success;
                 res.msg = "success";
