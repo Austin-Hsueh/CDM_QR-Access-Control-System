@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using DoorDB;
 using DoorDB.Enums;
 using DoorWebApp.Models.DTO;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DoorWebApp.Controllers
 {
@@ -77,6 +78,55 @@ namespace DoorWebApp.Controllers
         }
 
 
-        
+        /// <summary>
+        /// 取得單一角色Id
+        /// </summary>
+        /// <returns></returns>
+        [Authorize]
+        [HttpGet("/api/v1/User/Roleid")]
+        public IActionResult GetUserRoleId()
+        {
+            APIResponse<ResRoleIdDTO> res = new APIResponse<ResRoleIdDTO>();
+            
+            try
+            {
+                // 1. 撈出資料
+                int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+                string OperatorUsername = User.Identity?.Name ?? "N/A";
+                log.LogInformation($"[{Request.Path}] /api/v1/User/Roleid : id={OperatorId}, username={OperatorUsername})");
+
+
+                // 2. 資料檢核
+                var targetUserEntity = ctx.TblUsers.Include(x => x.Roles).Where(x => x.Id == OperatorId).FirstOrDefault();
+                if (targetUserEntity == null)
+                {
+                    log.LogWarning($"[{Request.Path}] User (Id:{OperatorId}) not found");
+                    res.result = APIResultCode.user_not_found;
+                    res.msg = "查無使用者";
+                    return Ok(res);
+                }
+
+                // 3. 回傳結果
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                res.content = new ResRoleIdDTO()
+                {
+                    roleId = targetUserEntity.Id
+                };
+
+                //log.LogInformation($"[{Request.Path}] Role list query success! Total:{RoleList.Count}");
+
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
+
     }
 }

@@ -253,11 +253,11 @@ namespace DoorWebApp.Controllers
             {
                 int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
                 string OperatorUsername = User.Identity?.Name ?? "N/A";
-                log.LogInformation($"[{Request.Path}] Refresh token : id={OperatorId}, username={OperatorUsername})");
+                log.LogInformation($"[{Request.Path}] v1/User/Permission : id={OperatorId}, username={OperatorUsername})");
 
 
                 // 1. 資料檢核
-                var targetUserEntity = ctx.TblUsers.Where(x => x.Id == OperatorId).FirstOrDefault();
+                var targetUserEntity = ctx.TblUsers.Include(x => x.Permission).ThenInclude(x => x.PermissionGroups).Where(x => x.Id == OperatorId).FirstOrDefault();
                 if (targetUserEntity == null)
                 {
                     log.LogWarning($"[{Request.Path}] User (Id:{OperatorId}) not found");
