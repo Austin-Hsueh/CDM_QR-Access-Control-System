@@ -215,6 +215,8 @@ namespace DoorWebApp.Controllers
                         roleName = x.Roles.FirstOrDefault().Name,
                         permissionNames = x.Permission.PermissionGroups
                         .Select(y =>  y.Name).ToList(),
+                        password = x.Secret,
+                        phone = x.Phone,
                         accessTime = x.Permission.DateFrom.ToString() + x.Permission.TimeFrom.ToString() + "~" + x.Permission.DateTo.ToString() + x.Permission.TimeTo.ToString(),
                         accessDays = x.Permission.Days.Replace("1", "周一").Replace("2", "周二").Replace("3", "周三").Replace("4", "周四").Replace("5", "周五").Replace("6", "周六").Replace("7", "周日"),
                     })
