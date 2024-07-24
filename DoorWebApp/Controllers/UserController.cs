@@ -409,8 +409,8 @@ namespace DoorWebApp.Controllers
         /// </summary>
         /// <param name="SiteDTO"></param>
         /// <returns></returns>
-        [HttpPost("v1/Users")]
-        public async Task<IActionResult> AddUser(ReqUserInfoDTO UserDTO)
+        [HttpPost("v1/User")]
+        public async Task<IActionResult> AddUser(ReqNewUserDTO UserDTO)
         {
             APIResponse res = new APIResponse();
             log.LogInformation($"[{Request.Path}] AddUser Request : {UserDTO.username}");
@@ -446,9 +446,9 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
                 //角色Id
-                if (UserDTO.roleId == null || UserDTO.roleId == 0)
+                if (UserDTO.roleid == null || UserDTO.roleid == 0)
                 {
-                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.roleId})");
+                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.roleid})");
                     res.result = APIResultCode.roleid_is_required;
                     res.msg = "roleid_is_required";
                     return Ok(res);
@@ -475,11 +475,12 @@ namespace DoorWebApp.Controllers
                                                .FirstOrDefault(x => x.Username == UserDTO.username);
                 if (tblUser != null)
                 {
-                    log.LogWarning($"[{Request.Path}] Duplicate password");
+                    log.LogWarning($"[{Request.Path}] Duplicate username");
                     res.result = APIResultCode.duplicate_password;
                     res.msg = "duplicate_password";
                     return Ok(res);
                 }
+
 
 
                 // 2. 新增使用者
@@ -497,37 +498,37 @@ namespace DoorWebApp.Controllers
                 NewUser.LastLoginTime = null;
                 NewUser.CreateTime = DateTime.Now;
                 NewUser.ModifiedTime = DateTime.Now;
-                ctx.TblUsers.Add(NewUser);
-                log.LogInformation($"[{Request.Path}] Create User : Name={NewUser.Username}, DisplayName={NewUser.DisplayName}");
 
-                // 3-1. 新增角色關聯,再加到使用者
-                TblRole tblRole = ctx.TblRoles.Where(x => x.IsDelete == false)
-                                            .First(x => x.Id == UserDTO.roleId);
-                tblRole.Users.Add(NewUser);    
-                log.LogInformation($"[{Request.Path}] Add NewUser to Role : Name={tblRole.Name}, RoleId={tblRole.Id}");
+                //3-1. 新增角色關聯,再加到使用者
+                List<TblRole> Roles = ctx.TblRoles.Where(x => x.IsDelete == false)
+                                            .Where(x => x.Id == UserDTO.roleid).ToList();
+                NewUser.Roles = Roles;
+                ctx.TblUsers.Add(NewUser);
+                ctx.SaveChanges(); // Save user to generate UserId
+                log.LogInformation($"[{Request.Path}] Create User : Name={NewUser.Username}, DisplayName={NewUser.DisplayName}");
 
 
                 // 3-2. 新增門禁,再加到使用者
-                UserDTO.permissions.ForEach(delegate (int groupId)
-                {
-                    //新增門禁權限關聯,再加到使用者
-                    List<TblPermissionGroup> tblPermissionGroup = ctx.TblPermissionGroup.Where(x => x.Id == groupId).ToList();
-                    TblPermission NewPermission = new TblPermission();
-                    NewPermission.IsEnable = false;
-                    NewPermission.IsDelete = false;
-                    NewPermission.DateFrom = "2024/07/20";
-                    NewPermission.DateTo = "2024/07/20";
-                    NewPermission.TimeFrom = "09:00";
-                    NewPermission.TimeTo = "21:00";
-                    NewPermission.Days = "";
-                    NewPermission.PermissionLevel = 1;
-                   
-                    log.LogInformation($"[{Request.Path}] Create Permission : TblPermissionGroupId={groupId}");
-                    ctx.TblPermission.Add(NewPermission);
-                    NewPermission.PermissionGroups.AddRange(tblPermissionGroup);
-                });
-
                 
+                //新增門禁權限關聯,再加到使用者
+                List<TblPermissionGroup> tblPermissionGroup = ctx.TblPermissionGroup.Where(x => UserDTO.groupIds.Contains( x.Id )).ToList();
+                TblPermission NewPermission = new TblPermission();
+                NewPermission.IsEnable = true;
+                NewPermission.IsDelete = false;
+                NewPermission.DateFrom = "2024/07/20";
+                NewPermission.DateTo = "2024/07/20";
+                NewPermission.TimeFrom = "09:00";
+                NewPermission.TimeTo = "21:00";
+                NewPermission.Days = "";
+                NewPermission.PermissionLevel = 1;
+                NewPermission.PermissionGroups = tblPermissionGroup;
+                // Set the UserId for the new permission using the newly created user's UserId
+                NewPermission.UserId = NewUser.Id;
+
+                ctx.TblPermission.Add(NewPermission);
+                log.LogInformation($"[{Request.Path}] Create Permission : TblPermissionGroupIds Count={UserDTO.groupIds.Count}");
+                    
+                    
 
                 // 4. 寫入資料庫
                 log.LogInformation($"[{Request.Path}] Save changes");
@@ -552,6 +553,16 @@ namespace DoorWebApp.Controllers
 
                 return Ok(res);
             }
+            catch (DbUpdateException ex)
+            {
+                // Log the detailed error message
+                var errorMessage = ex.InnerException?.Message ?? ex.Message;
+                Console.WriteLine($"Error: {errorMessage}");
+                // You can also log this to a file or another logging system
+                res.result = APIResultCode.unknow_error;
+                res.msg = ex.Message;
+                return Ok(res);
+            }
             catch (Exception err)
             {
                 log.LogError(err, $"[{Request.Path}] Error : {err}");
@@ -568,13 +579,13 @@ namespace DoorWebApp.Controllers
         /// <param name="UserId"></param>
         /// <param name=""></param>
         /// <returns></returns>
-        [HttpPatch("v1/User/{UserId}")]
-        public IActionResult UpdateUserRoles(int UserId, ReqUserInfoDTO UserDTO)
+        [HttpPatch("v1/UpdateUser")]
+        public IActionResult UpdateUserRoles(ReqUserInfoDTO UserDTO)
         {
             APIResponse res = new APIResponse();
             try
             {
-                int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x=>int.Parse(x.Value)).FirstOrDefault();
+                int UserId = User.Claims.Where(x => x.Type == "Id").Select(x=>int.Parse(x.Value)).FirstOrDefault();
                 string OperatorUsername = User.Identity?.Name?? "N/A";
 
                 log.LogInformation($"[{Request.Path}] Update user roles. UserId:{UserId}");
