@@ -6,8 +6,11 @@
         <ion-icon :icon="menuOutline" style="font-size: 1.6rem"></ion-icon>
       </div>
 
-      <!-- <img class="nav-logo mx-2" src="../assets/logo.png" alt="Logo" /> -->
-      <span class="nav-title d-none d-sm-inline">門禁</span>
+      <img class="nav-logo mx-2" src="../assets/logo.png" alt="Logo" />
+      <div style="justify-content: center;">
+        <span class="nav-title d-none d-sm-inline">QRcode 門禁系統</span>
+      </div>
+      
     </div>
 
     <!-- 右側按鈕區 -->
@@ -17,7 +20,6 @@
       </div>
 
       <span class="d-none d-sm-inline me-3">{{ userInfoStore.displayName }}</span>
-      <span class="d-none d-sm-inline me-3">{{ userInfoStore.qrcode }}</span>
 
       <el-tooltip content="Language" placement="bottom" effect="light" :disabled="langTooltipDisabled">
         <el-dropdown trigger="click" class="d-flex align-items-center mx-1">
@@ -120,7 +122,7 @@ export default defineComponent({
 
 <style scoped>
 .nav-logo {
-  height: 30px;
+  height: 55px;
 }
 
 .nav-title {

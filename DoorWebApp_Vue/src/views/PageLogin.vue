@@ -2,9 +2,8 @@
   <div class="loginBG">
     <el-card class="box-card" shadow="hover" :body-style="singinInputCardStyle">
       <div class="d-flex flex-column justify-content-start align-items-center mb-3">
-        <!-- <img class="mf-box-logo" src="../assets/Logo_01.png" alt="Logo" /> -->
-        <!-- <img class="box-logo w-100 mt-3" src="../assets/logo.png" alt="Logo" /> -->
-        <span class="box-title my-2">123456</span>
+        <img class="box-logo mt-3 mb-3" src="../assets/logo.png" alt="Logo" />
+        <!-- <span class="box-title mb-2">{{ t("QRcode Access Control") }}</span> -->
         <el-form @submit.prevent :model="loginData" :rules="loginFormRules" ref="loginForm">
           <el-form-item prop="username">
             <el-input
@@ -75,7 +74,7 @@ export default defineComponent({
       errorMsg: "",
       singinInputCardStyle: {
         padding: "10px 30px",
-        width: "300px",
+        width: "350px",
         display: "flex",
         "flex-direction": "column",
         background: "#FFFFFF",
@@ -186,6 +185,7 @@ export default defineComponent({
 .box-logo {
   /* height: 80px;
   margin: 20px 20px 0px 20px; */
+  width: 85% !important;
 }
 .box-title {
   font-size: 1.5rem;

@@ -8,20 +8,20 @@
     :default-openeds="openList"
     @select="$emit('OnMenuItemSelect')"
     :router="true"
-    background-color="#005693"
+    background-color="#CCA596"
     text-color="#fff"
     active-text-color="#ffd04b"
   >
     <el-menu-item index="/accesscontrol">
-        <el-icon><Edit /></el-icon>
+        <el-icon><Calendar /></el-icon>
         <span>{{ t("Access Control") }}</span>
     </el-menu-item>
     <el-menu-item index="/qrcode">
-        <el-icon><Open /></el-icon>
+        <el-icon><Menu /></el-icon>
         <span>{{ t("QRcode") }}</span>
     </el-menu-item>
     <el-menu-item index="/temporaryqrcode">
-        <el-icon><MagicStick /></el-icon>
+        <el-icon><Menu /></el-icon>
         <span>{{ t("Temporary QRcode") }}</span>
     </el-menu-item>
     <el-menu-item index="/accountMgmt">
