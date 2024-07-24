@@ -301,28 +301,34 @@ namespace DoorWebApp.Controllers
         /// </summary>
         /// <returns></returns>
         [AllowAnonymous]
-        [HttpGet("v1/Users/Permission/{GroupId}/{UserName}")]
-        public IActionResult GroupPermission(int GroupId, string UserName = "")
+        [HttpGet("v1/Users/Door/{GroupId}")]
+        public IActionResult GroupPermission(int GroupId)
         {
-            APIResponse<ResUserPermissionDTO> res = new APIResponse<ResUserPermissionDTO>();
+            APIResponse<List<ResUsersDoorDTO>> res = new APIResponse<List<ResUsersDoorDTO>>();
 
             try
             {
                 res.result = APIResultCode.success;
                 res.msg = "success";
-                var UserList = ctx.TblUsers
-                    .Include(x => x.Roles)
-                    .Where(x => x.IsDelete == false)
-                    .Select(x => new ResUserPermissionDTO()
+                var UserList = ctx.TblPermissionGroup
+                    .Include(x => x.Permissions)
+                    .ThenInclude(x => x.User)
+                    .Where(x => x.Permissions.First().User.IsDelete == false)
+                    .Where(x => x.Id == GroupId)
+                    .Select(x => new ResUsersDoorDTO()
                     {
-                        userId = x.Id,
-                        username = x.Username,
-                        displayName = x.DisplayName,
-                        permissionNames = x.Permission.PermissionGroups.Where(x => x.Id == GroupId)
-                        .Select(y => y.Name).ToList()
+                        userId = x.Permissions.First().User.Id,
+                        username = x.Permissions.First().User.Username,
+                        displayName = x.Permissions.First().User.DisplayName,
+                        permissionName = x.Name
                     })
                     .ToList();
 
+                log.LogInformation($"[{Request.Path}] v1/Users/Door/GroupId query success!  Total:{UserList.Count}");
+
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                res.content = UserList;
                 return Ok(res);
             }
             catch (Exception err)
