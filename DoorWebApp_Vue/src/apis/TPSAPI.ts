@@ -41,6 +41,8 @@ import IReqReportPerformanceSearchCriteriaDTO from "@/models/dto/IReqReportPerfo
 import IResTPSPerformanceDataViewDTO from "@/models/dto/IResTPSPerformanceDataViewDTO";
 import { useUserInfoStore } from "@/stores/UserInfoStore";
 
+import {M_IUsers} from "@/models/M_IUser";
+
 class APIService {
   public axiosInstance: AxiosInstance;
 
@@ -385,7 +387,14 @@ class APIService {
     return this.axiosInstance.get(`v1/Download/Report/${filename}`, { responseType: "blob" });
   }
   //#endregion
+  
+  //#region Music 使用者相關
+  /** 取得使用者清單 */
+  getAllUsers(){
+    return this.axiosInstance.get<IAPIResponse<M_IUsers>>("v1/Users")
+  }
 
+  //#endregion
 }
 
 const API = new APIService();
