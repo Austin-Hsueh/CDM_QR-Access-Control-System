@@ -476,8 +476,8 @@ namespace DoorWebApp.Controllers
                 if (tblUser != null)
                 {
                     log.LogWarning($"[{Request.Path}] Duplicate username");
-                    res.result = APIResultCode.duplicate_password;
-                    res.msg = "duplicate_password";
+                    res.result = APIResultCode.duplicate_username;
+                    res.msg = "duplicate_username";
                     return Ok(res);
                 }
 
@@ -579,8 +579,9 @@ namespace DoorWebApp.Controllers
         /// <param name="UserId"></param>
         /// <param name=""></param>
         /// <returns></returns>
+        [Authorize]
         [HttpPatch("v1/UpdateUser")]
-        public IActionResult UpdateUserRoles(ReqUserInfoDTO UserDTO)
+        public IActionResult UpdateUserRoles(ReqUpdateUserDTO UserDTO)
         {
             APIResponse res = new APIResponse();
             try
@@ -596,6 +597,68 @@ namespace DoorWebApp.Controllers
                     log.LogWarning($"[{Request.Path}] User (Id:{UserId}) not found");
                     res.result = APIResultCode.user_not_found;
                     res.msg = "查無使用者";
+                    return Ok(res);
+                }
+
+                // 1-1 必填欄位缺少
+                //帳號
+                if (string.IsNullOrEmpty(UserDTO.username))
+                {
+                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.username})");
+                    res.result = APIResultCode.username_is_required;
+                    res.msg = "username_is_required";
+                    return Ok(res);
+                }
+                //帳號 重複
+                // 1-2 重複帳號 //排除已經刪除的
+                TblUser? tblUser = ctx.TblUsers.Where(x => x.IsDelete == false && x.Id != UserId)
+                                               .FirstOrDefault(x => x.Username == UserDTO.username);
+                if (tblUser != null)
+                {
+                    log.LogWarning($"[{Request.Path}] Duplicate username");
+                    res.result = APIResultCode.duplicate_username;
+                    res.msg = "duplicate_username";
+                    return Ok(res);
+                }
+                
+                //姓名
+                if (string.IsNullOrEmpty(UserDTO.displayName))
+                {
+                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.displayName})");
+                    res.result = APIResultCode.display_name_is_required;
+                    res.msg = "display_name_is_required";
+                    return Ok(res);
+                }
+                //Email
+                if (string.IsNullOrEmpty(UserDTO.email))
+                {
+                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.email})");
+                    res.result = APIResultCode.email_is_required;
+                    res.msg = "email_is_required";
+                    return Ok(res);
+                }
+                //角色Id
+                if (UserDTO.roleid == null || UserDTO.roleid == 0)
+                {
+                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.roleid})");
+                    res.result = APIResultCode.roleid_is_required;
+                    res.msg = "roleid_is_required";
+                    return Ok(res);
+                }
+                //密碼
+                if (string.IsNullOrEmpty(UserDTO.password))
+                {
+                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.password})");
+                    res.result = APIResultCode.password_is_required;
+                    res.msg = "password_is_required";
+                    return Ok(res);
+                }
+                //電話
+                if (string.IsNullOrEmpty(UserDTO.phone))
+                {
+                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.phone})");
+                    res.result = APIResultCode.phone_is_required;
+                    res.msg = "phone_is_required";
                     return Ok(res);
                 }
 
@@ -630,7 +693,7 @@ namespace DoorWebApp.Controllers
                     .Select(x => x.Id)
                     .ToList();
                
-                List<int> UserRoleAssign = new List<int>(UserDTO.roleId);
+                List<int> UserRoleAssign = new List<int>(UserDTO.roleid);
 
                 List<int> RoleIdToDelete = UserRoleCurrent.Except(UserRoleAssign).ToList();
                 List<int> RoleIdToInsert = UserRoleAssign.Except(UserRoleCurrent).ToList();
@@ -649,39 +712,24 @@ namespace DoorWebApp.Controllers
 
 
                 // 3. 更新資料
+                //更新使用者
+                UserEntity.Username = UserDTO.username;
+                UserEntity.DisplayName = UserDTO.displayName;
+                UserEntity.Email = UserDTO.email;
+                UserEntity.Phone = UserDTO.phone;
+                UserEntity.Secret = UserDTO.password;
+                UserEntity.ModifiedTime = DateTime.Now;
+
                 //更新角色
                 var AssignRoleEntities = ctx.TblRoles.Where(x => UserRoleAssign.Contains(x.Id)).ToList();
                 UserEntity.Roles.Clear();
                 UserEntity.Roles.AddRange(AssignRoleEntities);
 
-                //更新使用者資料
-                //姓名
-                if (string.IsNullOrEmpty(UserDTO.displayName))
-                {
-                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.displayName})");
-                    res.result = APIResultCode.display_name_is_required;
-                    res.msg = "display_name_is_required";
-                    return Ok(res);
-                }
-                //Email
-                if (string.IsNullOrEmpty(UserDTO.email))
-                {
-                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.email})");
-                    res.result = APIResultCode.email_is_required;
-                    res.msg = "email_is_required";
-                    return Ok(res);
-                }
-                //電話
-                if (string.IsNullOrEmpty(UserDTO.phone))
-                {
-                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.phone})");
-                    res.result = APIResultCode.phone_is_required;
-                    res.msg = "phone_is_required";
-                    return Ok(res);
-                }
-                UserEntity.DisplayName = UserDTO.displayName;
-                UserEntity.Email = UserDTO.email;
-                UserEntity.Phone = UserDTO.phone;
+                //更新使用者門禁
+                var AssignPermissionEntities = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == UserId).FirstOrDefault();
+                List<TblPermissionGroup> tblPermissionGroup = ctx.TblPermissionGroup.Where(x => UserDTO.groupIds.Contains(x.Id)).ToList();
+                AssignPermissionEntities.PermissionGroups.Clear();
+                AssignPermissionEntities.PermissionGroups.AddRange(tblPermissionGroup);
 
 
                 // 4. 存檔

@@ -28,7 +28,7 @@
         duplicate_method_name = 304,
 
         username_not_found = 401,
-        duplicate_username_name = 402,
+        duplicate_username = 402,
         username_is_required = 403,
         display_name_is_required = 404,
         email_is_required = 404,
