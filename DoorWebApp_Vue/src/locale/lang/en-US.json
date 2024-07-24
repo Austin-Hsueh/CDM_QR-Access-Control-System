@@ -249,8 +249,12 @@
 
 
   "_comment": "以下開始為音樂教室用",
+  "Clair_de_Musique": "Clair de Musique",
+  "QRcode Access Control": "QRcode Access Control",
   "Access Control": "Access Control",
   "QRcode": "QRcode",
   "Temporary QRcode": "Temporary QRcode",
-  "Account_Mgmt_Music": "Accounts"
+  "Account_Mgmt_Music": "Accounts",
+  "Email": "Email",
+  "NameFilter": "Filter Display Name"
 }
