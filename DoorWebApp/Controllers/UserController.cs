@@ -265,7 +265,7 @@ namespace DoorWebApp.Controllers
                         roleId = x.Roles.FirstOrDefault().Id,
                         roleName = x.Roles.FirstOrDefault().Name,
                         groupNames = x.Permission.PermissionGroups
-                        .Select(y =>  y.Name).ToList(),
+                        .Select(y => y.Name).ToList(),
                         groupIds = x.Permission.PermissionGroups
                         .Select(y => y.Id).ToList(),
                         password = x.Secret,
@@ -749,18 +749,9 @@ namespace DoorWebApp.Controllers
                     .Select(x => x.Id)
                     .ToList();
                
-                List<int> UserRoleAssign = new List<int>(UserDTO.roleid);
-
+                List<int> UserRoleAssign = new List<int> { UserDTO.roleid };
                 List<int> RoleIdToDelete = UserRoleCurrent.Except(UserRoleAssign).ToList();
                 List<int> RoleIdToInsert = UserRoleAssign.Except(UserRoleCurrent).ToList();
-
-                if (RoleIdToDelete.Count == 0 && RoleIdToInsert.Count == 0)
-                {
-                    log.LogInformation($"[{Request.Path}] No need to modify user's role.");
-                    res.result = APIResultCode.success;
-                    res.msg = "success";
-                    return Ok(res);
-                }
 
                 log.LogInformation($"[{Request.Path}] RoleIdToDelete : {string.Join(",", RoleIdToDelete)}");
                 log.LogInformation($"[{Request.Path}] RoleIdToInsert : {string.Join(",", RoleIdToInsert)}");
