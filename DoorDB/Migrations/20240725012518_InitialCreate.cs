@@ -251,26 +251,38 @@ namespace DoorWebDB.Migrations
                 columns: new[] { "Id", "CanDelete", "CreatedTime", "CreatorUserId", "Description", "IsDelete", "IsEnable", "ModifiedTime", "Name" },
                 values: new object[,]
                 {
-                    { 1, false, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(274), 1, "管理者", false, true, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(275), "Admin" },
-                    { 2, false, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(278), 1, "老師", false, true, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(279), "User" },
-                    { 3, false, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(281), 1, "學生", false, true, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(281), "User" },
-                    { 4, false, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(284), 1, "值班人員", false, true, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(285), "User" }
+                    { 1, false, new DateTime(2024, 7, 25, 9, 25, 17, 461, DateTimeKind.Local).AddTicks(1606), 1, "管理者", false, true, new DateTime(2024, 7, 25, 9, 25, 17, 461, DateTimeKind.Local).AddTicks(1607), "Admin" },
+                    { 2, false, new DateTime(2024, 7, 25, 9, 25, 17, 461, DateTimeKind.Local).AddTicks(1613), 1, "老師", false, true, new DateTime(2024, 7, 25, 9, 25, 17, 461, DateTimeKind.Local).AddTicks(1615), "User" },
+                    { 3, false, new DateTime(2024, 7, 25, 9, 25, 17, 461, DateTimeKind.Local).AddTicks(1619), 1, "學生", false, true, new DateTime(2024, 7, 25, 9, 25, 17, 461, DateTimeKind.Local).AddTicks(1620), "User" },
+                    { 4, false, new DateTime(2024, 7, 25, 9, 25, 17, 461, DateTimeKind.Local).AddTicks(1623), 1, "值班人員", false, true, new DateTime(2024, 7, 25, 9, 25, 17, 461, DateTimeKind.Local).AddTicks(1624), "User" }
                 });
 
             migrationBuilder.InsertData(
                 table: "tblUser",
                 columns: new[] { "Id", "AccountType", "CreateTime", "DisplayName", "Email", "IsDelete", "IsEnable", "LastLoginIP", "LastLoginTime", "ModifiedTime", "Phone", "Secret", "Username", "locale" },
-                values: new object[] { 51, "LOCAL", new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(253), "Administrator", "", false, true, "", null, new DateTime(2024, 7, 21, 20, 45, 29, 973, DateTimeKind.Local).AddTicks(266), "0", "1qaz2wsx", "admin", 1 });
+                values: new object[,]
+                {
+                    { 51, "LOCAL", new DateTime(2024, 7, 25, 9, 25, 17, 461, DateTimeKind.Local).AddTicks(1578), "Administrator", "", false, true, "", null, new DateTime(2024, 7, 25, 9, 25, 17, 461, DateTimeKind.Local).AddTicks(1591), "0", "1qaz2wsx", "admin", 1 },
+                    { 52, "LOCAL", new DateTime(2024, 7, 25, 9, 25, 17, 461, DateTimeKind.Local).AddTicks(1598), "臨時大門", "", false, true, "", null, new DateTime(2024, 7, 25, 9, 25, 17, 461, DateTimeKind.Local).AddTicks(1599), "0", "1qaz2wsx", "TemDoor", 1 }
+                });
 
             migrationBuilder.InsertData(
                 table: "TblRoleTblUser",
                 columns: new[] { "RolesId", "UsersId" },
-                values: new object[] { 1, 51 });
+                values: new object[,]
+                {
+                    { 1, 51 },
+                    { 4, 52 }
+                });
 
             migrationBuilder.InsertData(
                 table: "tblPermission",
                 columns: new[] { "Id", "DateFrom", "DateTo", "Days", "IsDelete", "IsEnable", "PermissionLevel", "TimeFrom", "TimeTo", "UserId" },
-                values: new object[] { 1, "2024/07/21", "2124/07/21", "1,2,3,4,5,6,7", false, true, 1, "00:00", "24:00", 51 });
+                values: new object[,]
+                {
+                    { 1, "2024/07/21", "2124/07/21", "1,2,3,4,5,6,7", false, true, 1, "00:00", "24:00", 51 },
+                    { 2, "2024/07/21", "2124/07/21", "", false, true, 1, "00:00", "24:00", 52 }
+                });
 
             migrationBuilder.InsertData(
                 table: "TblPermissionTblPermissionGroup",
@@ -278,6 +290,7 @@ namespace DoorWebDB.Migrations
                 values: new object[,]
                 {
                     { 1, 1 },
+                    { 1, 2 },
                     { 2, 1 },
                     { 3, 1 },
                     { 4, 1 }

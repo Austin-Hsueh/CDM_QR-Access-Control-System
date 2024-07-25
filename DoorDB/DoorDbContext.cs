@@ -68,6 +68,24 @@ namespace DoorDB
                 ModifiedTime = DateTime.Now,
             };
 
+            TblUser DefaultDoor = new TblUser()
+            {
+                Id = 52,
+                Username = "TemDoor",
+                AccountType = LoginAccountType.LOCAL,
+                Email = "",
+                Phone = "0",
+                Secret = "1qaz2wsx",
+                IsDelete = false,
+                IsEnable = true,
+                locale = LocaleType.zh_tw,
+                LastLoginIP = "",
+                LastLoginTime = null,
+                DisplayName = "臨時大門",
+                CreateTime = DateTime.Now,
+                ModifiedTime = DateTime.Now,
+            };
+
             TblRole DefaultAdminRole = new TblRole()
             {
                 Id = 1,
@@ -134,6 +152,20 @@ namespace DoorDB
                 PermissionLevel = 1
             };
 
+            TblPermission DefaultDoorPermission = new TblPermission()
+            {
+                Id = 2,
+                UserId = DefaultDoor.Id,
+                IsEnable = true,
+                IsDelete = false,
+                DateFrom = "2024/07/21",
+                DateTo = "2124/07/21",
+                TimeFrom = "00:00",
+                TimeTo = "24:00",
+                Days = "",
+                PermissionLevel = 1
+            };
+
 
             modelBuilder.Entity<TblPermissionGroup>()
                 .HasData(DefaultPermissionGroups);
@@ -154,14 +186,17 @@ namespace DoorDB
                     new { PermissionsId = DefaultAdminPermission.Id, PermissionGroupsId = 1 },
                     new { PermissionsId = DefaultAdminPermission.Id, PermissionGroupsId = 2 },
                     new { PermissionsId = DefaultAdminPermission.Id, PermissionGroupsId = 3 },
-                    new { PermissionsId = DefaultAdminPermission.Id, PermissionGroupsId = 4 }
+                    new { PermissionsId = DefaultAdminPermission.Id, PermissionGroupsId = 4 },
+                    new { PermissionsId = DefaultDoorPermission.Id, PermissionGroupsId = 1 }
                     ));
 
 
             modelBuilder.Entity<TblUser>()
                 .HasMany(x => x.Roles)
                 .WithMany(x => x.Users)
-                .UsingEntity(j => j.HasData(new { UsersId = DefaultAdmin.Id, RolesId = DefaultAdminRole.Id }));
+                .UsingEntity(j => j.HasData(new { UsersId = DefaultAdmin.Id, RolesId = DefaultAdminRole.Id },
+                                            new { UsersId = DefaultDoor.Id, RolesId = DefaultUserRole3.Id }
+                ));
 
 
             modelBuilder.Entity<TblRole>()
@@ -174,12 +209,14 @@ namespace DoorDB
 
             modelBuilder.Entity<TblPermission>()
                .HasData(
-                    DefaultAdminPermission
+                    DefaultAdminPermission,
+                    DefaultDoorPermission
                );
 
             modelBuilder.Entity<TblUser>()
                .HasData(
-                    DefaultAdmin
+                    DefaultAdmin,
+                    DefaultDoor
                );
 
             modelBuilder.Entity<TblUser>()
