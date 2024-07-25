@@ -5,7 +5,9 @@
       <span class="fs-4 fw-bold content-title">{{ t("Account_Mgmt_Music") }}</span>
     </div>
     <el-tabs type="border-card">
-      <el-tab-pane label="帳號設定">帳號設定</el-tab-pane>
+      <el-tab-pane label="帳號設定">
+        <AccountUserMgmtVue ref="AccountUserMgmtRef" />
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -16,8 +18,12 @@ import { useRouter } from "vue-router";
 import { useUserInfoStore } from "@/stores/UserInfoStore";
 import API from "@/apis/TPSAPI";
 import { APIResultCode } from "@/models/enums/APIResultCode";
+import AccountUserMgmtVue from "@/components/AccountUserMgmt.vue";
 
 export default defineComponent({
+  components: {
+    AccountUserMgmtVue,
+  },
   setup() {
     const { t, locale } = useI18n();
     const router = useRouter();

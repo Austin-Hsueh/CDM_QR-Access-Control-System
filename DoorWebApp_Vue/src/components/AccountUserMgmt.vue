@@ -4,36 +4,27 @@
     <el-input
       class="me-auto"
       style="width: 240px"
+      :placeholder="t('NameFilter')"
+      clearable
       v-model="searchText"
-      :placeholder="t('Filter')"
       :prefix-icon="Filter"
       @input="onFilterInputed"
-      clearable
     />
-    <!-- <el-button @click="onAddManufMethodClicked">{{ t("create") }}</el-button> -->
+    <el-button type="primary" @click="onCreateRoleClicked">{{ t("create") }}</el-button>
   </div>
 
   <!-- table -->
   <el-row>
     <el-col :span="24">
-      <el-table name="userInfoTable" v-loading.fullscreen.lock="isUserInfoListTableLoading" :data="displayUserInfoList" style="width: 100%" height="300">
-        <el-table-column :label="t('username')" prop="username" />
+      <el-table name="userInfoTable" style="width: 100%" height="300" :data="userInfo">
+        <el-table-column :label="t('username')"  prop="username"/>
         <el-table-column :label="t('displayName')" prop="displayName" />
-        <el-table-column :label="t('last_login')" prop="lastLoginTime" />
-        <el-table-column :label="t('role')" prop="roleNames">
+        <el-table-column :label="t('Email')" prop="email"/>
+        <el-table-column :label="t('Email')" prop="phone"/>
+        <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
           <template #default="scope">
-            {{ scope.row.roles.map((x: IRole) => x.name).toString() }}
-          </template>
-        </el-table-column>
-        <el-table-column width="60px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
-          <template #default="scope">
-            <el-button
-              link
-              :disabled="!userInfoStore.permissions.some((x) => x === 420)"
-              :type="userInfoStore.permissions.some((x) => x === 420) ? 'success' : 'danger'"
-              @click="onModifyUserInfoClicked(scope.row)"
-              ><el-icon><EditPen /></el-icon
-            ></el-button>
+            <el-button type="primary" @click="onEdit(scope.row)"><el-icon><EditPen /></el-icon></el-button>
+            <el-button type="danger" @click="onDelet(scope.row)"><el-icon><Delete /></el-icon></el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -42,302 +33,413 @@
   <!-- /table -->
 
   <!-- pagination -->
-  <el-row justify="end" class="mt-3">
+  <!-- <el-row justify="end" class="mt-3">
     <el-col>
       <div class="demo-pagination-block mt-3 d-flex justify-content-end">
         <el-pagination
-          v-model:currentPage="currentPage"
-          v-model:page-size="pageSize"
-          :pager-count="paginatorSetup.pagerCount"
-          :layout="paginatorSetup.layout"
-          :small="paginatorSetup.small"
-          :page-sizes="[20, 50, 100]"
-          :total="filterdListLength"
-          @size-change="onPagesizeChanged"
-          @current-change="onCurrentPageChanged"
+          v-model:current-page="currentPage4"
+          v-model:page-size="pageSize4"
+          :page-sizes="[100, 200, 300, 400]"
+          :size="size"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="400"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
           justify="end"
         />
       </div>
     </el-col>
-  </el-row>
+  </el-row> -->
   <!-- /pagination -->
-
-  <!-- 編輯彈窗 -->
-  <el-dialog class="dialog" top="3vh" v-model="isShowModifyUserInfoDialog" :title="t('modify')">
-    <el-form
-      @submit.prevent
-      v-loading.fullscreen.lock="isModifyDialogLoading"
-      ref="modifyManufMethodForm"
-      :model="selectedUserInfo"
-      :rules="modifyManufMethodFormRules"
-    >
-      <el-form-item :label-width="formLabelWidth" :label="t('form.label.username')" >
-        <label>{{ selectedUserInfo.username }}</label>
+  
+  <!-- 新增彈窗 -->
+  <el-dialog class="dialog" top="3vh" v-model="isShowAddRoleDialog" :title="t('create')">
+    <el-form label-width="100px"  ref="createaddRoleForm" :rules="rules" :model="createFormData">
+      <el-form-item :label="t('username')" prop="username"  >
+        <el-input style="width:90%" v-model="createFormData.username"/>
       </el-form-item>
-      <el-form-item :label-width="formLabelWidth" :label="t('form.label.display_name')" >
-        <label>{{ selectedUserInfo.displayName }}</label>
+      <el-form-item :label="t('displayName')" prop="displayName" >
+        <el-input  style="width:90%" v-model="createFormData.displayName"/>
       </el-form-item>
-      <el-form-item :label-width="formLabelWidth" :label="t('form.label.role')">
-        <el-checkbox-group class="d-flex flex-column" v-model="selectedUserInfo.roleNames">
-          <el-checkbox v-for="role in roleList" :key="role.roleId" :label="role.name">{{ role.name }}</el-checkbox>
+      <el-form-item :label="t('Email')" prop="email" >
+        <el-input  style="width:90%" v-model="createFormData.email"/>
+      </el-form-item>
+      <el-form-item :label="t('Phone')" prop="Phone"  >
+        <el-input  style="width:90%" v-model="createFormData.Phone"/>
+      </el-form-item>
+      <el-form-item :label="t('Role')" prop="role" >
+        <el-select v-model="createFormData.role" placeholder="請選擇一個角色" style="width:90%">
+          <el-option label="管理者" :value="1" />
+          <el-option label="老師" :value="2" />
+          <el-option label="學生" :value="3" />
+          <el-option label="值班人員" :value="4" />
+        </el-select>
+      </el-form-item>
+      <el-form-item :label="t('Access')" prop="Access" >
+        <el-checkbox-group v-model="createFormData.Access">
+          <el-checkbox label="大門" :value="1"/>
+          <el-checkbox label="Car教室" :value="2"/>
+          <el-checkbox label="Sunny教室" :value="3" />
+          <el-checkbox label="儲藏室" :value="4" />
         </el-checkbox-group>
       </el-form-item>
     </el-form>
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="isShowModifyUserInfoDialog = false">{{ t("Cancel") }}</el-button>
-        <el-button type="primary" @click="onSaveModifyClicked()">{{ t("Confirm") }}</el-button>
+        <el-button @click="isShowAddRoleDialog = false">{{ t("Cancel") }}</el-button>
+        <el-button type="primary"  @click="submitForm()">{{ t("Confirm") }}</el-button>
+      </span>
+    </template>
+  </el-dialog>
+  <!-- /新增彈窗 -->
+
+  <!-- 編輯彈窗 -->
+  <el-dialog class="dialog" top="3vh" v-model="isShowEditRoleDialog" :title="t('edit')">
+    <el-form label-width="100px"  ref="updateRoleForm" :rules="rules" :model="updateFormData">
+      <el-form-item :label="t('username')" prop="username"  >
+        <el-input style="width:90%" v-model="updateFormData.username"/>
+      </el-form-item>
+      <el-form-item :label="t('displayName')" prop="displayName" >
+        <el-input  style="width:90%" v-model="updateFormData.displayName"/>
+      </el-form-item>
+      <el-form-item :label="t('Email')" prop="email" >
+        <el-input  style="width:90%" v-model="updateFormData.email"/>
+      </el-form-item>
+      <el-form-item :label="t('Phone')" prop="Phone"  >
+        <el-input  style="width:90%" v-model="updateFormData.Phone"/>
+      </el-form-item>
+      <el-form-item :label="t('Role')" prop="role" >
+        <el-select v-model="updateFormData.role" placeholder="請選擇一個角色" style="width:90%">
+          <el-option label="管理者" :value="1" />
+          <el-option label="老師" :value="2" />
+          <el-option label="學生" :value="3" />
+          <el-option label="值班人員" :value="4" />
+        </el-select>
+      </el-form-item>
+      <el-form-item :label="t('Access')" prop="Access" >
+        <el-checkbox-group v-model="updateFormData.Access">
+          <el-checkbox label="大門" :value="1"/>
+          <el-checkbox label="Car教室" :value="2"/>
+          <el-checkbox label="Sunny教室" :value="3" />
+          <el-checkbox label="儲藏室" :value="4" />
+        </el-checkbox-group>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="isShowEditRoleDialog = false">{{ t("Cancel") }}</el-button>
+        <el-button type="primary"  @click="submitUpdateForm()">{{ t("Confirm") }}</el-button>
       </span>
     </template>
   </el-dialog>
   <!-- /編輯彈窗 -->
+
 </template>
 
-<script lang="ts">
-import { defineComponent, reactive, toRefs, ref, onMounted, onActivated } from "vue";
+<script setup lang="ts">
+
+import { ref, onMounted, onActivated, reactive } from "vue";
 import { useI18n } from "vue-i18n";
-import API from "@/apis/TPSAPI";
-import { APIResultCode } from "@/models/enums/APIResultCode";
-import _ from "lodash";
-import { ElMessage, ElMessageBox, FormItemContext } from "element-plus";
-import { Search, EditPen, Delete, Filter } from "@element-plus/icons-vue";
-import { useUserInfoStore } from "@/stores/UserInfoStore";
-import { usePaginatorSetup } from "@/stores/PaginatorStore";
-import { delay } from "@/plugins/utility";
-import IResUserInfoDTO from "@/models/dto/IResUserInfoDTO";
-import IResRoleInfoDTO from "@/models/dto/IResRoleInfoDTO";
-import IRole from "@/models/IRole";
-import IReqUserRoleDTO from "@/models/dto/IReqUserRoleDTO";
-import IUserRole from "@/models/IUserRole";
+import API from '@/apis/TPSAPI';
+import { EditPen, Delete } from '@element-plus/icons-vue';
+import { M_IUsers } from "@/models/M_IUser";
+import { M_ICreateRuleForm } from '@/models/M_IRuleForm'
+import type { ComponentSize, FormInstance, FormRules, ElMessage } from 'element-plus';
 
-export default defineComponent({
-  name: "accountUserMgmt",
-  setup() {
-    const { t } = useI18n();
-    const paginatorSetup = usePaginatorSetup();
-    const userInfoStore = useUserInfoStore();
+const isShowAddRoleDialog = ref(false);
+const isShowEditRoleDialog = ref(false);
+const { t } = useI18n();
+const userInfo = ref<M_IUsers[]>([]); // Specify the type of the array
+const currentPage4 = ref(4)
+const pageSize4 = ref(100)
+const size = ref<ComponentSize>('default')
+const searchText = ref('')
 
-    const state = reactive({
-      allUserInfoList: [] as IResUserInfoDTO[],
-      displayUserInfoList: [] as IResUserInfoDTO[],
-      searchText: "",
-      currentPage: 1,
-      pageSize: 20,
-      filterdListLength: 0,
-      isUserInfoListTableLoading: false,
-      formLabelWidth: "100px",
-      isShowModifyUserInfoDialog: false,
-      isModifyDialogLoading: false,
-      selectedUserInfo: {} as IUserRole,
-      modifyUserInfoFormData: {} as IResUserInfoDTO,
-      roleList: [] as IResRoleInfoDTO[],
-    });
 
-    //#region 建立表單ref與Validator
-    const modifyUserInfoForm = ref<FormItemContext>();
-    const modifyUserInfoFormRules = ref({
-      methodName: [{ required: true, message: () => t("form.validation_msg.manufMethodName_is_required"), trigger: "blur" }],
-    });
+const handleSizeChange = (val: number) => {
+  console.log(`${val} items per page`)
+}
+const handleCurrentChange = (val: number) => {
+  console.log(`current page: ${val}`)
+}
 
-    //#endregion
+//#region UI Events
+const onEdit = (item: M_IUsers) => {
+  console.log(item.userId);
+  updateRoleForm.value?.resetFields();
+  updateFormData.username = item.username 
+  console.log(item.username)
+  console.log(updateFormData.username)
+  updateFormData.displayName =item.displayName
+  updateFormData.email = item.email
+  updateFormData.Phone = item.phone
+  updateFormData.role = item.roleId
+  updateFormData.Access = item.permissionNames
+  isShowEditRoleDialog.value = true;
+}
 
-    //#region Hook functions
-    onActivated(async () => {
-      await refreshUserList();
-    });
-    //#endregion
+const onCreateRoleClicked = () => {
+  createaddRoleForm.value?.resetFields();
+  isShowAddRoleDialog.value = true;
+}
 
-    //#region UI Events
-    /** 按下重新整理按鈕 */
-    // const onRefreshManufMethodClicked = async () => {
-    //   await refreshManufMethodList();
-    // };
-
-    /** 按下編輯按鈕 */
-    const onModifyUserInfoClicked = (targetUser: IResUserInfoDTO) => {
-      state.selectedUserInfo = {
-        userId: targetUser.userId,
-        username: targetUser.username,
-        displayName: targetUser.displayName,
-        email: targetUser.email,
-        roleNames: targetUser.roles.map((x) => x.name),
-      };
-
-      //state.selectedUserInfo.roleNames.push(state.roleList[0].name);
-
-      modifyUserInfoForm.value?.clearValidate();
-
-      state.modifyUserInfoFormData = {
-        userId: targetUser.userId,
-        username: targetUser.username,
-        displayName: targetUser.displayName,
-        email: targetUser.email,
-        lastLoginTime: targetUser.lastLoginTime,
-        roles: targetUser.roles,
-      };
-
-      state.isShowModifyUserInfoDialog = true;
-    };
-
-    /** 按下修改存檔按鈕 */
-    const onSaveModifyClicked = async () => {
-      try {
-        await ElMessageBox.confirm(t("Modify_Confirm_Msg"), t("Warning"), {
-          confirmButtonText: t("Confirm"),
-          cancelButtonText: t("Cancel"),
-          type: "warning",
-        });
-
-        await modifyUserInfo();
-
-        await refreshUserList();
-
-        state.isShowModifyUserInfoDialog = false;
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    /** 過濾條件輸入(debounce) */
-    const onFilterInputed = _.debounce(function () {
-      updateDisplayList();
-    }, 500);
-
-    const onPagesizeChanged = () => {
-      updateDisplayList();
-    };
-
-    const onCurrentPageChanged = () => {
-      updateDisplayList();
-    };
-    //#endregion
-
-    //#region Private Functions
-    /** 更新Table資料 */
-    async function refreshUserList() {
-      try {
-        state.isUserInfoListTableLoading = true;
-        if (process.env.VUE_APP_RUN_ENV === "DEV") await delay(1000);
-
-        await getAllRoles();
-
-        await getAllUsers();
-
-        await updateDisplayList();
-      } catch (error) {
-        console.error(error);
-      } finally {
-        state.isUserInfoListTableLoading = false;
-      }
+const submitForm = async () => {
+  createaddRoleForm.value?.validate((valid) => {
+    if (valid) {
+      console.log(createFormData)
+      console.log('submit!')
+    } else {
+      console.log('error submit!')
     }
+  })
+}
 
-    /** 呼叫API, 取得所有角色清單 */
-    async function getAllRoles() {
-      try {
-        const getRoleResult = await API.getAllRolesWithPermissions();
-
-        if (getRoleResult.data.result !== APIResultCode.success) {
-          throw new Error(getRoleResult.data.msg);
-        }
-
-        state.roleList = getRoleResult.data.content;
-      } catch (error: any) {
-        console.error(error);
-        ElMessage({
-          type: "error",
-          message: "處理失敗，請查看詳細訊息",
-        });
-      }
+const submitUpdateForm = async () => {
+  updateRoleForm.value?.validate((valid) => {
+    if (valid) {
+      console.log(createFormData)
+      console.log('submit!')
+    } else {
+      console.log('error submit!')
     }
+  })
+}
 
-    async function getAllUsers() {
-      try {
-        const getUserResult = await API.getAllUsersWithRoles();
-
-        if (getUserResult.data.result !== APIResultCode.success) {
-          throw new Error(getUserResult.data.msg);
-        }
-
-        state.allUserInfoList = getUserResult.data.content;
-      } catch (error: any) {
-        console.error(error);
-        ElMessage({
-          type: "error",
-          message: "處理失敗，請查看詳細訊息",
-        });
-      }
-    }
-
-    /** 更新使用者清單顯示結果 */
-    function updateDisplayList() {
-      const filterdData = state.allUserInfoList.filter((x) => {
-        let FilterResult = false;
-        if (x.username) FilterResult ||= x.username.toUpperCase().includes(state.searchText.toUpperCase());
-        if (x.displayName) FilterResult ||= x.displayName.toUpperCase().includes(state.searchText.toUpperCase());
-        return FilterResult;
+const onFilterInputed = () => {
+  console.log("Search Function");
+  if(!searchText.value || searchText.value.trim() === ''){
+    getUsers();
+  }else{
+    setTimeout(()=>{
+      console.log(searchText.value)
+      const filteredData = userInfo.value.filter(item => {
+        const matchesIp = item.displayName.includes(searchText.value);
+        return matchesIp;
       });
+      console.log(filteredData)
+      userInfo.value = filteredData;
+    }, 500);
+  }
+}
+//#endregion
 
-      state.filterdListLength = filterdData.length;
-      state.displayUserInfoList = filterdData.slice((state.currentPage - 1) * state.pageSize, state.currentPage * state.pageSize);
-    }
-
-    /** 呼叫API, 更新一筆資料 */
-    async function modifyUserInfo() {
-      try {
-        state.isModifyDialogLoading = true;
-
-        const selectedRoleIds = state.selectedUserInfo.roleNames.map((x) => {
-          const role = state.roleList.find((y) => y.name === x);
-          return role ? role.roleId : -1;
-        });
-        const modifedItem: IReqUserRoleDTO = {
-          userId: state.selectedUserInfo.userId,
-          roleIds: selectedRoleIds,
-        };
-
-        const modifyResult = await API.updateUserRoles(state.selectedUserInfo.userId, modifedItem);
-
-        if (modifyResult.data.result !== APIResultCode.success) {
-          throw new Error(modifyResult.data.msg);
-        }
-      } catch (error) {
-        console.error(error);
-        ElMessage({
-          type: "error",
-          message: "處理失敗，請查看詳細訊息",
-        });
-      } finally {
-        state.isModifyDialogLoading = false;
-      }
-    }
-
-    //#endregion
-
-    return {
-      ...toRefs(state),
-      t,
-      userInfoStore,
-      paginatorSetup,
-      modifyManufMethodForm: modifyUserInfoForm,
-      modifyManufMethodFormRules: modifyUserInfoFormRules,
-
-      // icons
-      Search,
-      EditPen,
-      Delete,
-      Filter,
-
-      // function
-      onModifyUserInfoClicked,
-      onSaveModifyClicked,
-      onFilterInputed,
-      onPagesizeChanged,
-      onCurrentPageChanged,
-
-      refreshUserList,
-    };
-  },
+//#region 建立表單ref與Validator
+// 新增使用者表單
+const createaddRoleForm = ref<FormInstance>()
+const createFormData = reactive<M_ICreateRuleForm>({
+  username: '',
+  displayName: '',
+  email: '',
+  Phone: '',
+  role: '',
+  resource: '',
+  Access: []
+})
+const rules  = reactive<FormRules>({
+  username: [{ required: true, message: "請輸入使用者帳號", trigger: "blur" }],
+  displayName: [{ required: true, message: "請輸入使用者名稱", trigger: "blur" }],
+  email: [{ required: true, message: "請輸入電子郵件", trigger: "blur" }],
+  role: [{ required: true, message: "請至少選擇一個角色", trigger: "blur" }],
 });
+
+// 編輯使用者表單
+const updateRoleForm = ref<FormInstance>()
+const updateFormData = reactive<M_ICreateRuleForm>({
+  username: '',
+  displayName: '',
+  email: '',
+  Phone: '',
+  role: '',
+  resource: '',
+  Access: []
+})
+
+//#endregion
+
+//#region Hook functions
+// onActivated(() => {
+  
+// });
+onMounted(() => {
+  getUsers();
+});
+
+//#endregion
+
+//#region Private Functions
+async function getUsers() {
+  try {
+    const getUsersResult = await API.getAllUsers();
+    if (getUsersResult.data.result != 1) throw new Error(getUsersResult.data.msg);
+    userInfo.value = getUsersResult.data.content;
+
+  } catch (error) {
+    console.error(error);
+  }
+}
+//#endregion
+
+//#region MockData
+const MockData =[
+  {
+    accessDays: "周一,周二,周三,周四,周五,周六,周日",
+    accessTime: "2024/07/2100:00~2124/07/2124:00",
+    displayName: "Administrator",
+    email: "",
+    password: "1qaz2wsx",
+    phone: "0",
+    roleId: 1,
+    roleName: "Admin",
+    userId: 51,
+    username: "admin"
+  },
+  {
+    accessDays: "周一,周二,周三,周四,周五,周六,周日",
+    accessTime: "2024/07/2100:00~2124/07/2124:00",
+    displayName: "Administrator",
+    email: "",
+    password: "1qaz2wsx",
+    phone: "0",
+    roleId: 1,
+    roleName: "Admin",
+    userId: 51,
+    username: "admin"
+  },
+  {
+    accessDays: "周一,周二,周三,周四,周五,周六,周日",
+    accessTime: "2024/07/2100:00~2124/07/2124:00",
+    displayName: "Administrator",
+    email: "",
+    password: "1qaz2wsx",
+    phone: "0",
+    roleId: 1,
+    roleName: "Admin",
+    userId: 51,
+    username: "admin"
+  },
+  {
+    accessDays: "周一,周二,周三,周四,周五,周六,周日",
+    accessTime: "2024/07/2100:00~2124/07/2124:00",
+    displayName: "Administrator",
+    email: "",
+    password: "1qaz2wsx",
+    phone: "0",
+    roleId: 1,
+    roleName: "Admin",
+    userId: 51,
+    username: "admin"
+  },
+  {
+    accessDays: "周一,周二,周三,周四,周五,周六,周日",
+    accessTime: "2024/07/2100:00~2124/07/2124:00",
+    displayName: "Administrator",
+    email: "",
+    password: "1qaz2wsx",
+    phone: "0",
+    roleId: 1,
+    roleName: "Admin",
+    userId: 51,
+    username: "admin"
+  },
+  {
+    accessDays: "周一,周二,周三,周四,周五,周六,周日",
+    accessTime: "2024/07/2100:00~2124/07/2124:00",
+    displayName: "Administrator",
+    email: "",
+    password: "1qaz2wsx",
+    phone: "0",
+    roleId: 1,
+    roleName: "Admin",
+    userId: 51,
+    username: "admin"
+  },
+  {
+    accessDays: "周一,周二,周三,周四,周五,周六,周日",
+    accessTime: "2024/07/2100:00~2124/07/2124:00",
+    displayName: "Administrator",
+    email: "",
+    password: "1qaz2wsx",
+    phone: "0",
+    roleId: 1,
+    roleName: "Admin",
+    userId: 51,
+    username: "admin"
+  },
+  {
+    accessDays: "周一,周二,周三,周四,周五,周六,周日",
+    accessTime: "2024/07/2100:00~2124/07/2124:00",
+    displayName: "Administrator",
+    email: "",
+    password: "1qaz2wsx",
+    phone: "0",
+    roleId: 1,
+    roleName: "Admin",
+    userId: 51,
+    username: "admin"
+  },
+  {
+    accessDays: "周一,周二,周三,周四,周五,周六,周日",
+    accessTime: "2024/07/2100:00~2124/07/2124:00",
+    displayName: "Administrator",
+    email: "",
+    password: "1qaz2wsx",
+    phone: "0",
+    roleId: 1,
+    roleName: "Admin",
+    userId: 51,
+    username: "admin"
+  },
+  {
+    accessDays: "周一,周二,周三,周四,周五,周六,周日",
+    accessTime: "2024/07/2100:00~2124/07/2124:00",
+    displayName: "Administrator",
+    email: "",
+    password: "1qaz2wsx",
+    phone: "0",
+    roleId: 1,
+    roleName: "Admin",
+    userId: 51,
+    username: "admin"
+  },
+  {
+    accessDays: "周一,周二,周三,周四,周五,周六,周日",
+    accessTime: "2024/07/2100:00~2124/07/2124:00",
+    displayName: "Administrator",
+    email: "",
+    password: "1qaz2wsx",
+    phone: "0",
+    roleId: 1,
+    roleName: "Admin",
+    userId: 51,
+    username: "admin"
+  },
+  {
+    accessDays: "周一,周二,周三,周四,周五,周六,周日",
+    accessTime: "2024/07/2100:00~2124/07/2124:00",
+    displayName: "Administrator",
+    email: "",
+    password: "1qaz2wsx",
+    phone: "0",
+    roleId: 1,
+    roleName: "Admin",
+    userId: 51,
+    username: "admin"
+  },
+  {
+    accessDays: "周一,周二,周三,周四,周五,周六,周日",
+    accessTime: "2024/07/2100:00~2124/07/2124:00",
+    displayName: "Administrator",
+    email: "",
+    password: "1qaz2wsx",
+    phone: "0",
+    roleId: 1,
+    roleName: "Admin",
+    userId: 51,
+    username: "admin"
+  },
+]
+//#endregion
+
 </script>
 
 <style scoped></style>

@@ -17,6 +17,7 @@ export const useUserInfoStore = defineStore('userInfo', {
       el_local: undefined,
       permissions: [],
       qrcode: '',
+      roleId: 1,
     }
   },
   getters: {

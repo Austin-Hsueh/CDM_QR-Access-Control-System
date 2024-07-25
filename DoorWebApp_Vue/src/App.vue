@@ -90,7 +90,7 @@ nav a {
 }
 
 nav a.router-link-exact-active {
-  color: #42b983;
+  color: #EEBE77;
 }
 
 .icon-wrap {
@@ -164,7 +164,7 @@ ion-icon {
   }
 
   .dialog {
-    max-width: 480px;
+    max-width: 550px;
     min-width: 300px;
   }
 

@@ -39,7 +39,7 @@ export default defineComponent({
 
 <style>
 :root {
-  --sidebar-width: 250px;
+  --sidebar-width: 200px;
   --sidebar-z-index: 5;
   --header-height: 65px;
   --el-header-padding-sm: 0px 20px;

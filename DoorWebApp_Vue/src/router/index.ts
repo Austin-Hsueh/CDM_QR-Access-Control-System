@@ -9,7 +9,7 @@ import PageProjectMgmt from "@/views/PageProjectMgmt.vue";
 import PageKaizenNew from "@/views/PageKaizenNew_v4.vue";
 import PageKaizenList from "@/views/PageKaizenList_v3.vue";
 import PageDDLMgmt from "@/views/PageDDLMgmt.vue";
-import PageAccountMgmt from "@/views/PageAccountMgmt.vue";
+// import PageAccountMgmt from "@/views/PageAccountMgmt.vue";
 import PageBillboard from "@/views/PageBillboard.vue";
 import PageTopPNInfo from "@/views/PageTopPNInfo.vue";
 import { useUserInfoStore } from "@/stores/UserInfoStore";
@@ -82,11 +82,11 @@ const routes: Array<RouteRecordRaw> = [
         name: "ddl_mgmt",
         component: PageDDLMgmt,
       },
-      {
-        path: "account_mgmt",
-        name: "account_mgmt",
-        component: PageAccountMgmt,
-      },
+      // {
+      //   path: "account_mgmt",
+      //   name: "account_mgmt",
+      //   component: PageAccountMgmt,
+      // },
       {
         path: "news",
         name: "news",

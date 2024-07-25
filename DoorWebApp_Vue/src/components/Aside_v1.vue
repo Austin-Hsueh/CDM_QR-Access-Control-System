@@ -8,20 +8,20 @@
     :default-openeds="openList"
     @select="$emit('OnMenuItemSelect')"
     :router="true"
-    background-color="#005693"
+    background-color="#CCA596"
     text-color="#fff"
     active-text-color="#ffd04b"
   >
     <el-menu-item index="/accesscontrol">
-        <el-icon><Edit /></el-icon>
+        <el-icon><Calendar /></el-icon>
         <span>{{ t("Access Control") }}</span>
     </el-menu-item>
     <el-menu-item index="/qrcode">
-        <el-icon><Open /></el-icon>
+        <el-icon><Menu /></el-icon>
         <span>{{ t("QRcode") }}</span>
     </el-menu-item>
     <el-menu-item index="/temporaryqrcode">
-        <el-icon><MagicStick /></el-icon>
+        <el-icon><Menu /></el-icon>
         <span>{{ t("Temporary QRcode") }}</span>
     </el-menu-item>
     <el-menu-item index="/accountMgmt">
@@ -37,6 +37,7 @@ import { useRouter, useRoute } from "vue-router";
 import { useUserInfoStore } from "@/stores/UserInfoStore";
 import { useI18n } from "vue-i18n";
 import i18n from "@/locale";
+import API from "@/apis/TPSAPI";
 
 export default defineComponent({
   name: "aside-component",
@@ -50,6 +51,29 @@ export default defineComponent({
     const state = reactive({
       openList: ["1", "2", "3"],
     });
+
+    //#region Hook functions
+    onMounted(() => {
+      getUserPermission();
+    });
+    //#endregion
+
+    //#region Private Functions
+    async function getUserPermission() {
+      try {
+        const getUserPermissionResponse = await API.getUserPermission();
+        if (getUserPermissionResponse.data.result != 1) throw new Error(getUserPermissionResponse.data.msg);
+        console.log(getUserPermissionResponse)
+
+        const getUserPermissionResult = getUserPermissionResponse.data.content
+        // store儲存門禁權限，門禁管理頁使用
+        userInfoStore.permissions = getUserPermissionResult.permissionNames
+
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    //#endregion
 
     return {
       ...toRefs(state),
