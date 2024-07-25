@@ -6,6 +6,9 @@
       style="width: 240px"
       :placeholder="t('NameFilter')"
       clearable
+      v-model="searchText"
+      :prefix-icon="Filter"
+      @input="onFilterInputed"
     />
     <el-button type="primary" @click="onCreateRoleClicked">{{ t("create") }}</el-button>
   </div>
@@ -141,7 +144,7 @@ import API from '@/apis/TPSAPI';
 import { EditPen, Delete } from '@element-plus/icons-vue';
 import { M_IUsers } from "@/models/M_IUser";
 import { M_ICreateRuleForm } from '@/models/M_IRuleForm'
-import type { ComponentSize, FormInstance, FormRules } from 'element-plus';
+import type { ComponentSize, FormInstance, FormRules, ElMessage } from 'element-plus';
 
 const isShowAddRoleDialog = ref(false);
 const isShowEditRoleDialog = ref(false);
@@ -150,6 +153,7 @@ const userInfo = ref<M_IUsers[]>([]); // Specify the type of the array
 const currentPage4 = ref(4)
 const pageSize4 = ref(100)
 const size = ref<ComponentSize>('default')
+const searchText = ref('')
 
 
 const handleSizeChange = (val: number) => {
@@ -201,6 +205,22 @@ const submitUpdateForm = async () => {
   })
 }
 
+const onFilterInputed = () => {
+  console.log("Search Function");
+  if(!searchText.value || searchText.value.trim() === ''){
+    getUsers();
+  }else{
+    setTimeout(()=>{
+      console.log(searchText.value)
+      const filteredData = userInfo.value.filter(item => {
+        const matchesIp = item.displayName.includes(searchText.value);
+        return matchesIp;
+      });
+      console.log(filteredData)
+      userInfo.value = filteredData;
+    }, 500);
+  }
+}
 //#endregion
 
 //#region 建立表單ref與Validator
