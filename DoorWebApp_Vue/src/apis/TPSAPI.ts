@@ -43,6 +43,8 @@ import { useUserInfoStore } from "@/stores/UserInfoStore";
 
 import {M_IUsers} from "@/models/M_IUser";
 import M_IUserinfo from "@/models/M_IUseinfo";
+import {M_ICreateRuleForm} from "@/models/M_IRuleForm";
+
 
 class APIService {
   public axiosInstance: AxiosInstance;
@@ -398,6 +400,11 @@ class APIService {
   getUserPermission(){    
     return this.axiosInstance.get<IAPIResponse<M_IUserinfo>>("v1/User/Permission")
   }
+
+  addUser(data: M_ICreateRuleForm){
+    return this.axiosInstance.post<IAPIResponse<number>>("v1/User", data)
+  }
+
   //#endregion
 }
 

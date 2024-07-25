@@ -9,6 +9,8 @@
   "validation_msg": {
     "username_is_required": "Username is required",
     "password_is_required": "Password is required",
+    "displayname_is_required": "Display Name is required",
+    "email_is_required": "Email is required",
     "only_letters_and_numbers": "Please enter only letters and numbers.",
     "work_rate_is_required": "Work rate is required.",
     "invalid_work_rate": "Please enter a number greater then 0.",

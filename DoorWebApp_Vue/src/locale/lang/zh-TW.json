@@ -9,6 +9,8 @@
   "validation_msg": {
     "username_is_required": "請輸入帳號",
     "password_is_required": "請輸入密碼",
+    "displayname_is_required": "請輸入顯示名稱",
+    "email_is_required": "請輸入電子郵件",
     "only_letters_and_numbers": "請輸入英文及數字",
     "work_rate_is_required": "請輸入工資率",
     "invalid_work_rate": "請輸入大於0的數值",
@@ -23,6 +25,7 @@
     "original_pph_is_required": "請輸入原PPH",
     "invalid_ufloat_value": "請輸入大於0的數值",
     "invalid_uint_value": "請輸入大於0的整數"
+
   },
   "hello": "哈囉",
   "Remember_me": "保持登入",

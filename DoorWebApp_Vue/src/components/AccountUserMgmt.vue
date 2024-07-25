@@ -64,19 +64,22 @@
       <el-form-item :label="t('Email')" prop="email" >
         <el-input  style="width:90%" v-model="createFormData.email"/>
       </el-form-item>
-      <el-form-item :label="t('Phone')" prop="Phone"  >
-        <el-input  style="width:90%" v-model="createFormData.Phone"/>
+      <el-form-item :label="t('Phone')" prop="phone"  >
+        <el-input  style="width:90%" v-model="createFormData.phone"/>
       </el-form-item>
-      <el-form-item :label="t('Role')" prop="role" >
-        <el-select v-model="createFormData.role" placeholder="請選擇一個角色" style="width:90%">
+      <el-form-item :label="t('password')" prop="password"  >
+        <el-input  show-password style="width:90%" v-model="createFormData.password"/>
+      </el-form-item>
+      <el-form-item :label="t('Role')" prop="roleid" >
+        <el-select v-model="createFormData.roleid" placeholder="請選擇一個角色" style="width:90%">
           <el-option label="管理者" :value="1" />
           <el-option label="老師" :value="2" />
           <el-option label="學生" :value="3" />
           <el-option label="值班人員" :value="4" />
         </el-select>
       </el-form-item>
-      <el-form-item :label="t('Access')" prop="Access" >
-        <el-checkbox-group v-model="createFormData.Access">
+      <el-form-item :label="t('Access')" prop="groupIds" v-if="false">
+        <el-checkbox-group v-model="createFormData.groupIds">
           <el-checkbox label="大門" :value="1"/>
           <el-checkbox label="Car教室" :value="2"/>
           <el-checkbox label="Sunny教室" :value="3" />
@@ -105,11 +108,11 @@
       <el-form-item :label="t('Email')" prop="email" >
         <el-input  style="width:90%" v-model="updateFormData.email"/>
       </el-form-item>
-      <el-form-item :label="t('Phone')" prop="Phone"  >
-        <el-input  style="width:90%" v-model="updateFormData.Phone"/>
+      <el-form-item :label="t('Phone')" prop="phone"  >
+        <el-input  style="width:90%" v-model="updateFormData.phone"/>
       </el-form-item>
       <el-form-item :label="t('Role')" prop="role" >
-        <el-select v-model="updateFormData.role" placeholder="請選擇一個角色" style="width:90%">
+        <el-select v-model="updateFormData.roleid" placeholder="請選擇一個角色" style="width:90%">
           <el-option label="管理者" :value="1" />
           <el-option label="老師" :value="2" />
           <el-option label="學生" :value="3" />
@@ -117,7 +120,7 @@
         </el-select>
       </el-form-item>
       <el-form-item :label="t('Access')" prop="Access" >
-        <el-checkbox-group v-model="updateFormData.Access">
+        <el-checkbox-group v-model="updateFormData.groupIds">
           <el-checkbox label="大門" :value="1"/>
           <el-checkbox label="Car教室" :value="2"/>
           <el-checkbox label="Sunny教室" :value="3" />
@@ -172,9 +175,9 @@ const onEdit = (item: M_IUsers) => {
   console.log(updateFormData.username)
   updateFormData.displayName =item.displayName
   updateFormData.email = item.email
-  updateFormData.Phone = item.phone
-  updateFormData.role = item.roleId
-  updateFormData.Access = item.permissionNames
+  updateFormData.phone = item.phone
+  updateFormData.roleid = item.roleId
+  // updateFormData.Access = item.permissionNames
   isShowEditRoleDialog.value = true;
 }
 
@@ -184,10 +187,18 @@ const onCreateRoleClicked = () => {
 }
 
 const submitForm = async () => {
-  createaddRoleForm.value?.validate((valid) => {
+  createaddRoleForm.value?.validate(async(valid) => {
     if (valid) {
       console.log(createFormData)
+      const addUser = await API.addUser(createFormData);
+      console.log(addUser.data.result);
+      if(addUser.data.result !== 1){
+        console.log('error submit!')
+        console.log(addUser.data.msg)
+      }
       console.log('submit!')
+      isShowAddRoleDialog.value = false;
+      getUsers();
     } else {
       console.log('error submit!')
     }
@@ -198,7 +209,6 @@ const submitUpdateForm = async () => {
   updateRoleForm.value?.validate((valid) => {
     if (valid) {
       console.log(createFormData)
-      console.log('submit!')
     } else {
       console.log('error submit!')
     }
@@ -230,15 +240,16 @@ const createFormData = reactive<M_ICreateRuleForm>({
   username: '',
   displayName: '',
   email: '',
-  Phone: '',
-  role: '',
-  resource: '',
-  Access: []
+  phone: '',
+  password: '',
+  roleid: '',
+  groupIds:[]
 })
 const rules  = reactive<FormRules>({
-  username: [{ required: true, message: "請輸入使用者帳號", trigger: "blur" }],
-  displayName: [{ required: true, message: "請輸入使用者名稱", trigger: "blur" }],
-  email: [{ required: true, message: "請輸入電子郵件", trigger: "blur" }],
+  username: [{ required: true, message: () => t("validation_msg.username_is_required"), trigger: "blur" }],
+  displayName: [{ required: true, message: () => t("validation_msg.displayname_is_required"), trigger: "blur" }],
+  email: [{ required: true, message: () => t("validation_msg.email_is_required"), trigger: "blur" }],
+  password: [{ required: true, message: () => t("validation_msg.password_is_required"), trigger: "blur" }],
   role: [{ required: true, message: "請至少選擇一個角色", trigger: "blur" }],
 });
 
@@ -248,10 +259,11 @@ const updateFormData = reactive<M_ICreateRuleForm>({
   username: '',
   displayName: '',
   email: '',
-  Phone: '',
-  role: '',
-  resource: '',
-  Access: []
+  phone: '',
+  password: '',
+  roleid: '',
+  groupIds:[]
+
 })
 
 //#endregion
