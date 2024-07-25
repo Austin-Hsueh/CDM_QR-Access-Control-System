@@ -27,15 +27,8 @@ export default defineComponent({
     const router = useRouter();
     const userInfoStore = useUserInfoStore();
 
-    const onCardClicked = async () => {
-      console.log("click");
-      const url = "https://academy.sinbon.com/eHRD/eHRDOrg";
-      window.open(url, "_blank");
-    };
-
     return {
       t,
-      onCardClicked,
     };
   },
 });

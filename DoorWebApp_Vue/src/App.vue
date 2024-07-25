@@ -164,7 +164,7 @@ ion-icon {
   }
 
   .dialog {
-    max-width: 480px;
+    max-width: 550px;
     min-width: 300px;
   }
 

@@ -10,4 +10,5 @@ export default interface IUserInfo {
   el_local?: Language;
   permissions: number[];
   qrcode: string;
+  roleId: number;
 }

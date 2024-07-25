@@ -42,6 +42,7 @@ import IResTPSPerformanceDataViewDTO from "@/models/dto/IResTPSPerformanceDataVi
 import { useUserInfoStore } from "@/stores/UserInfoStore";
 
 import {M_IUsers} from "@/models/M_IUser";
+import M_IUserinfo from "@/models/M_IUseinfo";
 
 class APIService {
   public axiosInstance: AxiosInstance;
@@ -394,6 +395,9 @@ class APIService {
     return this.axiosInstance.get<IAPIResponse<M_IUsers>>("v1/Users")
   }
 
+  getUserPermission(){    
+    return this.axiosInstance.get<IAPIResponse<M_IUserinfo>>("v1/User/Permission")
+  }
   //#endregion
 }
 

@@ -256,5 +256,8 @@
   "Temporary QRcode": "Temporary QRcode",
   "Account_Mgmt_Music": "Accounts",
   "Email": "Email",
-  "NameFilter": "Filter Display Name"
+  "NameFilter": "Filter Display Name",
+  "Phone": "Phone",
+  "Role": "Role",
+  "Access": "Access Tabs"
 }

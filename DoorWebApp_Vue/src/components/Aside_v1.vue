@@ -37,6 +37,7 @@ import { useRouter, useRoute } from "vue-router";
 import { useUserInfoStore } from "@/stores/UserInfoStore";
 import { useI18n } from "vue-i18n";
 import i18n from "@/locale";
+import API from "@/apis/TPSAPI";
 
 export default defineComponent({
   name: "aside-component",
@@ -50,6 +51,29 @@ export default defineComponent({
     const state = reactive({
       openList: ["1", "2", "3"],
     });
+
+    //#region Hook functions
+    onMounted(() => {
+      getUserPermission();
+    });
+    //#endregion
+
+    //#region Private Functions
+    async function getUserPermission() {
+      try {
+        const getUserPermissionResponse = await API.getUserPermission();
+        if (getUserPermissionResponse.data.result != 1) throw new Error(getUserPermissionResponse.data.msg);
+        console.log(getUserPermissionResponse)
+
+        const getUserPermissionResult = getUserPermissionResponse.data.content
+        // store儲存門禁權限，門禁管理頁使用
+        userInfoStore.permissions = getUserPermissionResult.permissionNames
+
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    //#endregion
 
     return {
       ...toRefs(state),
