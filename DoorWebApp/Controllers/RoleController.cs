@@ -83,8 +83,8 @@ namespace DoorWebApp.Controllers
         /// </summary>
         /// <returns></returns>
         [Authorize]
-        [HttpGet("/api/v1/User/Roleid")]
-        public IActionResult GetUserRoleId()
+        [HttpGet("/api/v1/User/Roleid/{UserId}")]
+        public IActionResult GetUserRoleId(int UserId)
         {
             APIResponse<ResRoleIdDTO> res = new APIResponse<ResRoleIdDTO>();
             
@@ -97,7 +97,7 @@ namespace DoorWebApp.Controllers
 
 
                 // 2. 資料檢核
-                var targetUserEntity = ctx.TblUsers.Include(x => x.Roles).Where(x => x.Id == OperatorId).FirstOrDefault();
+                var targetUserEntity = ctx.TblUsers.Include(x => x.Roles).Where(x => x.Id == UserId).FirstOrDefault();
                 if (targetUserEntity == null)
                 {
                     log.LogWarning($"[{Request.Path}] User (Id:{OperatorId}) not found");
@@ -111,7 +111,7 @@ namespace DoorWebApp.Controllers
                 res.msg = "success";
                 res.content = new ResRoleIdDTO()
                 {
-                    roleId = targetUserEntity.Id
+                    roleId = targetUserEntity.Roles.FirstOrDefault().Id
                 };
 
                 //log.LogInformation($"[{Request.Path}] Role list query success! Total:{RoleList.Count}");

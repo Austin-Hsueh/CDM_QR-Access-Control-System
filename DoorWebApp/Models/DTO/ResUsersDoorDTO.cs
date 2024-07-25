@@ -5,12 +5,6 @@ namespace DoorWebApp.Models.DTO
     public class ResUsersDoorDTO
     {
         /// <summary>
-        /// JWT
-        /// </summary>
-        public string token { get; set; }
-
-
-        /// <summary>
         /// 使用者Id(Door內建的帳號流水號)
         /// </summary>
         public int userId { get; set; }
@@ -27,14 +21,8 @@ namespace DoorWebApp.Models.DTO
 
 
         /// <summary>
-        /// qrcode
+        /// 使用者門禁清單
         /// </summary>
-        public string qrcode { get; set; }
-
-
-        /// <summary>
-        /// 權限清單
-        /// </summary>
-        public string permissionName { get; set; }
+        public List<int> groupIds { get; set; }
     }
 }

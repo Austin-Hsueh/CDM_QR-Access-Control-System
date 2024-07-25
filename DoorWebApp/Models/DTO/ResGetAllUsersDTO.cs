@@ -55,9 +55,9 @@
         /// </summary>
         public string accessDays { get; set; } = "";
 
+        public List<string> groupNames { set; get; }
 
-        public List<int> permissions { set; get; }
-        public List<string> permissionNames { set; get; }
+        public List<int> groupIds { set; get; }
 
     }
 }

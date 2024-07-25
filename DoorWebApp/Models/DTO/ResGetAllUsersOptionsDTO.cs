@@ -1,8 +1,6 @@
-﻿using DoorDB.Enums;
-
-namespace DoorWebApp.Models.DTO
+﻿namespace DoorWebApp.Models.DTO
 {
-    public class ResUserPermissionDTO
+    public class ResGetAllUsersOptionsDTO
     {
         /// <summary>
         /// 使用者Id(Door內建的帳號流水號)
@@ -15,20 +13,8 @@ namespace DoorWebApp.Models.DTO
         public string username { get; set; }
 
         /// <summary>
-        /// 顯示名稱
+        /// 顯示姓名
         /// </summary>
         public string displayName { get; set; }
-
-
-        /// <summary>
-        /// qrcode
-        /// </summary>
-        public string qrcode { get; set; }
-
-
-        /// <summary>
-        /// 權限清單
-        /// </summary>
-        public List<int> groupIds { get; set; }
     }
 }

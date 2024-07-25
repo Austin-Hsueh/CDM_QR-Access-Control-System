@@ -32,11 +32,5 @@
         /// 該使用者的角色Id
         /// </summary>
         public int roleid { set; get; }
-
-        /// <summary>
-        /// 該使用者所具有的們Id
-        /// </summary>
-        public List<int> groupIds { get; set; }
-
     }
 }

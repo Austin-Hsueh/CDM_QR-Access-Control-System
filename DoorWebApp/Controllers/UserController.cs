@@ -142,8 +142,9 @@ namespace DoorWebApp.Controllers
             }
         }
 
+
         /// <summary>
-        /// 取得使用者清單(含角色資訊)
+        /// 取得使用者清單()
         /// </summary>
         /// <returns></returns>
         [AllowAnonymous]
@@ -189,6 +190,49 @@ namespace DoorWebApp.Controllers
             }
         }
 
+        /// <summary>
+        /// 取得使用者清單(下拉選單)
+        /// </summary>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [HttpGet("v1/UsersOptions")]
+        public async Task<IActionResult> GetAllUsersUsersOptions()
+        {
+            APIResponse<List<ResGetAllUsersOptionsDTO>> res = new APIResponse<List<ResGetAllUsersOptionsDTO>>();
+
+            try
+            {
+                string format = "yyyy/MM/dd HH:mm";
+                var UserList = ctx.TblUsers
+                    .Where(x => x.IsDelete == false)
+                    .Select(x => new ResGetAllUsersOptionsDTO()
+                    {
+                        userId = x.Id,
+                        username = x.Username,
+                        displayName = x.DisplayName
+                    })
+                    .ToList();
+
+                //var result = await SoyalAPI.SendUserAccessProfilesAsync(UserList);
+                //return Ok("Profiles sent successfully.");
+
+
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                res.content = UserList;
+                //res.content = UserList;
+
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
 
         /// <summary>
         /// 取得使用者清單(含角色資訊)
@@ -204,7 +248,10 @@ namespace DoorWebApp.Controllers
             {
                 var UserList = ctx.TblUsers
                     .Include(x => x.Roles)
+                    .Include(x => x.Permission)
+                    .ThenInclude(x => x.PermissionGroups)
                     .Where(x => x.IsDelete == false)
+                    .Where(x => x.Permission.PermissionGroups.Select(x => x.Id).Count() > 0)
                     .Select(x => new ResGetAllUsersDTO()
                     {
                         userId = x.Id,
@@ -213,11 +260,13 @@ namespace DoorWebApp.Controllers
                         email = x.Email,
                         roleId = x.Roles.FirstOrDefault().Id,
                         roleName = x.Roles.FirstOrDefault().Name,
-                        permissionNames = x.Permission.PermissionGroups
+                        groupNames = x.Permission.PermissionGroups
                         .Select(y =>  y.Name).ToList(),
+                        groupIds = x.Permission.PermissionGroups
+                        .Select(y => y.Id).ToList(),
                         password = x.Secret,
                         phone = x.Phone,
-                        accessTime = x.Permission.DateFrom.ToString() + x.Permission.TimeFrom.ToString() + "~" + x.Permission.DateTo.ToString() + x.Permission.TimeTo.ToString(),
+                        accessTime = x.Permission.DateFrom.ToString() + " " + x.Permission.TimeFrom.ToString() + "~" + x.Permission.DateTo.ToString() + " " + x.Permission.TimeTo.ToString(),
                         accessDays = x.Permission.Days.Replace("1", "周一").Replace("2", "周二").Replace("3", "周三").Replace("4", "周四").Replace("5", "周五").Replace("6", "周六").Replace("7", "周日"),
                     })
                     .ToList();
@@ -246,8 +295,8 @@ namespace DoorWebApp.Controllers
         /// </summary>
         /// <returns></returns>
         [Authorize]
-        [HttpGet("v1/User/Permission")]
-        public IActionResult Permission()
+        [HttpGet("v1/User/Permission/{UserId}")]
+        public IActionResult Permission(int UserId)
         {
             APIResponse<ResUserPermissionDTO> res = new APIResponse<ResUserPermissionDTO>();
 
@@ -259,10 +308,10 @@ namespace DoorWebApp.Controllers
 
 
                 // 1. 資料檢核
-                var targetUserEntity = ctx.TblUsers.Include(x => x.Permission).ThenInclude(x => x.PermissionGroups).Where(x => x.Id == OperatorId).FirstOrDefault();
+                var targetUserEntity = ctx.TblUsers.Include(x => x.Permission).ThenInclude(x => x.PermissionGroups).Where(x => x.Id == UserId).FirstOrDefault();
                 if (targetUserEntity == null)
                 {
-                    log.LogWarning($"[{Request.Path}] User (Id:{OperatorId}) not found");
+                    log.LogWarning($"[{Request.Path}] User (Id:{UserId}) not found");
                     res.result = APIResultCode.user_not_found;
                     res.msg = "查無使用者";
                     return Ok(res);
@@ -272,17 +321,19 @@ namespace DoorWebApp.Controllers
                 // 2. 撈取使用者門禁權限清單
                 var UserPermissions = GetUserPermissionListByUserId(targetUserEntity.Id);
 
+                var QRCodeData = ctx.TbQRCodeStorages.Include(x => x.Users).Where(x => x.Users.Select(u => u.Id).Contains(OperatorId)).Select(x => x.QRCodeData).FirstOrDefault();
+                string qrcode = QRCodeData == null ? "" : QRCodeData.ToString();
+
                 res.result = APIResultCode.success;
-                res.msg = "refresh_success";
+                res.msg = "success";
                 res.content = new ResUserPermissionDTO
                 {
                     userId = targetUserEntity.Id,
                     username = targetUserEntity.Username,
                     displayName = targetUserEntity.DisplayName,
-                    //token = token,
-                    qrcode = "qrcode",
-                    permissionNames = targetUserEntity.Permission.PermissionGroups
-                        .Select(y => y.Name).ToList()
+                    qrcode = qrcode,
+                    groupIds = targetUserEntity.Permission.PermissionGroups
+                        .Select(y => y.Id).ToList()
                 };
 
 
@@ -312,17 +363,17 @@ namespace DoorWebApp.Controllers
             {
                 res.result = APIResultCode.success;
                 res.msg = "success";
-                var UserList = ctx.TblPermissionGroup
-                    .Include(x => x.Permissions)
-                    .ThenInclude(x => x.User)
-                    .Where(x => x.Permissions.First().User.IsDelete == false)
-                    .Where(x => x.Id == GroupId)
+                var UserList = ctx.TblUsers
+                    .Include(x => x.Permission)
+                    .ThenInclude(x => x.PermissionGroups)
+                    .Where(x => x.IsDelete == false)
+                    .Where(x => x.Permission.PermissionGroups.Select(x => x.Id).Contains(GroupId))
                     .Select(x => new ResUsersDoorDTO()
                     {
-                        userId = x.Permissions.First().User.Id,
-                        username = x.Permissions.First().User.Username,
-                        displayName = x.Permissions.First().User.DisplayName,
-                        permissionName = x.Name
+                        userId = x.Id,
+                        username = x.Username,
+                        displayName = x.DisplayName,
+                        groupIds = x.Permission.PermissionGroups.Select(x => x.Id).ToList()
                     })
                     .ToList();
 
@@ -509,9 +560,9 @@ namespace DoorWebApp.Controllers
 
 
                 // 3-2. 新增門禁,再加到使用者
-                
+
                 //新增門禁權限關聯,再加到使用者
-                List<TblPermissionGroup> tblPermissionGroup = ctx.TblPermissionGroup.Where(x => UserDTO.groupIds.Contains( x.Id )).ToList();
+                //List<TblPermissionGroup> tblPermissionGroup = ctx.TblPermissionGroup.Where(x => UserDTO.groupIds.Contains( x.Id )).ToList();
                 TblPermission NewPermission = new TblPermission();
                 NewPermission.IsEnable = true;
                 NewPermission.IsDelete = false;
@@ -521,14 +572,14 @@ namespace DoorWebApp.Controllers
                 NewPermission.TimeTo = "21:00";
                 NewPermission.Days = "";
                 NewPermission.PermissionLevel = 1;
-                NewPermission.PermissionGroups = tblPermissionGroup;
-                // Set the UserId for the new permission using the newly created user's UserId
+                //NewPermission.PermissionGroups = tblPermissionGroup;
+                //// Set the UserId for the new permission using the newly created user's UserId
                 NewPermission.UserId = NewUser.Id;
 
                 ctx.TblPermission.Add(NewPermission);
-                log.LogInformation($"[{Request.Path}] Create Permission : TblPermissionGroupIds Count={UserDTO.groupIds.Count}");
-                    
-                    
+                log.LogInformation($"[{Request.Path}] Create Permission : TblPermission UserId ={NewUser.Id}");
+
+
 
                 // 4. 寫入資料庫
                 log.LogInformation($"[{Request.Path}] Save changes");
@@ -586,10 +637,11 @@ namespace DoorWebApp.Controllers
             APIResponse res = new APIResponse();
             try
             {
-                int UserId = User.Claims.Where(x => x.Type == "Id").Select(x=>int.Parse(x.Value)).FirstOrDefault();
+                int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x=>int.Parse(x.Value)).FirstOrDefault();
                 string OperatorUsername = User.Identity?.Name?? "N/A";
+                int UserId = UserDTO.userId;
 
-                log.LogInformation($"[{Request.Path}] Update user. UserId:{UserId}");
+                log.LogInformation($"[{Request.Path}] Update user. OperatorId:{OperatorId}");
                 // 1. 資料檢核
                 var UserEntity = ctx.TblUsers.Include(x=> x.Roles).Where(x => x.Id == UserId).FirstOrDefault();
                 if (UserEntity == null)
@@ -726,10 +778,10 @@ namespace DoorWebApp.Controllers
                 UserEntity.Roles.AddRange(AssignRoleEntities);
 
                 //更新使用者門禁
-                var AssignPermissionEntities = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == UserId).FirstOrDefault();
-                List<TblPermissionGroup> tblPermissionGroup = ctx.TblPermissionGroup.Where(x => UserDTO.groupIds.Contains(x.Id)).ToList();
-                AssignPermissionEntities.PermissionGroups.Clear();
-                AssignPermissionEntities.PermissionGroups.AddRange(tblPermissionGroup);
+                //var AssignPermissionEntities = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == UserId).FirstOrDefault();
+                //List<TblPermissionGroup> tblPermissionGroup = ctx.TblPermissionGroup.Where(x => UserDTO.groupIds.Contains(x.Id)).ToList();
+                //AssignPermissionEntities.PermissionGroups.Clear();
+                //AssignPermissionEntities.PermissionGroups.AddRange(tblPermissionGroup);
 
 
                 // 4. 存檔
@@ -763,32 +815,32 @@ namespace DoorWebApp.Controllers
         /// <returns></returns>
         [Authorize]
         [HttpPatch("v1/User/Permission")]
-        public IActionResult UpdateUserPerMission(ReqPermissionDTO PermissionDTO)
+        public IActionResult UpdateUserPerMission(UserPermissionDTO PermissionDTO)
         {
             APIResponse res = new APIResponse();
             try
             {
-                int UserId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+                int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
                 string OperatorUsername = User.Identity?.Name ?? "N/A";
 
-                log.LogInformation($"[{Request.Path}] Update user 門禁的門. UserId:{UserId}");
+                log.LogInformation($"[{Request.Path}] Update user 門禁的門. OperatorId:{OperatorId}");
                 // 1. 資料檢核
-                var UserEntity = ctx.TblUsers.Include(x => x.Roles).Where(x => x.Id == UserId).FirstOrDefault();
+                var UserEntity = ctx.TblUsers.Include(x => x.Roles).Where(x => x.Id == PermissionDTO.userId).FirstOrDefault();
                 if (UserEntity == null)
                 {
-                    log.LogWarning($"[{Request.Path}] User (Id:{UserId}) not found");
+                    log.LogWarning($"[{Request.Path}] User (Id:{PermissionDTO.userId}) not found");
                     res.result = APIResultCode.user_not_found;
                     res.msg = "查無使用者";
                     return Ok(res);
                 }
 
-                log.LogInformation($"[{Request.Path}] Target user found! UserId:{UserId}, Username:{UserEntity.Username}");
+                log.LogInformation($"[{Request.Path}] Target user found! UserId:{PermissionDTO.userId}, Username:{UserEntity.Username}");
 
 
 
                 // 2. 更新資料
                 //更新角色
-                var AssignPermissionEntities = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == UserId).First();
+                var AssignPermissionEntities = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == PermissionDTO.userId).First();
                 AssignPermissionEntities.DateFrom = PermissionDTO.datefrom;
                 AssignPermissionEntities.DateTo = PermissionDTO.dateto;
                 AssignPermissionEntities.TimeFrom = PermissionDTO.timefrom;
@@ -822,12 +874,63 @@ namespace DoorWebApp.Controllers
         }
 
         /// <summary>
+        /// 更新暫時門禁
+        /// </summary>
+        /// <param name="UserId"></param>
+        /// <param name=""></param>
+        /// <returns></returns>
+        [Authorize]
+        [HttpPatch("v1/User/TempDoorSetting")]
+        public IActionResult UpdateTempDoorSetting(ReqPermissionDTO PermissionDTO)
+        {
+            APIResponse res = new APIResponse();
+            try
+            {
+                int UserId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+                string OperatorUsername = User.Identity?.Name ?? "N/A";
+
+                log.LogInformation($"[{Request.Path}] Update 暫時門禁. UserId:{UserId}");
+
+
+
+                // 1. 更新資料
+                //更新角色
+                var AssignPermissionEntities = ctx.TblPermission.Where(x => x.UserId == 52).FirstOrDefault();
+                AssignPermissionEntities.DateFrom = PermissionDTO.datefrom;
+                AssignPermissionEntities.DateTo = PermissionDTO.dateto;
+                AssignPermissionEntities.TimeFrom = PermissionDTO.timefrom;
+                AssignPermissionEntities.TimeTo = PermissionDTO.timeto;
+
+
+                // 2. 存檔
+                log.LogInformation($"[{Request.Path}] Save changes");
+                int EffectRow = ctx.SaveChanges();
+                log.LogInformation($"[{Request.Path}] Update success. (EffectRow:{EffectRow})");
+
+                // 3. 寫入稽核紀錄
+                auditLog.WriteAuditLog(AuditActType.Modify, $"Update 更新暫時門禁:, EffectRow:{EffectRow}", UserId.ToString());
+
+                res.result = APIResultCode.success;
+                res.msg = "success";
+
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
+        /// <summary>
         /// 取得使用者權限 門禁設定
         /// </summary>
         /// <returns></returns>
         [Authorize]
-        [HttpGet("v1/User/PermissionSetting")]
-        public IActionResult GetPermissionSetting()
+        [HttpGet("v1/User/PermissionSetting/{UserId}")]
+        public IActionResult GetPermissionSetting(int UserId)
         {
             APIResponse<PermissionDTO> res = new APIResponse<PermissionDTO>();
 
@@ -839,21 +942,24 @@ namespace DoorWebApp.Controllers
 
 
                 // 1. 資料檢核
-                var targetUserEntity = ctx.TblUsers.Where(x => x.Id == OperatorId).FirstOrDefault();
+                var targetUserEntity = ctx.TblUsers.Where(x => x.Id == UserId).FirstOrDefault();
                 if (targetUserEntity == null)
                 {
-                    log.LogWarning($"[{Request.Path}] User (Id:{OperatorId}) not found");
+                    log.LogWarning($"[{Request.Path}] User (Id:{UserId}) not found");
                     res.result = APIResultCode.user_not_found;
                     res.msg = "查無使用者";
                     return Ok(res);
                 }
 
 
-                log.LogInformation($"[{Request.Path}] Target user found! UserId:{OperatorId}, Username:{targetUserEntity.Username}");
+                log.LogInformation($"[{Request.Path}] Target user found! UserId:{UserId}, Username:{targetUserEntity.Username}");
 
                 
-                var userPermission = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == OperatorId).FirstOrDefault();
-                
+                var userPermission = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == UserId).FirstOrDefault();
+
+                var QRCodeData = ctx.TbQRCodeStorages.Include(x => x.Users).Where(x => x.Users.Select(u => u.Id).Contains(OperatorId)).Select(x => x.QRCodeData).FirstOrDefault();
+                string qrcode = QRCodeData == null ? "" : QRCodeData.ToString();
+
                 var days = userPermission.Days
                     .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(int.Parse)  // Convert each day string to integer
@@ -862,13 +968,13 @@ namespace DoorWebApp.Controllers
                 // Map the result to PermissionDTO
                 var userPermissions = new PermissionDTO
                 {
-                    userId = userPermission.Id,
                     datefrom = userPermission.DateFrom,
                     dateto = userPermission.DateTo,
                     timefrom = userPermission.TimeFrom,
                     timeto = userPermission.TimeTo,
                     days = days,  // Set the converted list of days
-                    permissions = userPermission.PermissionGroups
+                    qrcode = qrcode,
+                    groupIds = userPermission.PermissionGroups
                         .Select(y => y.Id)
                         .ToList()  // Convert the IEnumerable<int> to List<int>
                 };
@@ -926,16 +1032,19 @@ namespace DoorWebApp.Controllers
                     .Select(int.Parse)  // Convert each day string to integer
                     .ToList();  // Convert to List<int>
 
+                var QRCodeData = ctx.TbQRCodeStorages.Include(x => x.Users).Where(x => x.Users.Select(u => u.Id).Contains(OperatorId)).Select(x => x.QRCodeData).FirstOrDefault();
+                string qrcode = QRCodeData == null ? "" : QRCodeData.ToString();
+
                 // Map the result to PermissionDTO
                 var userPermissions = new PermissionDTO
                 {
-                    userId = userPermission.Id,
                     datefrom = userPermission.DateFrom,
                     dateto = userPermission.DateTo,
                     timefrom = userPermission.TimeFrom,
                     timeto = userPermission.TimeTo,
                     days = days,  // Set the converted list of days
-                    permissions = userPermission.PermissionGroups
+                    qrcode = qrcode,
+                    groupIds = userPermission.PermissionGroups
                         .Select(y => y.Id)
                         .ToList()  // Convert the IEnumerable<int> to List<int>
                 };

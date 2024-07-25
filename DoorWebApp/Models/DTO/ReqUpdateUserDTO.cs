@@ -3,6 +3,11 @@
     public class ReqUpdateUserDTO
     {
         /// <summary>
+        /// 使用者 Id
+        /// </summary>
+        public int userId { get; set; }
+
+        /// <summary>
         /// 使用者帳號
         /// </summary>
         public string username { get; set; }
@@ -41,7 +46,7 @@
         /// <summary>
         /// 該使用者所具有的們Id
         /// </summary>
-        public List<int> groupIds { get; set; }
+        //public List<int> groupIds { get; set; }
 
     }
 }
