@@ -12,7 +12,7 @@
     text-color="#fff"
     active-text-color="#ffd04b"
   >
-    <el-menu-item index="/accesscontrol">
+    <el-menu-item index="/accesscontrol" v-if="isShowMenu">
         <el-icon><Calendar /></el-icon>
         <span>{{ t("Access Control") }}</span>
     </el-menu-item>
@@ -20,11 +20,11 @@
         <el-icon><Menu /></el-icon>
         <span>{{ t("QRcode") }}</span>
     </el-menu-item>
-    <el-menu-item index="/temporaryqrcode">
+    <el-menu-item index="/temporaryqrcode" v-if="isShowMenu">
         <el-icon><Menu /></el-icon>
         <span>{{ t("Temporary QRcode") }}</span>
     </el-menu-item>
-    <el-menu-item index="/accountMgmt">
+    <el-menu-item index="/accountMgmt" v-if="isShowMenu">
         <el-icon><Setting /></el-icon>
         <span>{{ t("Account_Mgmt_Music") }}</span>
     </el-menu-item>
@@ -50,11 +50,13 @@ export default defineComponent({
     const userInfoStore = useUserInfoStore();
     const state = reactive({
       openList: ["1", "2", "3"],
+      isShowMenu: false
     });
 
     //#region Hook functions
     onMounted(() => {
       getUserPermission();
+      
     });
     //#endregion
 
@@ -69,6 +71,13 @@ export default defineComponent({
         // store儲存門禁權限，門禁管理頁使用
         userInfoStore.permissions = getUserPermissionResult.permissionNames
 
+        // 取得角色，判斷Menu顯示
+        const getRoleidResponse = await API.getRoleid();
+        console.log(getRoleidResponse.data.content)
+        const getRoleidResult = getRoleidResponse.data.content
+        if(getRoleidResult.roleId == 51 || getRoleidResult.roleId == 1){
+          state.isShowMenu = true;
+        }
       } catch (error) {
         console.error(error);
       }

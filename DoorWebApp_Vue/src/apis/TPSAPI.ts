@@ -394,15 +394,19 @@ class APIService {
   //#region Music 使用者相關
   /** 取得使用者清單 */
   getAllUsers(){
-    return this.axiosInstance.get<IAPIResponse<M_IUsers>>("v1/Users")
+    return this.axiosInstance.get<IAPIResponse<M_IUsers>>("v1/Users");
   }
 
   getUserPermission(){    
-    return this.axiosInstance.get<IAPIResponse<M_IUserinfo>>("v1/User/Permission")
+    return this.axiosInstance.get<IAPIResponse<M_IUserinfo>>("v1/User/Permission");
+  }
+
+  getRoleid(){    
+    return this.axiosInstance.get<IAPIResponse<any>>("v1/User/Roleid");
   }
 
   addUser(data: M_ICreateRuleForm){
-    return this.axiosInstance.post<IAPIResponse<number>>("v1/User", data)
+    return this.axiosInstance.post<IAPIResponse<number>>("v1/User", data);
   }
 
   //#endregion
