@@ -851,9 +851,9 @@ namespace DoorWebApp.Controllers
 
                 log.LogInformation($"[{Request.Path}] Target user found! UserId:{OperatorId}, Username:{targetUserEntity.Username}");
 
-                //PermissionDTO UserPermissions = GetUserPermissionByUserId(OperatorId);
+                
                 var userPermission = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == OperatorId).FirstOrDefault();
-                // Perform conversion outside the LINQ query
+                
                 var days = userPermission.Days
                     .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(int.Parse)  // Convert each day string to integer
@@ -893,6 +893,7 @@ namespace DoorWebApp.Controllers
         /// <summary>
         /// 取得使用者權限 門禁設定
         /// </summary>
+        /// <returns></returns>
         [HttpGet("v1/User/TempDoorSetting")]
         public IActionResult GetTempDoorSetting()
         {
@@ -917,7 +918,7 @@ namespace DoorWebApp.Controllers
 
                 log.LogInformation($"[{Request.Path}] Target user found! UserId:{OperatorId}, Username:{targetUserEntity.Username}");
 
-                //PermissionDTO UserPermissions = GetUserPermissionByUserId(OperatorId);
+
                 var userPermission = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == OperatorId).FirstOrDefault();
                 // Perform conversion outside the LINQ query
                 var days = userPermission.Days
@@ -956,54 +957,7 @@ namespace DoorWebApp.Controllers
             }
         }
 
-        /// <summary>
-        /// 取得使用者權限 門禁設定
-        /// </summary>
-        /// <param name="UserId"></param>
-        /// <returns></returns>
-        [Authorize]
-        [HttpGet("v1/User/PermissionSetting2")]
-        public IActionResult GetPermissionList()
-        {
-            APIResponse<PermissionDTO> res = new APIResponse<PermissionDTO>();
-
-            try
-            {
-                int UserId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
-                string OperatorUsername = User.Identity?.Name ?? "N/A";
-                log.LogInformation($"[{Request.Path}] v1/User/PermissionSetting : id={UserId}, username={OperatorUsername})");
-                
-                // 1. 資料檢核
-                var UserEntity = ctx.TblUsers.Include(x => x.Roles).Where(x => x.Id == UserId).FirstOrDefault();
-                if (UserEntity == null)
-                {
-                    log.LogWarning($"[{Request.Path}] User (Id:{UserId}) not found");
-                    res.result = APIResultCode.user_not_found;
-                    res.msg = "查無使用者";
-                    return Ok(res);
-                }
-
-                log.LogInformation($"[{Request.Path}] Target user found! UserId:{UserId}, Username:{UserEntity.Username}");
-
-                var UserPermissions = GetUserPermissionByUserId(UserId);
-
-                log.LogInformation($"[{Request.Path}] Query user permissions success! Total:{UserPermissions.permissions.Count}");
-
-                res.result = APIResultCode.success;
-                res.msg = "success";
-                res.content = UserPermissions;
-
-                return Ok(res);
-            }
-            catch (Exception err)
-            {
-                log.LogError(err, $"[{Request.Path}] Error : {err}");
-                res.result = APIResultCode.unknow_error;
-                res.msg = err.Message;
-                return Ok(res);
-            }
-        }
-
+        
         /// <summary>
         /// 使用Local DB進行帳密驗證
         /// </summary>
@@ -1077,53 +1031,6 @@ namespace DoorWebApp.Controllers
             return result;
         }
 
-
-        /// <summary>
-        /// 取得使用者權限Id清單
-        /// </summary>
-        /// <returns></returns>
-        private PermissionDTO GetUserPermissionByUserId(int UserId)
-        {
-            // Ensure 'UserId' parameter is used consistently
-            if (UserId <= 0)
-            {
-                // Handle invalid UserId case if necessary
-                throw new ArgumentException("Invalid user ID.", nameof(UserId));
-            }
-
-            // Query the context and map the result to PermissionDTO
-            var userPermission = ctx.TblPermission
-                .Include(x => x.PermissionGroups)  // Include related PermissionGroups
-                .Where(x => x.Id == UserId)  // Filter by UserId
-                .FirstOrDefault();  // Fetch the first result or null if none found
-
-            if (userPermission == null)
-            {
-                return null;  // Return null if no permissions found
-            }
-
-            // Perform conversion outside the LINQ query
-            var days = userPermission.Days
-                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(int.Parse)  // Convert each day string to integer
-                .ToList();  // Convert to List<int>
-
-            // Map the result to PermissionDTO
-            var userPermissions = new PermissionDTO
-            {
-                userId = userPermission.Id,
-                datefrom = userPermission.DateFrom,
-                dateto = userPermission.DateTo,
-                timefrom = userPermission.TimeFrom,
-                timeto = userPermission.TimeTo,
-                days = days,  // Set the converted list of days
-                permissions = userPermission.PermissionGroups
-                    .Select(y => y.Id)
-                    .ToList()  // Convert the IEnumerable<int> to List<int>
-            };
-
-            return userPermissions;
-        }
 
         /// <summary>
         /// 取得使用者權限Id清單
