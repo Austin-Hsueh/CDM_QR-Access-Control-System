@@ -66,18 +66,18 @@
       </el-form-item>
       <el-form-item :label="t('Role')" prop="role" >
         <el-select v-model="createFormData.role" placeholder="請選擇一個角色" style="width:90%">
-          <el-option label="管理者" value="1" />
-          <el-option label="老師" value="2" />
-          <el-option label="學生" value="3" />
-          <el-option label="值班人員" value="4" />
+          <el-option label="管理者" :value="1" />
+          <el-option label="老師" :value="2" />
+          <el-option label="學生" :value="3" />
+          <el-option label="值班人員" :value="4" />
         </el-select>
       </el-form-item>
       <el-form-item :label="t('Access')" prop="Access" >
         <el-checkbox-group v-model="createFormData.Access">
-          <el-checkbox label="大門" value="大門" />
-          <el-checkbox label="Car教室" value="Car教室" />
-          <el-checkbox label="Sunny教室" value="Sunny教室" />
-          <el-checkbox label="儲藏室" value="儲藏室" />
+          <el-checkbox label="大門" :value="1"/>
+          <el-checkbox label="Car教室" :value="2"/>
+          <el-checkbox label="Sunny教室" :value="3" />
+          <el-checkbox label="儲藏室" :value="4" />
         </el-checkbox-group>
       </el-form-item>
     </el-form>
@@ -107,18 +107,18 @@
       </el-form-item>
       <el-form-item :label="t('Role')" prop="role" >
         <el-select v-model="updateFormData.role" placeholder="請選擇一個角色" style="width:90%">
-          <el-option label="管理者" value="Admin" />
-          <el-option label="老師" value="2" />
-          <el-option label="學生" value="3" />
-          <el-option label="值班人員" value="4" />
+          <el-option label="管理者" :value="1" />
+          <el-option label="老師" :value="2" />
+          <el-option label="學生" :value="3" />
+          <el-option label="值班人員" :value="4" />
         </el-select>
       </el-form-item>
       <el-form-item :label="t('Access')" prop="Access" >
         <el-checkbox-group v-model="updateFormData.Access">
-          <el-checkbox label="大門" value="大門" />
-          <el-checkbox label="Car教室" value="Car教室" />
-          <el-checkbox label="Sunny教室" value="Sunny教室" />
-          <el-checkbox label="儲藏室" value="儲藏室" />
+          <el-checkbox label="大門" :value="1"/>
+          <el-checkbox label="Car教室" :value="2"/>
+          <el-checkbox label="Sunny教室" :value="3" />
+          <el-checkbox label="儲藏室" :value="4" />
         </el-checkbox-group>
       </el-form-item>
     </el-form>
@@ -169,7 +169,7 @@ const onEdit = (item: M_IUsers) => {
   updateFormData.displayName =item.displayName
   updateFormData.email = item.email
   updateFormData.Phone = item.phone
-  updateFormData.role = item.roleName
+  updateFormData.role = item.roleId
   updateFormData.Access = item.permissionNames
   isShowEditRoleDialog.value = true;
 }
