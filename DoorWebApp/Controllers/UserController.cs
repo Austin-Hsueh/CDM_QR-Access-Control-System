@@ -119,6 +119,9 @@ namespace DoorWebApp.Controllers
                 log.LogInformation($"[{Request.Path}] User login success!");
                 auditLog.WriteAuditLog(AuditActType.Login, $"User login ({loginInDTO.username})", loginInDTO.username);
 
+                var QRCodeData = ctx.TbQRCodeStorages.Include(x => x.Users).Where(x => x.Users.Select(u => u.Id).Contains(targetUserEntity.Id)).Select(x => x.QRCodeData).FirstOrDefault();
+                string qrcode = QRCodeData == null ? "" : QRCodeData.ToString();
+
 
                 res.result = APIResultCode.success;
                 res.msg = "login_success";
@@ -127,6 +130,7 @@ namespace DoorWebApp.Controllers
                     userId = targetUserEntity.Id,
                     username = targetUserEntity.Username,
                     displayName = targetUserEntity.DisplayName,
+                    qrcode = qrcode,
                     token = token
                     //permissionIds = UserPermissions
                 };
