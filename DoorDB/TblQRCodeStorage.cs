@@ -24,31 +24,22 @@ namespace DoorDB
         public int Id { get; set; }
 
         /// <summary>
-        /// QRcdoe base64
+        /// userTag
+        /// </summary>
+        public int userTag { set; get; } = 0;
+
+        /// <summary>
+        /// QRcdoe qrcodeTxt
+        /// </summary>
+        public string qrcodeTxt { set; get; } = "";
+
+        /// <summary>
+        /// QRcdoe base64 qrcodeImg
         /// </summary>
         public string QRCodeData { set; get; } = "";
 
-        /// <summary>
-        /// 帳號類型("LDAP" | "LOCAL")
-        /// </summary>
-        [Column(TypeName = "varchar(10)")]
-        public QRcodeType QRcodeType { get; set; }
 
-        /// <summary>
-        /// 是否啟用
-        /// </summary>
-        public bool IsEnable { get; set; } = true;
-
-        /// <summary>
-        /// 是否刪除
-        /// </summary>
-        public bool IsDelete { get; set; } = false;
-
-        /// <summary>
-        /// 門禁時間
-        /// </summary>
-        [Required]
-        public DateTime DoorTime { get; set; }
+        
 
         /// <summary>
         /// 修改時間

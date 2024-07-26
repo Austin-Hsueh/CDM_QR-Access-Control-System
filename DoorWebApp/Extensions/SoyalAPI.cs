@@ -9,7 +9,7 @@ namespace DoorWebApp.Extensions
 {
     public static class SoyalAPI
     {
-        public static async Task<UserQRCode> SendUserAccessProfilesAsync(List<UserAccessProfile> profiles)
+        public static async Task<APIResponse<List<UserQRCode>>> SendUserAccessProfilesAsync(List<UserAccessProfile> profiles)
         {
             using var client = new HttpClient();
             try
@@ -25,7 +25,8 @@ namespace DoorWebApp.Extensions
 
                 var responseString = await response.Content.ReadAsStringAsync();
                 var apiResponse = JsonConvert.DeserializeObject<UserQRCode>(responseString);
-                return apiResponse;
+                APIResponse<List<UserQRCode>> parsedApiResponse = JsonConvert.DeserializeObject<APIResponse<List<UserQRCode>>>(responseString);
+                return parsedApiResponse;
             }
             catch (HttpRequestException httpEx)
             {
