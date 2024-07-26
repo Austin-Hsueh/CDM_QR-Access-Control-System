@@ -14,7 +14,7 @@ namespace DoorWebApp.Extensions
             using var client = new HttpClient();
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Post, "https://localhost:7184/api/v1/UserAccessProfile");
+                var request = new HttpRequestMessage(HttpMethod.Post, "https://127.0.0.1:1029/api/v1/UserAccessProfile");
 
                 var json = JsonConvert.SerializeObject(new { profiles });
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
