@@ -12,7 +12,7 @@ namespace DoorWebApp
     public class Program
     {
         public static string TempDir { set; get; } = $@"{AppDomain.CurrentDomain.BaseDirectory}temp";
-        static string SPA_Server = "http://localhost:8080";
+        static string SPA_Server = "http://localhost:8082";
 
         public static void Main(string[] args)
         {
@@ -134,7 +134,7 @@ namespace DoorWebApp
             if (app.Environment.IsDevelopment())
                 app.UseHttpsRedirection();
             app.UseAuthorization();
-            if (app.Environment.IsDevelopment())
+            //if (app.Environment.IsDevelopment())
                 app.MapControllers();
             app.UseEndpoints(endpoints =>
             {
