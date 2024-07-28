@@ -12,7 +12,7 @@ namespace DoorWebApp
     public class Program
     {
         public static string TempDir { set; get; } = $@"{AppDomain.CurrentDomain.BaseDirectory}temp";
-        static string SPA_Server = "http://localhost:8082";
+        static string SPA_Server = "http://localhost:80";
 
         public static void Main(string[] args)
         {

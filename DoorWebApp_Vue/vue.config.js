@@ -5,7 +5,7 @@ module.exports = defineConfig({
   devServer: {
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8082', // .NET API 服务器地址
+        target: 'http://system.clair-de-musique-tw.com', // .NET API 服务器地址
         changeOrigin: true
       }
     }

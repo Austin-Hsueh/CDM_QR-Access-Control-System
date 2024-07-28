@@ -55,7 +55,7 @@ class APIService {
     //const userInfoStore = useUserInfoStore();
 
     this.axiosInstance = axios.create({
-      baseURL: "http://127.0.0.1:8082/api",
+      baseURL: "http://system.clair-de-musique-tw.com/api",
     });
 
     this.axiosInstance.interceptors.request.use((config) => {
