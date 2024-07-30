@@ -135,6 +135,8 @@ export default defineComponent({
           userInfoStore.username = signinResult.username;
           userInfoStore.displayName = signinResult.displayName;
 
+          userInfoStore.setQRcode(signinResult.qrcode);
+
           //轉至主畫面
           router.replace({ path: "/" });
         } catch (error) {
