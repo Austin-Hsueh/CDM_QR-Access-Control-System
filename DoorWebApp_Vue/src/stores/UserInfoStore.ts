@@ -53,7 +53,7 @@ export const useUserInfoStore = defineStore('userInfo', {
         userLocaleType = LocaleType.en_us
         this.setLocale(userLocaleType);
       }
-      
+
       return userLocaleType;
     },
     clearToken() {
@@ -64,6 +64,11 @@ export const useUserInfoStore = defineStore('userInfo', {
       if(IsSaveToLocalStorage) {
         localStorage.setItem('accessToken', token);
       } 
+    },
+    setQRcode(QRcode:string){
+      this.qrcode = QRcode;
+      localStorage.setItem('QRcode', QRcode);
+      
     }
   }
 })

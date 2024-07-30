@@ -50,39 +50,49 @@ export default defineComponent({
     const userInfoStore = useUserInfoStore();
     const state = reactive({
       openList: ["1", "2", "3"],
-      isShowMenu: false
+      isShowMenu: true
     });
 
     //#region Hook functions
     onMounted(() => {
-      getUserPermission();
+      // getUserPermission();
+      permission();
       
     });
     //#endregion
 
     //#region Private Functions
-    async function getUserPermission() {
-      try {
-        const getUserPermissionResponse = await API.getUserPermission();
-        if (getUserPermissionResponse.data.result != 1) throw new Error(getUserPermissionResponse.data.msg);
-        console.log(getUserPermissionResponse)
+    // async function getUserPermission() {
+    //   try {
+    //     const getUserPermissionResponse = await API.getUserPermission();
+    //     if (getUserPermissionResponse.data.result != 1) throw new Error(getUserPermissionResponse.data.msg);
+    //     console.log(getUserPermissionResponse)
 
-        const getUserPermissionResult = getUserPermissionResponse.data.content
-        // store儲存門禁權限，門禁管理頁使用
-        userInfoStore.permissions = getUserPermissionResult.permissionNames
+    //     const getUserPermissionResult = getUserPermissionResponse.data.content
+    //     // store儲存門禁權限，門禁管理頁使用
+    //     userInfoStore.permissions = getUserPermissionResult.permissionNames
 
-        // 取得角色，判斷Menu顯示
-        const getRoleidResponse = await API.getRoleid();
-        console.log(getRoleidResponse.data.content)
-        const getRoleidResult = getRoleidResponse.data.content
-        if(getRoleidResult.roleId == 51 || getRoleidResult.roleId == 1){
-          state.isShowMenu = true;
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    }
+    //     // 取得角色，判斷Menu顯示
+    //     const getRoleidResponse = await API.getRoleid();
+    //     console.log(getRoleidResponse.data.content)
+    //     const getRoleidResult = getRoleidResponse.data.content
+    //     if(getRoleidResult.roleId == 51 || getRoleidResult.roleId == 1){
+    //       state.isShowMenu = true;
+    //     }
+    //   } catch (error) {
+    //     console.error(error);
+    //   }
+    // }
     //#endregion
+
+    async function permission(){
+      if(userInfoStore.userId == 51 || userInfoStore.userId == 1){
+        state.isShowMenu = true;
+      }else{
+        state.isShowMenu = false;
+      }
+      
+    }
 
     return {
       ...toRefs(state),
