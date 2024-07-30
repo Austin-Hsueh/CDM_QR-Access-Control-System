@@ -29,5 +29,6 @@ namespace DoorDB
 
 
         public ICollection<TblPermission> Permissions { get; set; }
+        public ICollection<TblStudentPermission> StudentPermissions { get; set; }
     }
 }

@@ -18,6 +18,7 @@ namespace DoorDB
 
         public virtual DbSet<TblAuditLog> TblAuditLogs { set; get; } = null!;
         public virtual DbSet<TblPermission> TblPermission { set; get; } = null!;
+        public virtual DbSet<TblStudentPermission> TblStudentPermission { set; get; } = null!;
         public virtual DbSet<TblPermissionGroup> TblPermissionGroup { set; get; } = null!;
         public virtual DbSet<TblRole> TblRoles { set; get; } = null!;
         public virtual DbSet<TblUser> TblUsers { set; get; } = null!;
@@ -223,6 +224,18 @@ namespace DoorDB
                 .HasMany(x => x.QRCodes)
                 .WithMany(x => x.Users);
 
+
+            // 設置 TblUser 與 TblStudentPermission 一對多關係
+            modelBuilder.Entity<TblUser>()
+                .HasMany(p => p.StudentPermissions)
+                .WithOne(pg => pg.User)
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // 設置 TblPermissionGroup 與 TblStudentPermission 多對多關係
+            modelBuilder.Entity<TblStudentPermission>()
+                .HasMany(p => p.PermissionGroups)
+                .WithMany(pg => pg.StudentPermissions);
 
             #endregion
 
