@@ -6,40 +6,50 @@
     </div>
 
     <el-tabs type="border-card">
-      <el-tab-pane label="大門">大門</el-tab-pane>
-      <el-tab-pane label="Car教室">Car教室</el-tab-pane>
-      <el-tab-pane label="Sunny教室">Sunny教室</el-tab-pane>
-      <el-tab-pane label="儲藏室">儲藏室</el-tab-pane>
+      <el-tab-pane label="通行QRcode">
+        <div class="d-flex flex-column">
+          <div class="col-md-4 col-xs-12 col-sm-12">
+            <el-image :src="imageSrc" alt="Base64 Image" />
+          </div>
+        </div>
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
-<script lang="ts">
-import { defineComponent, onMounted } from "vue";
+<script setup lang="ts">
+import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useUserInfoStore } from "@/stores/UserInfoStore";
 import API from "@/apis/TPSAPI";
 import { APIResultCode } from "@/models/enums/APIResultCode";
 
-export default defineComponent({
-  setup() {
-    const { t, locale } = useI18n();
-    const router = useRouter();
-    const userInfoStore = useUserInfoStore();
+const { t, locale } = useI18n();
+const router = useRouter();
+const userInfoStore = useUserInfoStore();
 
-    const onCardClicked = async () => {
-      console.log("click");
-      const url = "https://academy.sinbon.com/eHRD/eHRDOrg";
-      window.open(url, "_blank");
-    };
+const qrcode = ref('');
+const imageSrc = ref('');
 
-    return {
-      t,
-      onCardClicked,
-    };
-  },
+onMounted(() => {
+  getUserSettingPermission()
 });
+
+//#region Private Functions
+async function getUserSettingPermission() {
+  try {
+    const getUserSettingPermission = await API.getUserSettingPermission(userInfoStore.userId);
+    if (getUserSettingPermission.data.result != 1) throw new Error(getUserSettingPermission.data.msg);
+    qrcode.value = getUserSettingPermission.data.content.qrcode || '';
+    imageSrc.value = `data:image/png;base64,${qrcode.value}`;
+
+  } catch (error) {
+    console.error(error);
+  }
+}
+//#endregion
 </script>
+
 
 <style scoped>
 .card-wrap {
