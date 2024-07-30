@@ -3,4 +3,5 @@ export default interface IResUserLoginDTO {
   userId: number;
   username: string;
   displayName: string;
+  qrcode:string;
 }
