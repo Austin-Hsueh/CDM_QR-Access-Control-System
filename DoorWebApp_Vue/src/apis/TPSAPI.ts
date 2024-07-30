@@ -41,9 +41,13 @@ import IReqReportPerformanceSearchCriteriaDTO from "@/models/dto/IReqReportPerfo
 import IResTPSPerformanceDataViewDTO from "@/models/dto/IResTPSPerformanceDataViewDTO";
 import { useUserInfoStore } from "@/stores/UserInfoStore";
 
+
 import {M_IUsers} from "@/models/M_IUser";
 import M_IUserinfo from "@/models/M_IUseinfo";
 import {M_ICreateRuleForm} from "@/models/M_IRuleForm";
+import M_ITempQRcode from "@/models/M_ITempQRcode";
+import {M_IUsersOptions} from "@/models/M_IUsersOptions";
+import {M_IsettingAccessRuleForm} from "@/models/M_IsettingAccessRuleForm";
 
 
 class APIService {
@@ -56,6 +60,7 @@ class APIService {
 
     this.axiosInstance = axios.create({
       baseURL: "http://system.clair-de-musique-tw.com/api",
+      // baseURL: "http://localhost:8080/api",
     });
 
     this.axiosInstance.interceptors.request.use((config) => {
@@ -409,6 +414,27 @@ class APIService {
     return this.axiosInstance.post<IAPIResponse<number>>("v1/User", data);
   }
 
+  getUsersOptions(){
+    return this.axiosInstance.get<IAPIResponse<M_IUsersOptions>>("v1/UsersOptions");
+  }
+
+  //#endregion
+
+    //#region Music QRcode相關
+  /** 取得臨時QRcode */
+  getTempDoorCode(){
+    return this.axiosInstance.get<IAPIResponse<M_ITempQRcode>>("v1/User/TempDoorSetting");
+  }
+
+  /** 取得臨時QRcode */
+  getUserSettingPermission(userid: number){
+    return this.axiosInstance.get<IAPIResponse<any>>(`v1/User/PermissionSetting/${userid}`);
+  }
+
+  /** 設定使用者通行資料 */
+  setPermission(cmd: M_IsettingAccessRuleForm){
+    return this.axiosInstance.patch<IBaseAPIResponse>(`v1/User/Permission`, cmd);
+  }
   //#endregion
 }
 
