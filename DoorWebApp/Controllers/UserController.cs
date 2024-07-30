@@ -169,8 +169,8 @@ namespace DoorWebApp.Controllers
                         isGrant = true,
                         doorList = x.Permission.PermissionGroups
                         .Select(y => y.Id).ToList(),
-                        beginTime = DateTimeExtension.ToDateTimeFromStr(x.Permission.DateFrom.ToString() + " " + x.Permission.TimeFrom.ToString() + ":00"),
-                        endTime = DateTimeExtension.ToDateTimeFromStr(x.Permission.DateTo.ToString() + " " + x.Permission.TimeTo.ToString() + ":00")
+                        beginTime = x.Permission.DateFrom.Replace("/", "-").ToString() + "T" + x.Permission.TimeFrom.ToString() + ":00",
+                        endTime = x.Permission.DateTo.Replace("/", "-").ToString() + "T" + x.Permission.TimeTo.ToString() + ":00"
                     })
                     .ToList();
 
@@ -197,7 +197,7 @@ namespace DoorWebApp.Controllers
                         NewQRCode.Users.AddRange(userEntity);
 
                         ctx.SaveChanges(); // Save user to generate UserId
-                        log.LogInformation($"[{Request.Path}] Create QRCode : Id={NewQRCode.Id}, Add to UserId={qrcode.userAddr}");
+                        log.LogInformation($"[{Request.Path}] Create QRCode : Id={NewQRCode.Id}, Add to QRCodeData={NewQRCode.QRCodeData}");
                     }else //更新 Qrcode
                     {
                         qrcodeEntity.userTag = (int)qrcode.userTag;
@@ -865,8 +865,8 @@ namespace DoorWebApp.Controllers
                 // 2. 更新資料
                 //更新角色
                 var AssignPermissionEntities = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == PermissionDTO.userId).First();
-                AssignPermissionEntities.DateFrom = PermissionDTO.datefrom;
-                AssignPermissionEntities.DateTo = PermissionDTO.dateto;
+                AssignPermissionEntities.DateFrom = PermissionDTO.datefrom.Replace("-", "/");
+                AssignPermissionEntities.DateTo = PermissionDTO.dateto.Replace("-", "/");
                 AssignPermissionEntities.TimeFrom = PermissionDTO.timefrom;
                 AssignPermissionEntities.TimeTo = PermissionDTO.timeto;
                 AssignPermissionEntities.Days = string.Join(",", PermissionDTO.days);
@@ -886,6 +886,7 @@ namespace DoorWebApp.Controllers
                 // 5. 取得Qrcode
                 var UserList = ctx.TblUsers
                     .Include(x => x.Roles)
+                    .Include(x => x.Permission)
                     .Where(x => x.IsDelete == false)
                     .Where(x => x.Id == PermissionDTO.userId)
                     .Select(x => new UserAccessProfile()
@@ -894,8 +895,8 @@ namespace DoorWebApp.Controllers
                         isGrant = true,
                         doorList = x.Permission.PermissionGroups
                         .Select(y => y.Id).ToList(),
-                        beginTime = DateTimeExtension.ToDateTimeFromStr(x.Permission.DateFrom.ToString() + " " + x.Permission.TimeFrom.ToString() + ":00"),
-                        endTime = DateTimeExtension.ToDateTimeFromStr(x.Permission.DateTo.ToString() + " " + x.Permission.TimeTo.ToString() + ":00")
+                        beginTime = x.Permission.DateFrom.Replace("/", "-").ToString() + "T" + x.Permission.TimeFrom.ToString() + ":00",
+                        endTime = x.Permission.DateTo.Replace("/", "-").ToString() + "T" + x.Permission.TimeTo.ToString() + ":00"
                     })
                     .ToList();
 
@@ -997,8 +998,8 @@ namespace DoorWebApp.Controllers
                         isGrant = true,
                         doorList = x.Permission.PermissionGroups
                         .Select(y => y.Id).ToList(),
-                        beginTime = DateTimeExtension.ToDateTimeFromStr(x.Permission.DateFrom.ToString() + " " + x.Permission.TimeFrom.ToString() + ":00"),
-                        endTime = DateTimeExtension.ToDateTimeFromStr(x.Permission.DateTo.ToString() + " " + x.Permission.TimeTo.ToString() + ":00")
+                        beginTime = x.Permission.DateFrom.Replace("/", "-").ToString() + "T" + x.Permission.TimeFrom.ToString() + ":00",
+                        endTime = x.Permission.DateTo.Replace("/", "-").ToString() + "T" + x.Permission.TimeTo.ToString() + ":00"
                     })
                     .ToList();
 
@@ -1026,7 +1027,7 @@ namespace DoorWebApp.Controllers
                         ctx.TbQRCodeStorages.Add(NewQRCode);
 
                         ctx.SaveChanges(); // Save user to generate UserId
-                        log.LogInformation($"[{Request.Path}] Create QRCode : Id={NewQRCode.Id}, Add to UserId={qrcode.userAddr}");
+                        log.LogInformation($"[{Request.Path}] Create QRCode : Id={NewQRCode.Id}, Add to QRCodeData={NewQRCode.QRCodeData}");
                     }
                     else //更新 Qrcode
                     {

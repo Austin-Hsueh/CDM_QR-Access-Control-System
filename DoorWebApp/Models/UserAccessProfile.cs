@@ -7,7 +7,7 @@
         public bool isGrant { get; set; } = false;
         public List<int> doorList { get; set; } = null!;
 
-        public DateTime beginTime { get; set; }
-        public DateTime endTime { get; set; }
+        public string beginTime { get; set; }
+        public string endTime { get; set; }
     }
 }
