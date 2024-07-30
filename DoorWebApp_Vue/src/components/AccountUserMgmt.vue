@@ -16,15 +16,17 @@
   <!-- table -->
   <el-row>
     <el-col :span="24">
-      <el-table name="userInfoTable" style="width: 100%" height="300" :data="userInfo">
+      <el-table name="userInfoTable" style="width: 100%" height="400" :data="userInfo">
         <el-table-column :label="t('username')"  prop="username"/>
         <el-table-column :label="t('displayName')" prop="displayName" />
         <el-table-column :label="t('Email')" prop="email"/>
         <el-table-column :label="t('Email')" prop="phone"/>
         <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
-          <template #default="scope">
-            <el-button type="primary" @click="onEdit(scope.row)"><el-icon><EditPen /></el-icon></el-button>
-            <el-button type="danger" @click="onDelet(scope.row)"><el-icon><Delete /></el-icon></el-button>
+          <template #default="{ row }: { row: any }">
+            <el-button type="primary" @click="onEdit(row)"><el-icon><EditPen /></el-icon></el-button>
+            <el-button type="danger" @click="onDelet(row)" :disabled="(row.userId === 51)">
+              <el-icon><Delete />
+            </el-icon></el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -33,7 +35,7 @@
   <!-- /table -->
 
   <!-- pagination -->
-  <!-- <el-row justify="end" class="mt-3">
+  <el-row justify="end" class="mt-3">
     <el-col>
       <div class="demo-pagination-block mt-3 d-flex justify-content-end">
         <el-pagination
@@ -49,7 +51,7 @@
         />
       </div>
     </el-col>
-  </el-row> -->
+  </el-row>
   <!-- /pagination -->
   
   <!-- 新增彈窗 -->
@@ -119,7 +121,7 @@
           <el-option label="值班人員" :value="4" />
         </el-select>
       </el-form-item>
-      <el-form-item :label="t('Access')" prop="Access" >
+      <el-form-item :label="t('Access')" prop="Access" v-if="false">
         <el-checkbox-group v-model="updateFormData.groupIds">
           <el-checkbox label="大門" :value="1"/>
           <el-checkbox label="Car教室" :value="2"/>
@@ -147,7 +149,7 @@ import API from '@/apis/TPSAPI';
 import { EditPen, Delete } from '@element-plus/icons-vue';
 import { M_IUsers } from "@/models/M_IUser";
 import { M_ICreateRuleForm } from '@/models/M_IRuleForm'
-import type { ComponentSize, FormInstance, FormRules, ElMessage } from 'element-plus';
+import type { ComponentSize, FormInstance, FormRules, ElNotification, NotificationParams  } from 'element-plus';
 
 const isShowAddRoleDialog = ref(false);
 const isShowEditRoleDialog = ref(false);
@@ -164,6 +166,16 @@ const handleSizeChange = (val: number) => {
 }
 const handleCurrentChange = (val: number) => {
   console.log(`current page: ${val}`)
+}
+
+const Error = (error: string) => {
+  let notifyParam: NotificationParams = {};
+  notifyParam = {
+      title: "錯誤",
+      type: "error",
+      message: error,
+      duration: 1000,
+  };
 }
 
 //#region UI Events
@@ -193,8 +205,8 @@ const submitForm = async () => {
       const addUser = await API.addUser(createFormData);
       console.log(addUser.data.result);
       if(addUser.data.result !== 1){
-        console.log('error submit!')
-        console.log(addUser.data.msg)
+        console.log('error submit!');
+        console.log(addUser.data.msg);
       }
       console.log('submit!')
       isShowAddRoleDialog.value = false;
@@ -284,6 +296,7 @@ async function getUsers() {
     const getUsersResult = await API.getAllUsers();
     if (getUsersResult.data.result != 1) throw new Error(getUsersResult.data.msg);
     userInfo.value = getUsersResult.data.content;
+    console.log(getUsersResult.data.content)
 
   } catch (error) {
     console.error(error);
