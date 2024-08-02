@@ -283,7 +283,7 @@ namespace DoorWebApp.Controllers
         [HttpGet("v1/Users")]
         public IActionResult GetAllUsersWithRoles()
         {
-            APIResponse<List<ResGetAllUsersDTO>> res = new APIResponse<List<ResGetAllUsersDTO>>();
+            APIResponse<List<ResGetAllUsersInfoDTO>> res = new APIResponse<List<ResGetAllUsersInfoDTO>>();
 
             try
             {
@@ -293,7 +293,7 @@ namespace DoorWebApp.Controllers
                     .ThenInclude(x => x.PermissionGroups)
                     .Where(x => x.IsDelete == false)
                     .Where(x => x.Permission.PermissionGroups.Select(x => x.Id).Count() > 0)
-                    .Select(x => new ResGetAllUsersDTO()
+                    .Select(x => new ResGetAllUsersInfoDTO()
                     {
                         userId = x.Id,
                         username = x.Username,
@@ -305,7 +305,6 @@ namespace DoorWebApp.Controllers
                         .Select(y => y.Name).ToList(),
                         groupIds = x.Permission.PermissionGroups
                         .Select(y => y.Id).ToList(),
-                        password = x.Secret,
                         phone = x.Phone,
                         accessTime = x.Permission.DateFrom.ToString() + " " + x.Permission.TimeFrom.ToString() + "~" + x.Permission.DateTo.ToString() + " " + x.Permission.TimeTo.ToString(),
                         accessDays = x.Permission.Days.Replace("1", "周一").Replace("2", "周二").Replace("3", "周三").Replace("4", "周四").Replace("5", "周五").Replace("6", "周六").Replace("7", "周日"),

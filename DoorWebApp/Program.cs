@@ -6,6 +6,8 @@ using NLog.Web;
 using System.Text;
 using DoorDB;
 using Newtonsoft.Json;
+using Quartz;
+using static ScheduledJob;
 
 namespace DoorWebApp
 {
@@ -100,6 +102,21 @@ namespace DoorWebApp
 
             #endregion
 
+            // 添加 Quartz 服務
+            builder.Services.AddQuartz(q =>
+            {
+                // 設置一個作業和觸發器
+                var jobKey = new JobKey("ScheduledJob");
+                q.AddJob<ScheduledJob>(opts => opts.WithIdentity(jobKey));
+                q.AddTrigger(opts => opts
+                    .ForJob(jobKey)
+                    .WithIdentity("ScheduledJob-trigger")
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("5 * * * * ?")));
+            });
+
+            // 添加 Quartz 主機服務
+            builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
+
             #region App middleware
             var app = builder.Build();
 
@@ -140,9 +157,6 @@ namespace DoorWebApp
             {
                 endpoints.MapControllers();
             });
-
-
-
 
             //於開發環境下可直接對接vue server (npm run serve)
             //if (app.Environment.IsDevelopment())
