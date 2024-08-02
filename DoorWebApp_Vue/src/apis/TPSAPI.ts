@@ -48,6 +48,7 @@ import {M_ICreateRuleForm} from "@/models/M_IRuleForm";
 import M_ITempQRcode from "@/models/M_ITempQRcode";
 import {M_IUsersOptions} from "@/models/M_IUsersOptions";
 import {M_IsettingAccessRuleForm} from "@/models/M_IsettingAccessRuleForm";
+import {M_IUsersDoor} from "@/models/M_IUsersDoor";
 
 
 class APIService {
@@ -59,8 +60,10 @@ class APIService {
     //const userInfoStore = useUserInfoStore();
 
     this.axiosInstance = axios.create({
-      baseURL: "http://system.clair-de-musique-tw.com/api",
+      // baseURL: "http://system.clair-de-musique-tw.com/api",
       // baseURL: "http://localhost:8080/api",
+      // baseURL: "http://localhost:80/api",
+      baseURL: "/api",
     });
 
     this.axiosInstance.interceptors.request.use((config) => {
@@ -417,6 +420,11 @@ class APIService {
   getUsersOptions(){
     return this.axiosInstance.get<IAPIResponse<M_IUsersOptions>>("v1/UsersOptions");
   }
+
+  getUsersDoor(doorid: number){
+    return this.axiosInstance.get<IAPIResponse<M_IUsersDoor>>(`v1/Users/Door/${doorid}`);
+  }
+
 
   //#endregion
 

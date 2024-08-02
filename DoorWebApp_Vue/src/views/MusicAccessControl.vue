@@ -8,7 +8,7 @@
       <el-tab-pane label="門禁設定">
         <div class="d-flex flex-column">
           <div class="col-12 text-start d-flex">
-            <el-form class="col-4" :inline="true" label-width="100px"  ref="settingAccessTimeForm" :rules="rules" :model="settingAccessTimeFormData" label-position="top" style="margin-top: 15px">
+            <el-form class="col-4" :inline="true" label-width="100px"  ref="settingAccessTimeForm" :rules="rules" :model="settingAccessTimeFormData" label-position="top" style="margin-top: 15px; width:100%;">
               <el-form-item label="姓名" prop="userId">
                 <el-select placeholder="請選擇" v-model="settingAccessTimeFormData.userId">
                   <el-option
@@ -62,7 +62,7 @@
                 </el-checkbox-group>
               </el-form-item>
               <el-form-item style="margin-top: auto;">
-                <el-button type="primary" @click="settingForm()">{{ t("search") }}</el-button>
+                <el-button type="primary" @click="settingForm()">{{ t("Settings") }}</el-button>
                 <el-button type="primary" @click="clearForm()">清除</el-button>
               </el-form-item>
             </el-form>
@@ -173,7 +173,7 @@ async function getUsersOptions() {
 // 設定通行時間表單
 const settingAccessTimeForm = ref<FormInstance>();
 const settingAccessTimeFormData = reactive<M_IsettingAccessRuleForm>({
-  userId: 0,
+  userId: '',
   datepicker: '',
   timepicker: '',
   days: [],

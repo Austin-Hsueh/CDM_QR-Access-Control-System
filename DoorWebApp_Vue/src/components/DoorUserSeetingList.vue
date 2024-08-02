@@ -16,10 +16,10 @@
   <el-row>
     <el-col :span="24">
       <el-table name="userInfoTable" style="width: 100%" height="400" :data="userInfo">
-        <el-table-column :label="t('username')"  prop="username" />
-        <el-table-column :label="t('displayName')" prop="displayName" />
-        <el-table-column label="門禁權限" prop="groupNames"/>
-        <el-table-column label="通行時間">
+        <el-table-column sortable :label="t('username')"  prop="username" />
+        <el-table-column sortable :label="t('displayName')" prop="displayName" />
+        <el-table-column sortable :label="t('Permissions')" prop="groupNames"/>
+        <el-table-column sortable :label="t('releaseTime')">
           <template v-slot="scope">
             {{ scope.row.accessDays }}
             <br>
@@ -40,7 +40,8 @@
   <!-- /table -->
 
   <!-- pagination -->
-  <el-row justify="end" class="mt-3">
+   <!-- 20240731 上線測試, 暫時排除未完分頁功能 by Austin -->
+  <el-row justify="end" class="mt-3" v-if="false">
     <el-col>
       <div class="demo-pagination-block mt-3 d-flex justify-content-end">
         <el-pagination
