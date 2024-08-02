@@ -148,31 +148,61 @@ namespace DoorWebApp.Controllers
 
 
         /// <summary>
-        /// 取得使用者清單()
+        /// 更新所有使用者當天清單門禁
         /// </summary>
         /// <returns></returns>
-        [AllowAnonymous]
-        [HttpGet("v1/Users1")]
-        public async Task<IActionResult> GetAllUsersWithRoles1()
+        [Authorize]
+        [HttpGet("v1/UpdateUsersAllPermission")]
+        public async Task<IActionResult> UpdateUsersAllPermission()
         {
             APIResponse<List<ResGetAllUsersDTO>> res = new APIResponse<List<ResGetAllUsersDTO>>();
 
             try
             {
-                string format = "yyyy/MM/dd HH:mm:00";
-                var UserList = ctx.TblUsers
-                    .Include(x => x.Roles)
-                    .Where(x => x.IsDelete == false)
-                    .Select(x => new UserAccessProfile()
-                    {
-                        userAddr = (ushort)x.Id,
-                        isGrant = true,
-                        doorList = x.Permission.PermissionGroups
-                        .Select(y => y.Id).ToList(),
-                        beginTime = x.Permission.DateFrom.Replace("/", "-").ToString() + "T" + x.Permission.TimeFrom.ToString() + ":00",
-                        endTime = x.Permission.DateTo.Replace("/", "-").ToString() + "T" + x.Permission.TimeTo.ToString() + ":00"
-                    })
-                    .ToList();
+                int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+                string OperatorUsername = User.Identity?.Name ?? "N/A";
+                log.LogInformation($"[{Request.Path}] v1/UpdateUsersAllPermission : id={OperatorId}, username={OperatorUsername})");
+
+                log.LogInformation($"更新 當天所有 QRCode 開始");
+
+                // 1. 撈出要更新的UserId
+                DateTime now = DateTime.Now;
+                string nowDate = now.ToString("yyyy/MM/dd");
+                int day = (int)now.DayOfWeek;
+                //單一時段設定
+                var permissions = ctx.TblPermission.Where(p => p.IsDelete == false)
+                                                      .Where(p => p.Days.Contains(day.ToString()))
+                                                      .Where(p => p.DateFrom.CompareTo(nowDate) <= 0 && p.DateTo.CompareTo(nowDate) >= 0)
+                                                      .Select(p => new
+                                                      {
+                                                          UserId = p.UserId,
+                                                          PermissionGroupIds = p.PermissionGroups.Select(pg => pg.Id).ToList(),
+                                                          TimeFrom = p.TimeFrom,
+                                                          TimeTo = p.TimeTo
+                                                      }).ToList();
+                //多時段設定
+                var studentPermissions = ctx.TblStudentPermission.Where(p => p.IsDelete == false)
+                                                             .Where(p => p.Days.Contains(day.ToString()))
+                                                             .Where(p => p.DateFrom.CompareTo(nowDate) <= 0 && p.DateTo.CompareTo(nowDate) >= 0)
+                                                             .Select(sp => new
+                                                             {
+                                                                 UserId = sp.UserId,
+                                                                 PermissionGroupIds = sp.PermissionGroups.Select(pg => pg.Id).ToList(),
+                                                                 TimeFrom = sp.TimeFrom,
+                                                                 TimeTo = sp.TimeTo
+                                                             }).ToList();
+
+                var UserList = permissions.Union(studentPermissions)
+                .GroupBy(p => p.UserId)
+                .Select(g => new UserAccessProfile()
+                {
+                    userAddr = (ushort)g.Key,
+                    isGrant = true,
+                    doorList = g.SelectMany(p => p.PermissionGroupIds).Distinct().ToList(),
+                    beginTime = nowDate.Replace("/", "-").ToString() + "T" + g.Min(p => p.TimeFrom).ToString() + ":00",
+                    endTime = nowDate.Replace("/", "-").ToString() + "T" + g.Max(p => p.TimeTo).ToString() + ":00"
+                })
+                .ToList();
 
                 //取得Qrcode
                 APIResponse<List<ResGetAllUsersDTO>> resQrcodes = new APIResponse<List<ResGetAllUsersDTO>>();
