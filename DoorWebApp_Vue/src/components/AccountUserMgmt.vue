@@ -20,8 +20,8 @@
         <el-table-column :label="t('username')"  prop="username"/>
         <el-table-column :label="t('displayName')" prop="displayName" />
         <el-table-column :label="t('Email')" prop="email"/>
-        <el-table-column :label="t('Email')" prop="phone"/>
-        <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
+        <el-table-column :label="t('Phone')" prop="phone"/>
+        <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')" v-if="false">
           <template #default="{ row }: { row: any }">
             <el-button type="primary" @click="onEdit(row)"><el-icon><EditPen /></el-icon></el-button>
             <el-button type="danger" @click="onDelet(row)" :disabled="(row.userId === 51)">
@@ -35,7 +35,7 @@
   <!-- /table -->
 
   <!-- pagination -->
-  <el-row justify="end" class="mt-3">
+  <el-row justify="end" class="mt-3" v-if="false">
     <el-col>
       <div class="demo-pagination-block mt-3 d-flex justify-content-end">
         <el-pagination

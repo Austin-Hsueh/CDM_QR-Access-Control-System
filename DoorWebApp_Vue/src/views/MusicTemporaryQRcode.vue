@@ -9,7 +9,7 @@
       <el-tab-pane label="臨時門禁設定-大門">
         <div class="d-flex flex-column">
           <div class="col-12 text-start">
-            <el-form :inline="true" label-width="100px"  ref="createaddRoleForm" label-position="top" style="margin-top: 15px">
+            <el-form :inline="true" label-width="100px"  ref="createaddRoleForm" label-position="top" style="margin-top: 15px" v-if="false">
               <el-form-item label="通行日期" prop="username"  >
                 <el-date-picker
                   type="daterange"
