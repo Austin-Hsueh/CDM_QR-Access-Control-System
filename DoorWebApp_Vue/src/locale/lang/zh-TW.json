@@ -316,7 +316,10 @@
   "NameFilter": "搜尋顯示名稱",
   "Phone": "連絡電話",
   "Role": "角色",
-  "Access": "門禁頁籤"
+  "Access": "門禁頁籤",
+  "Permissions": "權限",
+  "releaseTime": "通行時間",
+  "Settings": "設定"
 
 
 }

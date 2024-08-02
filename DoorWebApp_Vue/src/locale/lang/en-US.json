@@ -261,5 +261,8 @@
   "NameFilter": "Filter Display Name",
   "Phone": "Phone",
   "Role": "Role",
-  "Access": "Access Tabs"
+  "Access": "Access Tabs",
+  "Permissions": "Permissions",
+  "releaseTime": "Release Time",
+  "Settings": "Setting"
 }
