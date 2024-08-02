@@ -93,6 +93,8 @@ import { useRouter } from "vue-router";
 import { useUserInfoStore } from "@/stores/UserInfoStore";
 import API from '@/apis/TPSAPI';
 import type {  FormInstance, FormRules  } from 'element-plus';
+import {formatDate, formatTime} from "@/plugins/dateUtils";
+
 import DoorUserList from "@/components/DoorUserList.vue";
 import DoorUserSettingList from "@/components/DoorUserSeetingList.vue";
 import {M_IUsersOptions} from "@/models/M_IUsersOptions";
@@ -107,15 +109,16 @@ const days = [1,2,3,4,5,6,7];
 
 const doorUserSettingListRef = ref(null);
 
+
 //#region UI Events
 const settingForm = async () => {
   settingAccessTimeForm.value?.validate(async (valid) => {
     if (valid) {
-      // 確保 settingAccessTimeFormData 和 settingAccessTimeFormData.datepicker, settingAccessTimeFormData.timepicker 定義和初始化正確
-      settingAccessTimeFormData.datefrom = new Date(settingAccessTimeFormData.datepicker[0]).toISOString().split('T')[0];
-      settingAccessTimeFormData.dateto = new Date(settingAccessTimeFormData.datepicker[1]).toISOString().split('T')[0];
-      settingAccessTimeFormData.timefrom = new Date(settingAccessTimeFormData.timepicker[0]).toISOString().split('T')[1].slice(0, 5);
-      settingAccessTimeFormData.timeto = new Date(settingAccessTimeFormData.timepicker[1]).toISOString().split('T')[1].slice(0, 5);
+
+      settingAccessTimeFormData.datefrom = formatDate(new Date(settingAccessTimeFormData.datepicker[0]));
+      settingAccessTimeFormData.dateto = formatDate(new Date(settingAccessTimeFormData.datepicker[1]));
+      settingAccessTimeFormData.timefrom = formatTime(new Date(settingAccessTimeFormData.timepicker[0]));
+      settingAccessTimeFormData.timeto = formatTime(new Date(settingAccessTimeFormData.timepicker[1]));
       
       console.log(settingAccessTimeFormData);
 
@@ -128,6 +131,7 @@ const settingForm = async () => {
 
         // 呼叫子組件(doorUserSettingList)的搜尋函式，更新表格
         doorUserSettingListRef.value?.onFilterInputed();
+        clearForm();
 
       } catch (error) {
         console.error('Failed to set permission', error);
