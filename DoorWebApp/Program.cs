@@ -111,11 +111,12 @@ namespace DoorWebApp
                 q.AddTrigger(opts => opts
                     .ForJob(jobKey)
                     .WithIdentity("ScheduledJob-trigger")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("5 * * * * ?")));
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("* 20,50 * * * ?")));
             });
 
             // 添加 Quartz 主機服務
-            builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
+            builder.Services.AddQuartzHostedService();
+            //builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 
             #region App middleware
             var app = builder.Build();
