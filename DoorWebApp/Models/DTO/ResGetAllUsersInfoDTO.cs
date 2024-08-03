@@ -55,5 +55,11 @@
 
         public List<int> groupIds { set; get; }
 
+        public string datefrom { get; set; } // 權限日期起
+        public string dateto { get; set; } // 權限日期訖
+        public string timefrom { get; set; } // 權限時間起
+        public string timeto { get; set; } // 權限時間訖
+        public string days { get; set; } // 權限一周哪幾天
+
     }
 }
