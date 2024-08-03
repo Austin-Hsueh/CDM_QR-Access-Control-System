@@ -87,6 +87,12 @@ public class ScheduledJob : IJob
                 .ToList();
 
             //API 設定並取得QRcode
+            if(UserList.Count == 0)
+            {
+                log.LogInformation($"無清單需要 更新 QRCode 完成");
+                return;
+            }
+
             var result = await SoyalAPI.SendUserAccessProfilesAsync(UserList);
             if (result.msg == "Success" && result.content.Count > 0)
             {
