@@ -9,6 +9,11 @@ export interface M_IUsers {
   roleName?: string;
   accessTime?: string;
   accessDays?: string;
-  permissions?: string | null;
-  permissionNames?: string[];
+  groupNames: string[];
+  groupIds: number[];
+  datefrom: string;
+  dateto: string;
+  timefrom: string;
+  timeto: string;
+  days: string;
 }

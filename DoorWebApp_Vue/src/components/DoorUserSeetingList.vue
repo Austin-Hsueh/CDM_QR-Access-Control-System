@@ -29,9 +29,6 @@
         <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
           <template v-slot="{ row }: { row: any }">
             <el-button type="primary" @click="onEdit(row)"><el-icon><EditPen /></el-icon></el-button>
-            <el-button type="danger" @click="onDelet(row)" :disabled="(row.userId === 51)">
-              <el-icon><Delete />
-            </el-icon></el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -59,6 +56,60 @@
     </el-col>
   </el-row>
   <!-- /pagination -->
+
+  <!-- 編輯彈窗 -->
+  <el-dialog class="dialog" top="3vh" v-model="isShowEditRoleDialog" :title="t('edit')">
+    <el-form label-width="100px"  ref="updateRoleForm" :rules="rules" :model="updateFormData" label-position="top">
+      <el-form-item label="門禁權限" prop="groupIds">
+        <el-checkbox-group v-model="updateFormData.groupIds">
+          <el-checkbox v-for="item in doors" :key="item" :label="item" :value="item">
+            <template v-if="item === 1">大門</template>
+            <template v-else-if="item === 2">car教室</template>
+            <template v-else-if="item === 3">Sunny教室</template>
+            <template v-else-if="item === 4">儲藏室</template>
+          </el-checkbox>
+        </el-checkbox-group>
+      </el-form-item>
+      <el-form-item label="通行日期" prop="datepicker"  >
+        <el-date-picker
+          type="daterange"
+          range-separator="至"
+          start-placeholder="開始日期"
+          end-placeholder="結束日期"
+          v-model="updateFormData.datepicker"
+        />
+      </el-form-item>
+      <el-form-item label="通行時間" prop="timepicker" >
+        <el-time-picker
+          is-range
+          range-separator="至"
+          start-placeholder="開始時間"
+          end-placeholder="結束時間"
+          v-model="updateFormData.timepicker"
+        />
+      </el-form-item>
+      <el-form-item label="週期" prop="days" >
+        <el-checkbox-group v-model="updateFormData.days">
+          <el-checkbox v-for="item in days" :key="item" :label="item" :value="item">
+            <template v-if="item === 1">週一</template>
+            <template v-else-if="item === 2">週二</template>
+            <template v-else-if="item === 3">週三</template>
+            <template v-else-if="item === 4">週四</template>
+            <template v-else-if="item === 5">週五</template>
+            <template v-else-if="item === 6">週六</template>
+            <template v-else-if="item === 7">週日</template>
+          </el-checkbox>
+        </el-checkbox-group>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="isShowEditRoleDialog = false">{{ t("Cancel") }}</el-button>
+        <el-button type="primary" @click="submitUpdateForm">{{ t("Confirm") }}</el-button>
+      </span>
+    </template>
+  </el-dialog>
+  <!-- /編輯彈窗 -->
 </template>
 
 <script setup lang="ts">
@@ -67,7 +118,11 @@ import { ref, onMounted, onActivated, reactive, defineProps, defineExpose } from
 import { useI18n } from "vue-i18n";
 import API from '@/apis/TPSAPI';
 import { M_IUsers } from "@/models/M_IUser";
+import {M_IsettingAccessRuleForm} from "@/models/M_IsettingAccessRuleForm";
 import type { ComponentSize, FormInstance, FormRules, ElMessage } from 'element-plus';
+import {formatDate, formatTime} from "@/plugins/dateUtils";
+
+const isShowEditRoleDialog = ref(false);
 
 const { t } = useI18n();
 const userInfo = ref<M_IUsers[]>([]); // Specify the type of the array
@@ -75,6 +130,8 @@ const currentPage4 = ref(4)
 const pageSize4 = ref(100)
 const size = ref<ComponentSize>('default')
 const searchText = ref('')
+const doors = [1,2,3,4];
+const days = [1,2,3,4,5,6,7];
 
 // 定义 props
 const props = defineProps<{
@@ -89,6 +146,31 @@ const handleSizeChange = (val: number) => {
 const handleCurrentChange = (val: number) => {
   console.log(`current page: ${val}`)
 }
+
+const parseTime = (time: string): Date => {
+  const [hours, minutes] = time.split(':').map(Number);
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+};
+
+//#region 建立表單ref與Validator
+// 編輯門禁設定表單
+const updateRoleForm = ref<FormInstance>()
+const updateFormData = reactive<M_IsettingAccessRuleForm>({
+  userId: 0,
+  datepicker: [], // 修改为 Date 对象数组
+  timepicker: [],
+  days: [],
+  groupIds: [],
+  datefrom: '',
+  dateto: '',
+  timefrom:'',
+  timeto: '',
+
+})
+//#endregion
+
 
 //#region UI Events
 const onFilterInputed = () => {
@@ -108,13 +190,51 @@ const onFilterInputed = () => {
   }
 }
 
-const onEdit = () => {
-  console.log('edit')
+const onEdit = (item: M_IUsers) => {
+  updateRoleForm.value?.resetFields();
+
+    // 格式化时间
+  const timeFrom = parseTime(item.timefrom);
+  const timeTo = parseTime(item.timeto);
+
+  updateFormData.userId = item.userId;
+  updateFormData.groupIds = item.groupIds;
+  updateFormData.datepicker = [item.datefrom, item.dateto];
+  updateFormData.timepicker = [timeFrom, timeTo];
+  updateFormData.days = item.days.split(',').map(Number);
+  isShowEditRoleDialog.value = true;
+}
+
+
+const submitUpdateForm = async () => {
+  console.log('Form submitted', updateFormData);
+
+  // 格式化日期为 YYYY-MM-DD
+  updateFormData.datefrom = formatDate(new Date(updateFormData.datepicker[0]));
+  updateFormData.dateto = formatDate(new Date(updateFormData.datepicker[1]));
+
+  // 格式化时间为 HH:MM
+  updateFormData.timefrom = formatTime(new Date(updateFormData.timepicker[0]));
+  updateFormData.timeto = formatTime(new Date(updateFormData.timepicker[1]));
+  
+  console.log(updateFormData);
+
+  
+  try {
+    const settingResponse = await API.setPermission(updateFormData);
+    
+    // 根據需要處理 settingResponse
+    console.log('Permission set successfully', settingResponse);
+    console.log('Permission set successfully', settingResponse.data);
+
+    isShowEditRoleDialog.value = false;
+    onFilterInputed();
+
+  } catch (error) {
+    console.error('Failed to set permission', error);
+  }
 };
 
-const onDelet = () => {
-  console.log('delet')
-};
 //#endregion
 
 // 將函式傳到父組件
@@ -122,8 +242,6 @@ defineExpose({
   onFilterInputed
 });
 
-//#region 建立表單ref與Validator
-//#endregion
 
 //#region Hook functions
 // onActivated(() => {
@@ -149,166 +267,6 @@ async function getUsers() {
 }
 //#endregion
 
-//#region MockData
-const MockData =[
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-]
-//#endregion
 
 </script>
 

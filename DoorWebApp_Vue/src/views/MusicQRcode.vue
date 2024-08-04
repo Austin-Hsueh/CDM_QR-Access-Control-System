@@ -43,6 +43,8 @@ async function getUserSettingPermission() {
     qrcode.value = getUserSettingPermission.data.content.qrcode || '';
     imageSrc.value = `data:image/png;base64,${qrcode.value}`;
 
+    console.log(getUserSettingPermission.data.content)
+
   } catch (error) {
     console.error(error);
   }

@@ -58,7 +58,6 @@
                     <template v-else-if="item === 6">週六</template>
                     <template v-else-if="item === 7">週日</template>
                   </el-checkbox>
-
                 </el-checkbox-group>
               </el-form-item>
               <el-form-item style="margin-top: auto;">
@@ -85,6 +84,7 @@
       </el-tab-pane>
     </el-tabs>
   </div>
+
 </template>
 <script setup lang="ts">
 import { onMounted, ref, reactive } from "vue";
@@ -99,6 +99,8 @@ import DoorUserList from "@/components/DoorUserList.vue";
 import DoorUserSettingList from "@/components/DoorUserSeetingList.vue";
 import {M_IUsersOptions} from "@/models/M_IUsersOptions";
 import {M_IsettingAccessRuleForm} from "@/models/M_IsettingAccessRuleForm";
+
+
 
 const { t, locale } = useI18n();
 const router = useRouter();
@@ -115,8 +117,11 @@ const settingForm = async () => {
   settingAccessTimeForm.value?.validate(async (valid) => {
     if (valid) {
 
+      // 格式化日期为 YYYY-MM-DD
       settingAccessTimeFormData.datefrom = formatDate(new Date(settingAccessTimeFormData.datepicker[0]));
       settingAccessTimeFormData.dateto = formatDate(new Date(settingAccessTimeFormData.datepicker[1]));
+
+      // 格式化时间为 HH:MM
       settingAccessTimeFormData.timefrom = formatTime(new Date(settingAccessTimeFormData.timepicker[0]));
       settingAccessTimeFormData.timeto = formatTime(new Date(settingAccessTimeFormData.timepicker[1]));
       
@@ -152,7 +157,6 @@ const clearForm = ()=>{
 //#region Hook functions
 onMounted(() => {
   console.log('Component is mounted');
-  // 這裡可以執行需要在組件掛載時運行的代碼
   getUsersOptions()
 });
 //#endregion
@@ -163,9 +167,6 @@ async function getUsersOptions() {
     const getUsersOptionsResult = await API.getUsersOptions();
     if (getUsersOptionsResult.data.result != 1) throw new Error(getUsersOptionsResult.data.msg);
     usersOptions.value = getUsersOptionsResult.data.content;
-    console.log(123456)
-    console.log(usersOptions.value)
-    console.log(78910)
 
   } catch (error) {
     console.error(error);
@@ -194,6 +195,8 @@ const rules  = reactive<FormRules>({
   days: [{ required: true, message: () => t("validation_msg.displayname_is_required"), trigger: "blur" }],
   groupIds: [{ required: true, message: () => t("validation_msg.displayname_is_required"), trigger: "blur" }],
 });
+
+
 //#endregion
 </script>
 
