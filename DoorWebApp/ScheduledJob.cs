@@ -35,7 +35,11 @@ public class ScheduledJob : IJob
             log.LogInformation($"更新 QRCode 半小時時效開始");
             DateTime now = DateTime.Now;
             string nowDate = now.ToString("yyyy/MM/dd");
-            string time = now.AddMinutes(10).ToString("HH:mm"); //8:50跑  門禁時間 9:00~10:00 所以要補10分鐘
+            string time = now.AddMinutes(35).ToString("HH:mm"); //8:30跑  門禁時間 9:00~10:00 所以要補35分鐘
+            //8:00 更新 8:00~8:35
+            //8:30 更新 8:30~9:05
+            //9:00 更新 9:00~9:35
+            //9:30 更新 9:30~10:05
             int day = (int) now.DayOfWeek;
 
             // 1. 撈出要更新的UserId
@@ -61,18 +65,8 @@ public class ScheduledJob : IJob
                                                          }).ToList();
 
             // 2. 準備要更新的UserList
-            //08:50 設定 08:55~09:30
-            //09:20 設定 09:20~10:00
-            int minutes = now.Minute;
-            string hoursfrom = now.Hour.ToString().PadLeft(2, '0');
-            string hoursto = now.AddHours(1).Hour.ToString().PadLeft(2, '0');
-            string AddminuteFrom = "55";
-            string AddminuteTo = "30";
-            if (minutes < 50)
-            {
-                AddminuteFrom = "20";
-                AddminuteTo = "00";
-            }
+            
+           
 
             var UserList = permissions.Union(studentPermissions)
                 .GroupBy(p => p.UserId)
@@ -81,8 +75,8 @@ public class ScheduledJob : IJob
                     userAddr = (ushort)g.Key,
                     isGrant = true,
                     doorList = g.SelectMany(p => p.PermissionGroupIds).Distinct().ToList(),
-                    beginTime = nowDate.Replace("/", "-").ToString() + "T" + hoursfrom + ":" + AddminuteFrom + ":00",
-                    endTime = nowDate.Replace("/", "-").ToString() + "T" + hoursto + ":" + AddminuteTo + ":00"
+                    beginTime = nowDate.Replace("/", "-").ToString() + "T" + now.ToString("HH:mm") + ":00",
+                    endTime = nowDate.Replace("/", "-").ToString() + "T" + time + ":00"
                 })
                 .ToList();
 
