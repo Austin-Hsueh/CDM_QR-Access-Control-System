@@ -14,7 +14,8 @@ namespace DoorWebApp
     public class Program
     {
         public static string TempDir { set; get; } = $@"{AppDomain.CurrentDomain.BaseDirectory}temp";
-        static string SPA_Server = "http://localhost:80";
+        // static string SPA_Server = "http://localhost:80";
+        static string SPA_Server = "http://localhost:3000";
 
         public static void Main(string[] args)
         {
@@ -58,31 +59,31 @@ namespace DoorWebApp
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
-                    // ·íÅçÃÒ¥¢±Ñ®É¡A¦^À³¼ÐÀY·|¥]§t WWW-Authenticate ¼ÐÀY¡A³o¸Ì·|Åã¥Ü¥¢±Ñªº¸Ô²Ó¿ù»~­ì¦]
-                    options.IncludeErrorDetails = true; // ¹w³]­È¬° true¡A¦³®É·|¯S§OÃö³¬
+                    // ï¿½ï¿½ï¿½ï¿½ï¿½Ò¥ï¿½ï¿½Ñ®É¡Aï¿½^ï¿½ï¿½ï¿½ï¿½ï¿½Yï¿½|ï¿½]ï¿½t WWW-Authenticate ï¿½ï¿½ï¿½Yï¿½Aï¿½oï¿½Ì·|ï¿½ï¿½Ü¥ï¿½ï¿½Ñªï¿½ï¿½Ô²Ó¿ï¿½ï¿½~ï¿½ï¿½]
+                    options.IncludeErrorDetails = true; // ï¿½wï¿½]ï¿½È¬ï¿½ trueï¿½Aï¿½ï¿½ï¿½É·|ï¿½Sï¿½Oï¿½ï¿½ï¿½ï¿½
 
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
-                        // ³z¹L³o¶µ«Å§i¡A´N¥i¥H±q "sub" ¨ú­È¨Ã³]©wµ¹ User.Identity.Name
+                        // ï¿½zï¿½Lï¿½oï¿½ï¿½ï¿½Å§iï¿½Aï¿½Nï¿½iï¿½Hï¿½q "sub" ï¿½ï¿½ï¿½È¨Ã³]ï¿½wï¿½ï¿½ User.Identity.Name
                         NameClaimType = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
-                        // ³z¹L³o¶µ«Å§i¡A´N¥i¥H±q "roles" ¨ú­È¡A¨Ã¥iÅý [Authorize] §PÂ_¨¤¦â
+                        // ï¿½zï¿½Lï¿½oï¿½ï¿½ï¿½Å§iï¿½Aï¿½Nï¿½iï¿½Hï¿½q "roles" ï¿½ï¿½ï¿½È¡Aï¿½Ã¥iï¿½ï¿½ [Authorize] ï¿½Pï¿½_ï¿½ï¿½ï¿½ï¿½
                         RoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
 
-                        // ¤@¯ë§Ú­Ì³£·|ÅçÃÒ Issuer
+                        // ï¿½@ï¿½ï¿½Ú­Ì³ï¿½ï¿½|ï¿½ï¿½ï¿½ï¿½ Issuer
                         ValidateIssuer = true,
                         ValidIssuer = builder.Configuration.GetValue<string>("JwtSettings:Issuer"),
 
-                        // ³q±`¤£¤Ó»Ý­nÅçÃÒ Audience
+                        // ï¿½qï¿½`ï¿½ï¿½ï¿½Ó»Ý­nï¿½ï¿½ï¿½ï¿½ Audience
                         ValidateAudience = false,
-                        //ValidAudience = "JwtAuthDemo", // ¤£ÅçÃÒ´N¤£»Ý­n¶ñ¼g
+                        //ValidAudience = "JwtAuthDemo", // ï¿½ï¿½ï¿½ï¿½ï¿½Ò´Nï¿½ï¿½ï¿½Ý­nï¿½ï¿½g
 
-                        // ¤@¯ë§Ú­Ì³£·|ÅçÃÒ Token ªº¦³®Ä´Á¶¡
+                        // ï¿½@ï¿½ï¿½Ú­Ì³ï¿½ï¿½|ï¿½ï¿½ï¿½ï¿½ Token ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½
                         ValidateLifetime = true,
 
-                        // ¦pªG Token ¤¤¥]§t key ¤~»Ý­nÅçÃÒ¡A¤@¯ë³£¥u¦³Ã±³¹¦Ó¤w
+                        // ï¿½pï¿½G Token ï¿½ï¿½ï¿½]ï¿½t key ï¿½~ï¿½Ý­nï¿½ï¿½ï¿½Ò¡Aï¿½@ï¿½ë³£ï¿½uï¿½ï¿½Ã±ï¿½ï¿½ï¿½Ó¤w
                         ValidateIssuerSigningKey = false,
 
-                        // "1234567890123456" À³¸Ó±q IConfiguration ¨ú±o
+                        // "1234567890123456" ï¿½ï¿½ï¿½Ó±q IConfiguration ï¿½ï¿½ï¿½o
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration.GetValue<string>("JwtSettings:SignKey")))
                     };
 
@@ -102,10 +103,10 @@ namespace DoorWebApp
 
             #endregion
 
-            // ²K¥[ Quartz ªA°È
+            // ï¿½Kï¿½[ Quartz ï¿½Aï¿½ï¿½
             builder.Services.AddQuartz(q =>
             {
-                // ³]¸m¤@­Ó§@·~©MÄ²µo¾¹
+                // ï¿½]ï¿½mï¿½@ï¿½Ó§@ï¿½~ï¿½MÄ²ï¿½oï¿½ï¿½
                 var jobKey = new JobKey("ScheduledJob");
                 q.AddJob<ScheduledJob>(opts => opts.WithIdentity(jobKey));
                 q.AddTrigger(opts => opts
@@ -114,7 +115,7 @@ namespace DoorWebApp
                     .WithSchedule(CronScheduleBuilder.CronSchedule("* 00,30 * * * ?")));
             });
 
-            // ²K¥[ Quartz ¥D¾÷ªA°È
+            // ï¿½Kï¿½[ Quartz ï¿½Dï¿½ï¿½ï¿½Aï¿½ï¿½
             builder.Services.AddQuartzHostedService();
             //builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 
@@ -159,7 +160,7 @@ namespace DoorWebApp
                 endpoints.MapControllers();
             });
 
-            //©ó¶}µoÀô¹Ò¤U¥iª½±µ¹ï±µvue server (npm run serve)
+            //ï¿½ï¿½}ï¿½oï¿½ï¿½ï¿½Ò¤Uï¿½iï¿½ï¿½ï¿½ï¿½ï¿½ï±µvue server (npm run serve)
             //if (app.Environment.IsDevelopment())
             //{
             //    app.UseSpa(builder =>

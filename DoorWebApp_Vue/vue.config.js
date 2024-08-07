@@ -3,9 +3,10 @@ module.exports = defineConfig({
   outputDir : '../DoorWebApp/wwwroot',
   transpileDependencies: true,
   devServer: {
+    port: 3000,
     proxy: {
       '/api': {
-        target: 'http://system.clair-de-musique-tw.com', // .NET API 服务器地址
+        target: 'http://localhost:80', // .NET API 服务器地址 (launchSettings.json)
         changeOrigin: true
       }
     }
