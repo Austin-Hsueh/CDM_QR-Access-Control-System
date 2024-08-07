@@ -11,6 +11,7 @@
       @input="onFilterInputed"
     />
     <el-button type="primary" @click="onCreateRoleClicked">{{ t("create") }}</el-button>
+    <el-button type="primary" @click="onCreateRoleClicked" v-if="false">{{ t("Import") }}</el-button>
   </div>
 
   <!-- table -->
@@ -21,7 +22,12 @@
         <el-table-column :label="t('displayName')" prop="displayName" />
         <el-table-column :label="t('Email')" prop="email"/>
         <el-table-column :label="t('Phone')" prop="phone"/>
-        <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')" v-if="false">
+        <el-table-column :label="t('Role')">
+          <template #default="scope">
+            {{ roleMap[scope.row.roleId as keyof typeof roleMap] }}
+          </template>
+        </el-table-column>
+        <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
           <template #default="{ row }: { row: any }">
             <el-button type="primary" @click="onEdit(row)"><el-icon><EditPen /></el-icon></el-button>
             <el-button type="danger" @click="onDelet(row)" :disabled="(row.userId === 51)">
@@ -113,6 +119,9 @@
       <el-form-item :label="t('Phone')" prop="phone"  >
         <el-input  style="width:90%" v-model="updateFormData.phone"/>
       </el-form-item>
+      <el-form-item :label="t('password')" prop="password"  >
+        <el-input  style="width:90%" v-model="updateFormData.password"/>
+      </el-form-item>
       <el-form-item :label="t('Role')" prop="role" >
         <el-select v-model="updateFormData.roleid" placeholder="請選擇一個角色" style="width:90%">
           <el-option label="管理者" :value="1" />
@@ -143,13 +152,13 @@
 
 <script setup lang="ts">
 
-import { ref, onMounted, onActivated, reactive } from "vue";
+import { ref, onMounted, onActivated, reactive, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import API from '@/apis/TPSAPI';
 import { EditPen, Delete } from '@element-plus/icons-vue';
 import { M_IUsers } from "@/models/M_IUser";
-import { M_ICreateRuleForm } from '@/models/M_IRuleForm'
-import type { ComponentSize, FormInstance, FormRules, ElNotification, NotificationParams  } from 'element-plus';
+import { M_ICreateRuleForm, M_IUpdateRuleForm } from '@/models/M_IRuleForm'
+import { ComponentSize, FormInstance, FormRules, ElNotification, NotificationParams  } from 'element-plus';
 
 const isShowAddRoleDialog = ref(false);
 const isShowEditRoleDialog = ref(false);
@@ -168,6 +177,13 @@ const handleCurrentChange = (val: number) => {
   console.log(`current page: ${val}`)
 }
 
+const roleMap = computed(() => ({
+  1: '管理者',
+  2: '老師',
+  3: '學生',
+  4: '值班人員'
+}));
+
 const Error = (error: string) => {
   let notifyParam: NotificationParams = {};
   notifyParam = {
@@ -182,14 +198,12 @@ const Error = (error: string) => {
 const onEdit = (item: M_IUsers) => {
   console.log(item.userId);
   updateRoleForm.value?.resetFields();
-  updateFormData.username = item.username 
-  console.log(item.username)
-  console.log(updateFormData.username)
-  updateFormData.displayName =item.displayName
-  updateFormData.email = item.email
-  updateFormData.phone = item.phone
-  updateFormData.roleid = item.roleId
-  // updateFormData.Access = item.permissionNames
+  updateFormData.userId = item.userId;
+  updateFormData.username = item.username;
+  updateFormData.displayName =item.displayName;
+  updateFormData.email = item.email;
+  updateFormData.phone = item.phone ?? '';
+  updateFormData.roleid = item.roleId;
   isShowEditRoleDialog.value = true;
 }
 
@@ -199,33 +213,71 @@ const onCreateRoleClicked = () => {
 }
 
 const submitForm = async () => {
+  let notifyParam: NotificationParams = {};
+
   createaddRoleForm.value?.validate(async(valid) => {
     if (valid) {
-      console.log(createFormData)
       const addUser = await API.addUser(createFormData);
-      console.log(addUser.data.result);
-      if(addUser.data.result !== 1){
-        console.log('error submit!');
-        console.log(addUser.data.msg);
+      if (addUser.data.result != 1) {
+        notifyParam = {
+          title: "失敗",
+          type: "error",
+          message: `帳號：${createFormData.username} 新增失敗`,
+          duration: 2000,
+        };
+        return;
       }
-      console.log('submit!')
+      notifyParam = {
+        title: "成功",
+        type: "success",
+        message: `帳號：${updateFormData.username} 已成功更新<br>請至門禁管理為${updateFormData.username}設定通行權限。`,
+        duration: 3000,
+        dangerouslyUseHTMLString: true // 啟用 HTML 字符串，message 中使用<br>。
+      };
+
+      ElNotification(notifyParam);
       isShowAddRoleDialog.value = false;
-      getUsers();
+      onFilterInputed();
+
     } else {
       console.log('error submit!')
     }
   })
-}
+};
 
 const submitUpdateForm = async () => {
-  updateRoleForm.value?.validate((valid) => {
+  let notifyParam: NotificationParams = {};
+
+  updateRoleForm.value?.validate(async (valid: boolean) => {
     if (valid) {
-      console.log(createFormData)
+      console.log(updateFormData);
+      const updateResponse = await API.updateUsers(updateFormData);
+      console.log(updateResponse.data.msg);
+
+      if (updateResponse.data.result != 1) {
+        notifyParam = {
+          title: "失敗",
+          type: "error",
+          message: `帳號：${updateFormData.username} 新增失敗`,
+          duration: 2000,
+        };
+      } else {
+        notifyParam = {
+          title: "成功",
+          type: "success",
+          message: `帳號：${updateFormData.username} 已成功更新`,
+          duration: 2000,
+        };
+      }
+
+      ElNotification(notifyParam);
+      isShowEditRoleDialog.value = false;
+      onFilterInputed();
     } else {
-      console.log('error submit!')
+      console.log('error submit!');
     }
-  })
-}
+  });
+};
 
 const onFilterInputed = () => {
   console.log("Search Function");
@@ -254,29 +306,28 @@ const createFormData = reactive<M_ICreateRuleForm>({
   email: '',
   phone: '',
   password: '',
-  roleid: '',
-  groupIds:[]
+  roleid: 1
 })
-const rules  = reactive<FormRules>({
-  username: [{ required: true, message: () => t("validation_msg.username_is_required"), trigger: "blur" }],
-  displayName: [{ required: true, message: () => t("validation_msg.displayname_is_required"), trigger: "blur" }],
-  email: [{ required: true, message: () => t("validation_msg.email_is_required"), trigger: "blur" }],
-  password: [{ required: true, message: () => t("validation_msg.password_is_required"), trigger: "blur" }],
-  role: [{ required: true, message: "請至少選擇一個角色", trigger: "blur" }],
-});
 
 // 編輯使用者表單
 const updateRoleForm = ref<FormInstance>()
-const updateFormData = reactive<M_ICreateRuleForm>({
+const updateFormData = reactive<M_IUpdateRuleForm>({
+  userId:0,
   username: '',
   displayName: '',
   email: '',
   phone: '',
   password: '',
-  roleid: '',
-  groupIds:[]
-
+  roleid: 0
 })
+
+// 新增表單, 編輯表單共用規則
+const rules  = reactive<FormRules>({
+  username: [{ required: true, message: () => t("validation_msg.username_is_required"), trigger: "blur" }],
+  displayName: [{ required: true, message: () => t("validation_msg.displayname_is_required"), trigger: "blur" }],
+  email: [{ required: true, message: () => t("validation_msg.email_is_required"), trigger: "blur" }],
+  password: [{ required: true, message: () => t("validation_msg.password_is_required"), trigger: "blur" }],
+});
 
 //#endregion
 

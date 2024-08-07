@@ -5,7 +5,7 @@ export interface M_IUsers {
   email: string;
   password?: string | null;
   phone: string | null;
-  roleId?: number;
+  roleId: number;
   roleName?: string;
   accessTime?: string;
   accessDays?: string;

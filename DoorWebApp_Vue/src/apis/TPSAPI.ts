@@ -44,7 +44,7 @@ import { useUserInfoStore } from "@/stores/UserInfoStore";
 
 import {M_IUsers} from "@/models/M_IUser";
 import M_IUserinfo from "@/models/M_IUseinfo";
-import {M_ICreateRuleForm} from "@/models/M_IRuleForm";
+import {M_ICreateRuleForm, M_IUpdateRuleForm} from "@/models/M_IRuleForm";
 import M_ITempQRcode from "@/models/M_ITempQRcode";
 import {M_IUsersOptions} from "@/models/M_IUsersOptions";
 import {M_IsettingAccessRuleForm} from "@/models/M_IsettingAccessRuleForm";
@@ -405,6 +405,11 @@ class APIService {
     return this.axiosInstance.get<IAPIResponse<M_IUsers>>("v1/Users");
   }
 
+  /** 更新使用者資訊 */
+  updateUsers(cmd: M_IUpdateRuleForm){
+    return this.axiosInstance.patch<IBaseAPIResponse>("v1/UpdateUser", cmd);
+  }
+
   getUserPermission(){    
     return this.axiosInstance.get<IAPIResponse<M_IUserinfo>>("v1/User/Permission");
   }
@@ -428,7 +433,7 @@ class APIService {
 
   //#endregion
 
-    //#region Music QRcode相關
+  //#region Music QRcode相關
   /** 取得臨時QRcode */
   getTempDoorCode(){
     return this.axiosInstance.get<IAPIResponse<M_ITempQRcode>>("v1/User/TempDoorSetting");

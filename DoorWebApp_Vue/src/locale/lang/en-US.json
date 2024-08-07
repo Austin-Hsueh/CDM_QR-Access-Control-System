@@ -264,5 +264,6 @@
   "Access": "Access Tabs",
   "Permissions": "Permissions",
   "releaseTime": "Release Time",
-  "Settings": "Setting"
+  "Settings": "Setting",
+  "Import":"Import"
 }

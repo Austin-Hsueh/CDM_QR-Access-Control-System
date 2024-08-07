@@ -4,6 +4,15 @@ export interface M_ICreateRuleForm {
   email: string;
   phone: string;
   password: string;
-  roleid: string;
-  groupIds:[];
+  roleid: number;
+}
+
+export interface M_IUpdateRuleForm {
+  userId: number;
+  username: string;
+  displayName: string;
+  email: string;
+  phone: string;
+  password: string;
+  roleid: number;
 }

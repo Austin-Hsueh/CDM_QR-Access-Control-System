@@ -319,7 +319,8 @@
   "Access": "門禁頁籤",
   "Permissions": "權限",
   "releaseTime": "通行時間",
-  "Settings": "設定"
+  "Settings": "設定",
+  "Import":"批次匯入"
 
 
 }
