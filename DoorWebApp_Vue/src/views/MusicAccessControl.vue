@@ -5,6 +5,12 @@
       <span class="fs-4 fw-bold content-title">{{ t("Access Control") }}</span>
     </div>
     <el-tabs type="border-card">
+      <el-tab-pane label="開門按鈕">
+        <el-button  @click="callApi()">開啟大門</el-button>
+        <el-button  @click="callApiCar()">開啟Car教室</el-button>
+        <el-button  @click="callApiSunny()">開啟Sunny教室</el-button>
+        <el-button  @click="callApiStore()">開啟儲藏室</el-button>
+      </el-tab-pane>
       <el-tab-pane label="門禁設定">
         <div class="d-flex flex-column">
           <div class="col-12 text-start d-flex">
@@ -198,6 +204,71 @@ const rules  = reactive<FormRules>({
 
 
 //#endregion
+
+import axios from "axios";
+const callApi = () => {
+  const requestOptions = {
+      method: "POST",
+      url: "http://127.0.0.1:1029/api/v1/Unlock/1",
+      redirect: "follow"
+  };
+
+  axios(requestOptions)
+  .then((response) => {
+      console.log(response.data);
+  })
+  .catch((error) => {
+      console.error(error);
+  });
+}
+
+const callApiCar = () => {
+  const requestOptions2 = {
+      method: "POST",
+      url: "http://127.0.0.1:1029/api/v1/Unlock/2",
+      redirect: "follow"
+  };
+
+  axios(requestOptions2)
+  .then((response) => {
+      console.log(response.data);
+  })
+  .catch((error) => {
+      console.error(error);
+  });
+}
+
+const callApiSunny = () => {
+  const requestOptions3 = {
+      method: "POST",
+      url: "http://127.0.0.1:1029/api/v1/Unlock/3",
+      redirect: "follow"
+  };
+
+  axios(requestOptions3)
+  .then((response) => {
+      console.log(response.data);
+  })
+  .catch((error) => {
+      console.error(error);
+  });
+}
+
+const callApiStore = () => {
+  const requestOptions4 = {
+      method: "POST",
+      url: "http://127.0.0.1:1029/api/v1/Unlock/4",
+      redirect: "follow"
+  };
+
+  axios(requestOptions4)
+  .then((response) => {
+      console.log(response.data);
+  })
+  .catch((error) => {
+      console.error(error);
+  });
+}
 </script>
 
 <style scoped>
