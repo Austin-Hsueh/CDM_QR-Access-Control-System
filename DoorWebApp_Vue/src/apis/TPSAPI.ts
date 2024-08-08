@@ -49,6 +49,7 @@ import M_ITempQRcode from "@/models/M_ITempQRcode";
 import {M_IUsersOptions} from "@/models/M_IUsersOptions";
 import {M_IsettingAccessRuleForm} from "@/models/M_IsettingAccessRuleForm";
 import {M_IUsersDoor} from "@/models/M_IUsersDoor";
+import {M_IUserList_MTI} from "@/models/M_IUserList_MTI";
 
 
 class APIService {
@@ -429,8 +430,6 @@ class APIService {
   getUsersDoor(doorid: number){
     return this.axiosInstance.get<IAPIResponse<M_IUsersDoor>>(`v1/Users/Door/${doorid}`);
   }
-
-
   //#endregion
 
   //#region Music QRcode相關
@@ -444,11 +443,25 @@ class APIService {
     return this.axiosInstance.get<IAPIResponse<any>>(`v1/User/PermissionSetting/${userid}`);
   }
 
-  /** 設定使用者通行資料 */
+  /** 設定使用者門禁設定 */
   setPermission(cmd: M_IsettingAccessRuleForm){
     return this.axiosInstance.patch<IBaseAPIResponse>(`v1/User/Permission`, cmd);
   }
   //#endregion
+
+  //#region Music 多時段相關
+  /** 取得門禁使用者清單-多時段 */
+  getStudentPermissions(){
+    return this.axiosInstance.get<IAPIResponse<M_IUserList_MTI>>("v1/StudentPermissions");
+  }
+
+  /** 新增使用者門禁設定-多時段 */
+  setStudentPermission(cmd: M_IsettingAccessRuleForm){
+    return this.axiosInstance.patch<IBaseAPIResponse>(`v1/StudentPermission`, cmd);
+  }
+  //#endregion
+
+
 }
 
 const API = new APIService();

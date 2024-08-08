@@ -27,12 +27,12 @@
             {{ roleMap[scope.row.roleId as keyof typeof roleMap] }}
           </template>
         </el-table-column>
-        <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
+        <el-table-column width="160px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
           <template #default="{ row }: { row: any }">
-            <el-button type="primary" @click="onEdit(row)"><el-icon><EditPen /></el-icon></el-button>
-            <el-button type="danger" @click="onDelet(row)" :disabled="(row.userId === 51)">
-              <el-icon><Delete />
-            </el-icon></el-button>
+            <el-button type="primary" size="small" @click="onEdit(row)"><el-icon><EditPen /></el-icon> 編輯</el-button>
+            <!-- <el-button type="danger" size="small" @click="onDelet(row)" :disabled="(row.userId === 51)">
+              <el-icon><Delete /></el-icon> 刪除
+            </el-button> -->
           </template>
         </el-table-column>
       </el-table>

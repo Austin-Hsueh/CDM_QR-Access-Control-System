@@ -74,18 +74,18 @@
           </div>
         </div>
         <el-divider />
-        <DoorUserSettingList ref="doorUserSettingListRef" :doorId="1"/>
+        <DoorUserSettingList ref="doorUserSettingListRef"/>
       </el-tab-pane>
-      <el-tab-pane label="大門" name="1">
+      <el-tab-pane label="大門">
         <DoorUserList :doorId="1"/>
       </el-tab-pane>
-      <el-tab-pane label="Car教室" name="2">
+      <el-tab-pane label="Car教室">
         <DoorUserList :doorId="2"/>
       </el-tab-pane>
-      <el-tab-pane label="Sunny教室" name="3">
+      <el-tab-pane label="Sunny教室">
         <DoorUserList :doorId="3"/>
       </el-tab-pane>
-      <el-tab-pane label="儲藏室" name="4">
+      <el-tab-pane label="儲藏室">
         <DoorUserList :doorId="4"/>
       </el-tab-pane>
     </el-tabs>
@@ -124,25 +124,28 @@ const settingForm = async () => {
     if (valid) {
 
       // 格式化日期为 YYYY-MM-DD
-      settingAccessTimeFormData.datefrom = formatDate(new Date(settingAccessTimeFormData.datepicker[0]));
-      settingAccessTimeFormData.dateto = formatDate(new Date(settingAccessTimeFormData.datepicker[1]));
+      ssetStudentPermission.datefrom = formatDate(new Date(settingAccessTimeFormData.datepicker[0]));
+      ssetStudentPermission.dateto = formatDate(new Date(settingAccessTimeFormData.datepicker[1]));
 
       // 格式化时间为 HH:MM
-      settingAccessTimeFormData.timefrom = formatTime(new Date(settingAccessTimeFormData.timepicker[0]));
-      settingAccessTimeFormData.timeto = formatTime(new Date(settingAccessTimeFormData.timepicker[1]));
-      
-      console.log(settingAccessTimeFormData);
+      ssetStudentPermission.timefrom = formatTime(new Date(settingAccessTimeFormData.timepicker[0]));
+      ssetStudentPermission.timeto = formatTime(new Date(settingAccessTimeFormData.timepicker[1]));
+
+      ssetStudentPermission.userId = settingAccessTimeFormData.userId;
+      ssetStudentPermission.days = settingAccessTimeFormData.days;
+      ssetStudentPermission.groupIds = settingAccessTimeFormData.groupIds;
+
+      console.log(ssetStudentPermission);
 
       try {
-        const settingResponse = await API.setPermission(settingAccessTimeFormData);
+        // const settingResponse = await API.setPermission(settingAccessTimeFormData);
+
+        // 更改為多時段
+        const settingResponse = await API.setStudentPermission(ssetStudentPermission);
         
         // 根據需要處理 settingResponse
         console.log('Permission set successfully', settingResponse);
         console.log('Permission set successfully', settingResponse.data);
-
-        // 呼叫子組件(doorUserSettingList)的搜尋函式，更新表格
-        doorUserSettingListRef.value?.onFilterInputed();
-        clearForm();
 
       } catch (error) {
         console.error('Failed to set permission', error);
@@ -152,6 +155,8 @@ const settingForm = async () => {
       console.log('error submit!');
     }
   });
+  // 呼叫子組件(doorUserSettingList)的搜尋函式，更新表格
+  // doorUserSettingListRef.value?.onFilterInputed();
 };
 
 const clearForm = ()=>{
@@ -187,6 +192,15 @@ const settingAccessTimeFormData = reactive<M_IsettingAccessRuleForm>({
   userId: '',
   datepicker: '',
   timepicker: '',
+  days: [],
+  groupIds: [],
+  datefrom: '',
+  dateto: '',
+  timefrom:'',
+  timeto: '',
+})
+const ssetStudentPermission = reactive<M_IsettingAccessRuleForm>({
+  userId: '',
   days: [],
   groupIds: [],
   datefrom: '',

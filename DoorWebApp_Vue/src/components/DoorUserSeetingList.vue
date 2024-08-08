@@ -13,7 +13,7 @@
   </div>
 
   <!-- table -->
-  <el-row>
+  <!-- <el-row>
     <el-col :span="24">
       <el-table name="userInfoTable" style="width: 100%" height="400" :data="userInfo">
         <el-table-column sortable :label="t('username')"  prop="username" />
@@ -33,8 +33,82 @@
         </el-table-column>
       </el-table>
     </el-col>
-  </el-row>
+  </el-row> -->
   <!-- /table -->
+
+  <!-- table 多時段 樣式1-->
+  <el-row>
+    <el-col :span="24">
+      <el-table name="userInfoMTITable" style="width: 100%" height="400" :data="userInfoMTI">
+        <el-table-column type="expand">
+          <template #default="props">
+            <div class="m-2">
+              <el-table :data="props.row.studentPermissions"  border="true">
+                <el-table-column label="開始日期" prop="datefrom" />
+                <el-table-column label="結束日期" prop="dateto" />
+                <el-table-column label="時間">
+                  <template #default="scope">
+                    {{ scope.row.timefrom }} ~ {{ scope.row.timeto }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="週期">
+                  <template #default="scope">
+                    {{ formatDays(scope.row.days) }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="門組">
+                  <template #default="scope">
+                    {{ formatDoors(scope.row.groupIds) }}
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column sortable :label="t('username')"  prop="username" />
+        <el-table-column sortable :label="t('displayName')" prop="displayName" />
+        <!-- <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
+          <template v-slot="{ row }: { row: any }">
+            <el-button type="primary" @click="onEdit(row)"><el-icon><EditPen /></el-icon></el-button>
+          </template>
+        </el-table-column> -->
+      </el-table>
+    </el-col>
+  </el-row>
+  <!-- /table 多時段-->
+
+  <!-- table 多時段 樣式2-->
+  <el-row v-if="false">
+    <el-col :span="24">
+      <el-table name="userInfoMTITable" style="width: 100%" height="400" :data="flattenedData">
+        <el-table-column sortable :label="t('username')" prop="username" />
+        <el-table-column sortable :label="t('displayName')" prop="displayName" />
+        <el-table-column label="開始日期" prop="datefrom" />
+        <el-table-column label="結束日期" prop="dateto" />
+        <el-table-column label="時間">
+          <template #default="scope">
+            {{ scope.row.timefrom }} ~ {{ scope.row.timeto }}
+          </template>
+        </el-table-column>
+        <el-table-column label="週期">
+          <template #default="scope">
+            {{ formatDays(scope.row.days) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="門組">
+          <template #default="scope">
+            {{ formatDoors(scope.row.groupIds) }}
+          </template>
+        </el-table-column>
+        <!-- <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
+          <template v-slot="{ row }: { row: any }">
+            <el-button type="primary" @click="onEdit(row)"><el-icon><EditPen /></el-icon></el-button>
+          </template>
+        </el-table-column> -->
+      </el-table>
+    </el-col>
+  </el-row>
+  <!-- /table 多時段-->
 
   <!-- pagination -->
    <!-- 20240731 上線測試, 暫時排除未完分頁功能 by Austin -->
@@ -114,11 +188,12 @@
 
 <script setup lang="ts">
 
-import { ref, onMounted, onActivated, reactive, defineProps, defineExpose } from "vue";
+import { computed, ref, onMounted, onActivated, reactive, defineProps, defineExpose } from "vue";
 import { useI18n } from "vue-i18n";
 import API from '@/apis/TPSAPI';
 import { M_IUsers } from "@/models/M_IUser";
 import {M_IsettingAccessRuleForm} from "@/models/M_IsettingAccessRuleForm";
+import {M_IUserList_MTI} from "@/models/M_IUserList_MTI";
 import type { ComponentSize, FormInstance, FormRules, ElMessage } from 'element-plus';
 import {formatDate, formatTime} from "@/plugins/dateUtils";
 
@@ -126,6 +201,7 @@ const isShowEditRoleDialog = ref(false);
 
 const { t } = useI18n();
 const userInfo = ref<M_IUsers[]>([]); // Specify the type of the array
+const userInfoMTI = ref<M_IUserList_MTI[]>([]); // Specify the type of the array
 const currentPage4 = ref(4)
 const pageSize4 = ref(100)
 const size = ref<ComponentSize>('default')
@@ -176,16 +252,16 @@ const updateFormData = reactive<M_IsettingAccessRuleForm>({
 const onFilterInputed = () => {
   console.log("Search Function");
   if(!searchText.value || searchText.value.trim() === ''){
-    getUsers();
+    getStudentPermissions();
   }else{
     setTimeout(()=>{
       console.log(searchText.value)
-      const filteredData = userInfo.value.filter(item => {
+      const filteredData = userInfoMTI.value.filter(item => {
         const matchesIp = item.displayName.includes(searchText.value);
         return matchesIp;
       });
       console.log(filteredData)
-      userInfo.value = filteredData;
+      userInfoMTI.value = filteredData;
     }, 500);
   }
 }
@@ -250,6 +326,7 @@ defineExpose({
 onMounted(() => {
   getUsers();
   console.log(`Received door ID: ${props.doorId}`);
+  getStudentPermissions();
 });
 
 //#endregion
@@ -265,8 +342,55 @@ async function getUsers() {
     console.error(error);
   }
 }
+
+// 多時段API
+async function getStudentPermissions() {
+  try {
+    const getStudentPermissionsResult = await API.getStudentPermissions();
+    if (getStudentPermissionsResult.data.result != 1) throw new Error(getStudentPermissionsResult.data.msg);
+    userInfoMTI.value = getStudentPermissionsResult.data.content;
+    console.log(userInfoMTI.value)
+
+  } catch (error) {
+    console.error(error);
+  }
+}
 //#endregion
 
+const dayMap = {
+  1: '星期一',
+  2: '星期二',
+  3: '星期三',
+  4: '星期四',
+  5: '星期五',
+  6: '星期六',
+  7: '星期日',
+};
+
+const formatDays = (days: number[]) => {
+  return days.map(day => dayMap[day]).join(', ');
+};
+
+const doorMap = {
+  1: '大門',
+  2: 'Car教室',
+  3: 'Sunny教室',
+  4: '儲藏室'
+};
+
+const formatDoors = (groupIds: number[]) => {
+  return groupIds.map(door => doorMap[door]).join(', ');
+};
+
+const flattenedData = computed(() => {
+  return userInfoMTI.value.flatMap(user => 
+    user.studentPermissions.map(permission => ({
+      username: user.username,
+      displayName: user.displayName,
+      ...permission
+    }))
+  );
+});
 
 </script>
 
