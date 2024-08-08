@@ -19,6 +19,8 @@ using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using DoorWebApp.Extensions;
 using System;
+using System.Reflection;
+using System.Drawing.Printing;
 
 namespace DoorWebApp.Controllers
 {
@@ -310,19 +312,22 @@ namespace DoorWebApp.Controllers
         /// </summary>
         /// <returns></returns>
         [AllowAnonymous]
-        [HttpGet("v1/Users")]
-        public IActionResult GetAllUsersWithRoles()
+        [HttpPost("v1/Users")]
+        public IActionResult GetAllUsersWithRoles(ReqPagingDTO data)
         {
-            APIResponse<List<ResGetAllUsersInfoDTO>> res = new APIResponse<List<ResGetAllUsersInfoDTO>>();
+            APIResponse<PagingDTO<ResGetAllUsersInfoDTO>> res = new APIResponse<PagingDTO<ResGetAllUsersInfoDTO>>();
 
             try
             {
+                /// 1. 查詢
                 var UserList = ctx.TblUsers
                     .Include(x => x.Roles)
                     .Include(x => x.Permission)
                     .ThenInclude(x => x.PermissionGroups)
                     .Where(x => x.IsDelete == false)
                     .Where(x => x.Permission.PermissionGroups.Select(x => x.Id).Count() > 0)
+                    //查詢 名稱 
+                    .Where(x => data.SearchText != "" ? x.DisplayName.Contains(data.SearchText) : true)
                     .Select(x => new ResGetAllUsersInfoDTO()
                     {
                         userId = x.Id,
@@ -344,16 +349,53 @@ namespace DoorWebApp.Controllers
                         timeto = x.Permission.TimeTo.ToString(),
                         days = x.Permission.Days
                     })
-                    .ToList();
+                    .AsQueryable();
 
 
+                log.LogInformation($"[{Request.Path}] themes.Count():[{UserList.Count()}]");
 
-                log.LogInformation($"[{Request.Path}] User list query success!  Total:{UserList.Count}");
+
+                // 2.1 一頁幾筆
+                int onePage = data.SearchPage;
+
+                // 2.2 總共幾頁
+                int totalRecords = UserList.Count();
+                log.LogInformation($"[{Request.Path}] totalRecords:[{totalRecords}]");
+                if (totalRecords == 0)
+                {
+                    res.result = APIResultCode.success;
+                    res.msg = "success 但是無資料";
+                    res.content = new PagingDTO<ResGetAllUsersInfoDTO>()
+                    {
+                        pageItems = UserList.ToList()
+                    };
+                    return Ok(res);
+                }
+
+                // 2.3 頁數進位
+                int allPages = (int)Math.Ceiling((double)totalRecords / onePage);
+                log.LogInformation($"[{Request.Path}] allPages:[{allPages}]");
+
+                // 2.4 非法頁數(不回報錯誤 則強制變為最大頁數)
+                if (allPages < data.Page)
+                {
+                    data.Page = allPages;
+                }
+
+                // 2.5 取第幾頁
+                UserList = UserList.Skip(onePage * (data.Page - 1)).Take(onePage);
+                log.LogInformation($"[{Request.Path}] [{MethodBase.GetCurrentMethod().Name}] end");
+
 
                 res.result = APIResultCode.success;
                 res.msg = "success";
-                res.content = UserList;
-
+                res.content = new PagingDTO<ResGetAllUsersInfoDTO>()
+                {
+                    totalItems = totalRecords,
+                    totalPages = allPages,
+                    pageSize = onePage,
+                    pageItems = UserList.ToList()
+                };
                 return Ok(res);
             }
             catch (Exception err)

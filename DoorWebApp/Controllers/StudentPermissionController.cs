@@ -19,6 +19,7 @@ using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using DoorWebApp.Extensions;
 using System;
+using System.Reflection;
 
 namespace DoorWebApp.Controllers
 {
@@ -56,15 +57,18 @@ namespace DoorWebApp.Controllers
         /// </summary>
         /// <returns></returns>
         [AllowAnonymous]
-        [HttpGet("v1/StudentPermissions")]
-        public async Task<IActionResult> GetAllStudentPermissions()
+        [HttpPost("v1/StudentPermissions")]
+        public async Task<IActionResult> GetAllStudentPermissions(ReqPagingDTO data)
         {
-            APIResponse<List<ResGetAllStudentPermissionDTO>> res = new APIResponse<List<ResGetAllStudentPermissionDTO>>();
+            APIResponse<PagingDTO<ResGetAllStudentPermissionDTO>> res = new APIResponse<PagingDTO<ResGetAllStudentPermissionDTO>>();
 
+            /// 1. 查詢
             var users = await ctx.TblUsers
             .Include(x => x.StudentPermissions)
             .ThenInclude(x => x.PermissionGroups)
             .Where(x => x.IsDelete == false)
+            //查詢 名稱 
+            .Where(x => data.SearchText != "" ? x.DisplayName.Contains(data.SearchText) : true)
             .ToListAsync();
 
             var userList = users.Select(x => new ResGetAllStudentPermissionDTO()
@@ -90,14 +94,50 @@ namespace DoorWebApp.Controllers
                     })
                     .ToList()
             })
-            .ToList();
+            .AsQueryable();
+            log.LogInformation($"[{Request.Path}] themes.Count():[{userList.Count()}]");
 
-            log.LogInformation($"[{Request.Path}] GetAllUsersWithRoles1 success!  Total:{userList.Count}");
+            // 2.1 一頁幾筆
+            int onePage = data.SearchPage;
+
+            // 2.2 總共幾頁
+            int totalRecords = userList.Count();
+            log.LogInformation($"[{Request.Path}] totalRecords:[{totalRecords}]");
+            if (totalRecords == 0)
+            {
+                res.result = APIResultCode.success;
+                res.msg = "success 但是無資料";
+                res.content = new PagingDTO<ResGetAllStudentPermissionDTO>()
+                {
+                    pageItems = userList.ToList()
+                };
+                return Ok(res);
+            }
+
+            // 2.3 頁數進位
+            int allPages = (int)Math.Ceiling((double)totalRecords / onePage);
+            log.LogInformation($"[{Request.Path}] allPages:[{allPages}]");
+
+            // 2.4 非法頁數(不回報錯誤 則強制變為最大頁數)
+            if (allPages < data.Page)
+            {
+                data.Page = allPages;
+            }
+
+            // 2.5 取第幾頁
+            userList = userList.Skip(onePage * (data.Page - 1)).Take(onePage);
+            log.LogInformation($"[{Request.Path}] [{MethodBase.GetCurrentMethod().Name}] end");
+
 
             res.result = APIResultCode.success;
             res.msg = "success";
-            res.content = userList;
-
+            res.content = new PagingDTO<ResGetAllStudentPermissionDTO>()
+            {
+                totalItems = totalRecords,
+                totalPages = allPages,
+                pageSize = onePage,
+                pageItems = userList.ToList()
+            };
             return Ok(res);
         }
 
