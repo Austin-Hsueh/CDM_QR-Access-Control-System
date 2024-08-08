@@ -765,14 +765,6 @@ namespace DoorWebApp.Controllers
                     res.msg = "roleid_is_required";
                     return Ok(res);
                 }
-                //密碼
-                if (string.IsNullOrEmpty(UserDTO.password))
-                {
-                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.password})");
-                    res.result = APIResultCode.password_is_required;
-                    res.msg = "password_is_required";
-                    return Ok(res);
-                }
                 //電話
                 if (string.IsNullOrEmpty(UserDTO.phone))
                 {
@@ -828,7 +820,10 @@ namespace DoorWebApp.Controllers
                 UserEntity.DisplayName = UserDTO.displayName;
                 UserEntity.Email = UserDTO.email;
                 UserEntity.Phone = UserDTO.phone;
-                UserEntity.Secret = UserDTO.password;
+
+                if(string.IsNullOrEmpty( UserDTO.email ) )
+                    UserEntity.Secret = UserDTO.password;
+
                 UserEntity.ModifiedTime = DateTime.Now;
 
                 //更新角色

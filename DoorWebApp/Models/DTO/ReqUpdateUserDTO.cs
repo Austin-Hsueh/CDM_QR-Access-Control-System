@@ -31,7 +31,7 @@
         /// <summary>
         /// 密碼
         /// </summary>
-        public string password { get; set; }
+        public string password { get; set; } = "";
 
         /// <summary>
         /// 是否刪除
