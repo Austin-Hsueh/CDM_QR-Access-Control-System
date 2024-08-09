@@ -1,7 +1,7 @@
 export interface M_IsettingAccessRuleForm {
   userId: number;
-  datepicker: string[];
-  timepicker: string[];
+  datepicker?: string[];
+  timepicker?: string[];
   days: number[];
   groupIds: number[];
   datefrom?: string;

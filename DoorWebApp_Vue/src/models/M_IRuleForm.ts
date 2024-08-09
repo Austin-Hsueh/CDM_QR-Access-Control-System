@@ -16,3 +16,14 @@ export interface M_IUpdateRuleForm {
   password: string;
   roleid: number;
 }
+
+export interface M_IDeleteRuleForm {
+  userId: number;
+  username: string;
+  displayName: string;
+  email: string;
+  phone: string;
+  password: string;
+  roleid: number;
+  IsDelete: boolean;
+}

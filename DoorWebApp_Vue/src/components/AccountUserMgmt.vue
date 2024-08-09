@@ -17,12 +17,13 @@
   <!-- table -->
   <el-row>
     <el-col :span="24">
-      <el-table name="userInfoTable" style="width: 100%" height="400" :data="userInfo">
-        <el-table-column :label="t('username')"  prop="username"/>
-        <el-table-column :label="t('displayName')" prop="displayName" />
-        <el-table-column :label="t('Email')" prop="email"/>
-        <el-table-column :label="t('Phone')" prop="phone"/>
-        <el-table-column :label="t('Role')">
+      <!-- <el-table name="userInfoTable" style="width: 100%" height="400" :data="userInfo"> -->
+      <el-table name="userInfoTable" style="width: 100%" height="400" :data="userInfo?.pageItems">
+        <el-table-column sortable :label="t('username')"  prop="username"/>
+        <el-table-column sortable :label="t('displayName')" prop="displayName" />
+        <el-table-column sortable :label="t('Email')" prop="email"/>
+        <el-table-column sortable :label="t('Phone')" prop="phone"/>
+        <el-table-column sortable :label="t('Role')">
           <template #default="scope">
             {{ roleMap[scope.row.roleId as keyof typeof roleMap] }}
           </template>
@@ -30,9 +31,9 @@
         <el-table-column width="160px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
           <template #default="{ row }: { row: any }">
             <el-button type="primary" size="small" @click="onEdit(row)"><el-icon><EditPen /></el-icon> 編輯</el-button>
-            <!-- <el-button type="danger" size="small" @click="onDelet(row)" :disabled="(row.userId === 51)">
+            <el-button type="danger" size="small" @click="onDelet(row)" :disabled="(row.userId === 51)">
               <el-icon><Delete /></el-icon> 刪除
-            </el-button> -->
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -45,14 +46,11 @@
     <el-col>
       <div class="demo-pagination-block mt-3 d-flex justify-content-end">
         <el-pagination
-          v-model:current-page="currentPage4"
-          v-model:page-size="pageSize4"
-          :page-sizes="[100, 200, 300, 400]"
+          v-model:page-sizes="searchPagination.SearchPage"
           :size="size"
           layout="total, sizes, prev, pager, next, jumper"
-          :total="400"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
+          :total= "userInfo?.totalItems"
+          @change="handleCurrentChange"
           justify="end"
         />
       </div>
@@ -106,7 +104,7 @@
 
   <!-- 編輯彈窗 -->
   <el-dialog class="dialog" top="3vh" v-model="isShowEditRoleDialog" :title="t('edit')">
-    <el-form label-width="100px"  ref="updateRoleForm" :rules="rules" :model="updateFormData">
+    <el-form label-width="100px"  ref="updateRoleForm" :rules="editRules" :model="updateFormData">
       <el-form-item :label="t('username')" prop="username"  >
         <el-input style="width:90%" v-model="updateFormData.username"/>
       </el-form-item>
@@ -120,7 +118,7 @@
         <el-input  style="width:90%" v-model="updateFormData.phone"/>
       </el-form-item>
       <el-form-item :label="t('password')" prop="password"  >
-        <el-input  style="width:90%" v-model="updateFormData.password"/>
+        <el-input  style="width:90%" v-model="updateFormData.password"  placeholder="若不變更密碼，留空即可。" />
       </el-form-item>
       <el-form-item :label="t('Role')" prop="role" >
         <el-select v-model="updateFormData.roleid" placeholder="請選擇一個角色" style="width:90%">
@@ -156,26 +154,33 @@ import { ref, onMounted, onActivated, reactive, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import API from '@/apis/TPSAPI';
 import { EditPen, Delete } from '@element-plus/icons-vue';
-import { M_IUsers } from "@/models/M_IUser";
-import { M_ICreateRuleForm, M_IUpdateRuleForm } from '@/models/M_IRuleForm'
-import { ComponentSize, FormInstance, FormRules, ElNotification, NotificationParams  } from 'element-plus';
+import { M_IUsers, M_IUsersContent } from "@/models/M_IUser";
+import { M_ICreateRuleForm, M_IUpdateRuleForm, M_IDeleteRuleForm } from '@/models/M_IRuleForm';
+import { ComponentSize, FormInstance, FormRules, ElNotification, NotificationParams, ElMessageBox  } from 'element-plus';
+import SearchPaginationRequest from "@/models/M_ISearchPaginationRequest";
 
 const isShowAddRoleDialog = ref(false);
 const isShowEditRoleDialog = ref(false);
 const { t } = useI18n();
-const userInfo = ref<M_IUsers[]>([]); // Specify the type of the array
+const userInfo = ref<M_IUsersContent | null>(null);  // Specify the type of the array
+// const userInfo = ref<M_IUsers[]>([]);
 const currentPage4 = ref(4)
-const pageSize4 = ref(100)
 const size = ref<ComponentSize>('default')
 const searchText = ref('')
 
+const handleCurrentChange = async (currentPage: number, pageSize: number) => {
+  searchPagination.value.Page = currentPage;
+  console.log(searchPagination.value.Page)
+  searchPagination.value.SearchPage = pageSize;
+  console.log(searchPagination.value.SearchPage)
+  // await getUsers();
+}
 
-const handleSizeChange = (val: number) => {
-  console.log(`${val} items per page`)
-}
-const handleCurrentChange = (val: number) => {
-  console.log(`current page: ${val}`)
-}
+const searchPagination = ref<SearchPaginationRequest>({
+  SearchText: "",
+  SearchPage: 10,
+  Page: 1
+});
 
 const roleMap = computed(() => ({
   1: '管理者',
@@ -205,6 +210,49 @@ const onEdit = (item: M_IUsers) => {
   updateFormData.phone = item.phone ?? '';
   updateFormData.roleid = item.roleId;
   isShowEditRoleDialog.value = true;
+}
+
+const onDelet = async(item: M_IUsers) => {
+ 
+  try {
+    await ElMessageBox.confirm("確定刪除?", "提示", {
+      confirmButtonText: "確定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+  } catch (error) {
+    return;
+  }
+
+  deleteFormData.userId = item.userId;
+  deleteFormData.username = item.username;
+  deleteFormData.displayName =item.displayName;
+  deleteFormData.email = item.email;
+  deleteFormData.phone = item.phone ?? '';
+  deleteFormData.roleid = item.roleId;
+
+  let notifyParam: NotificationParams = {};
+
+  try {
+    const deleteResponse = await API.updateUsers(deleteFormData);
+    if (deleteResponse.data.result != 1) throw new Error(deleteResponse.data.msg);
+    notifyParam = {
+      title: "成功",
+      type: "success",
+      message: `已刪除 ${deleteFormData.username}`,
+      duration: 1000,
+    };
+  } catch (error) {
+    notifyParam = {
+      title: "錯誤",
+      type: "error",
+      message: (error as Error).message,
+      duration: 3000,
+    };
+  } finally {
+    ElNotification(notifyParam);
+    onFilterInputed();
+  }
 }
 
 const onCreateRoleClicked = () => {
@@ -286,12 +334,15 @@ const onFilterInputed = () => {
   }else{
     setTimeout(()=>{
       console.log(searchText.value)
-      const filteredData = userInfo.value.filter(item => {
-        const matchesIp = item.displayName.includes(searchText.value);
-        return matchesIp;
-      });
-      console.log(filteredData)
-      userInfo.value = filteredData;
+      searchPagination.value.SearchText = searchText.value
+      console.log(searchPagination.value);
+      getUsers();
+      // const filteredData = userInfo.value.filter(item => {
+      //   const matchesIp = item.displayName.includes(searchText.value);
+      //   return matchesIp;
+      // });
+      // console.log(filteredData)
+      // userInfo.value = filteredData;
     }, 500);
   }
 }
@@ -321,6 +372,17 @@ const updateFormData = reactive<M_IUpdateRuleForm>({
   roleid: 0
 })
 
+const deleteFormData = reactive<M_IDeleteRuleForm>({
+  userId:0,
+  username: '',
+  displayName: '',
+  email: '',
+  phone: '',
+  password: '',
+  roleid: 0,
+  IsDelete: true
+})
+
 // 新增表單, 編輯表單共用規則
 const rules  = reactive<FormRules>({
   username: [{ required: true, message: () => t("validation_msg.username_is_required"), trigger: "blur" }],
@@ -328,6 +390,13 @@ const rules  = reactive<FormRules>({
   email: [{ required: true, message: () => t("validation_msg.email_is_required"), trigger: "blur" }],
   password: [{ required: true, message: () => t("validation_msg.password_is_required"), trigger: "blur" }],
 });
+
+const editRules  = reactive<FormRules>({
+  username: [{ required: true, message: () => t("validation_msg.username_is_required"), trigger: "blur" }],
+  displayName: [{ required: true, message: () => t("validation_msg.displayname_is_required"), trigger: "blur" }],
+  email: [{ required: true, message: () => t("validation_msg.email_is_required"), trigger: "blur" }],
+});
+
 
 //#endregion
 
@@ -344,10 +413,15 @@ onMounted(() => {
 //#region Private Functions
 async function getUsers() {
   try {
-    const getUsersResult = await API.getAllUsers();
+    // const getUsersResult = await API.getAllUsers();
+
+    /** 取得使用者清單-後端分頁 */
+    const getUsersResult = await API.getAllUsers(searchPagination.value);
+
     if (getUsersResult.data.result != 1) throw new Error(getUsersResult.data.msg);
     userInfo.value = getUsersResult.data.content;
     console.log(getUsersResult.data.content)
+    console.log(userInfo.value)
 
   } catch (error) {
     console.error(error);

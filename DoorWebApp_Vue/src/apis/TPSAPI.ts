@@ -42,14 +42,16 @@ import IResTPSPerformanceDataViewDTO from "@/models/dto/IResTPSPerformanceDataVi
 import { useUserInfoStore } from "@/stores/UserInfoStore";
 
 
-import {M_IUsers} from "@/models/M_IUser";
+import {M_IUsers, M_IUsersContent} from "@/models/M_IUser";
 import M_IUserinfo from "@/models/M_IUseinfo";
 import {M_ICreateRuleForm, M_IUpdateRuleForm} from "@/models/M_IRuleForm";
 import M_ITempQRcode from "@/models/M_ITempQRcode";
 import {M_IUsersOptions} from "@/models/M_IUsersOptions";
 import {M_IsettingAccessRuleForm} from "@/models/M_IsettingAccessRuleForm";
 import {M_IUsersDoor} from "@/models/M_IUsersDoor";
-import {M_IUserList_MTI} from "@/models/M_IUserList_MTI";
+import {M_IUserList_MTI, M_IUsersContent_MTI} from "@/models/M_IUserList_MTI";
+// import SearchPaginationRequest from "@/models/M_ISearchPaginationRequest";
+import SearchPaginationRequest from "@/models/M_ISearchPaginationRequest";
 
 
 class APIService {
@@ -402,8 +404,13 @@ class APIService {
   
   //#region Music 使用者相關
   /** 取得使用者清單 */
-  getAllUsers(){
-    return this.axiosInstance.get<IAPIResponse<M_IUsers>>("v1/Users");
+  // getAllUsers(){
+  //   return this.axiosInstance.get<IAPIResponse<M_IUsersContent>>("v1/Users");
+  // }
+
+  /** 取得使用者清單-後端分頁 */
+  getAllUsers(data: SearchPaginationRequest){
+    return this.axiosInstance.post<IAPIResponse<M_IUsersContent>>("v1/Users", data);
   }
 
   /** 更新使用者資訊 */
@@ -438,6 +445,11 @@ class APIService {
     return this.axiosInstance.get<IAPIResponse<M_ITempQRcode>>("v1/User/TempDoorSetting");
   }
 
+  /** 設定臨時QRcode */
+  setTempDoorCode(cmd: any){
+    return this.axiosInstance.patch<IBaseAPIResponse>("v1/User/TempDoorSetting", cmd);
+  }
+
   /** 取得臨時QRcode */
   getUserSettingPermission(userid: number){
     return this.axiosInstance.get<IAPIResponse<any>>(`v1/User/PermissionSetting/${userid}`);
@@ -451,13 +463,24 @@ class APIService {
 
   //#region Music 多時段相關
   /** 取得門禁使用者清單-多時段 */
-  getStudentPermissions(){
-    return this.axiosInstance.get<IAPIResponse<M_IUserList_MTI>>("v1/StudentPermissions");
+  // getStudentPermissions(){
+  //   return this.axiosInstance.get<IAPIResponse<M_IUsersContent_MTI>>("v1/StudentPermissions");
+  // }
+
+  /** 取得門禁使用者清單-多時段-後端分頁 */
+  getStudentPermissions(data: SearchPaginationRequest){
+    return this.axiosInstance.post<IAPIResponse<M_IUsersContent_MTI>>("v1/StudentPermissions", data);
   }
+  
 
   /** 新增使用者門禁設定-多時段 */
   setStudentPermission(cmd: M_IsettingAccessRuleForm){
-    return this.axiosInstance.patch<IBaseAPIResponse>(`v1/StudentPermission`, cmd);
+    return this.axiosInstance.post<IBaseAPIResponse>(`v1/StudentPermission`, cmd);
+  }
+
+  /** 設定使用者門禁設定-多時段 */
+  patchStudentPermission(cmd: M_IsettingAccessRuleForm){
+    return this.axiosInstance.patch<IBaseAPIResponse>(`v1/User/StudentPermission`, cmd);
   }
   //#endregion
 

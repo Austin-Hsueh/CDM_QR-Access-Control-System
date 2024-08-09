@@ -12,34 +12,10 @@
     />
   </div>
 
-  <!-- table -->
-  <!-- <el-row>
-    <el-col :span="24">
-      <el-table name="userInfoTable" style="width: 100%" height="400" :data="userInfo">
-        <el-table-column sortable :label="t('username')"  prop="username" />
-        <el-table-column sortable :label="t('displayName')" prop="displayName" />
-        <el-table-column sortable :label="t('Permissions')" prop="groupNames"/>
-        <el-table-column sortable :label="t('releaseTime')">
-          <template v-slot="scope">
-            {{ scope.row.accessDays }}
-            <br>
-            {{ scope.row.accessTime }}
-          </template>
-        </el-table-column>
-        <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
-          <template v-slot="{ row }: { row: any }">
-            <el-button type="primary" @click="onEdit(row)"><el-icon><EditPen /></el-icon></el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-col>
-  </el-row> -->
-  <!-- /table -->
-
   <!-- table 多時段 樣式1-->
   <el-row>
     <el-col :span="24">
-      <el-table name="userInfoMTITable" style="width: 100%" height="400" :data="userInfoMTI">
+      <el-table name="userInfoMTITable" style="width: 100%" height="400" :data="userInfoMTI?.pageItems">
         <el-table-column type="expand">
           <template #default="props">
             <div class="m-2">
@@ -61,24 +37,29 @@
                     {{ formatDoors(scope.row.groupIds) }}
                   </template>
                 </el-table-column>
+                <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
+                  <template v-slot="{ row }: { row: any }">
+                    <el-button type="primary" size="small" @click="onEdit(row, props.row.userId)"><el-icon><EditPen /></el-icon>編輯</el-button>
+                  </template>
+                </el-table-column>
               </el-table>
             </div>
           </template>
         </el-table-column>
         <el-table-column sortable :label="t('username')"  prop="username" />
         <el-table-column sortable :label="t('displayName')" prop="displayName" />
-        <!-- <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
-          <template v-slot="{ row }: { row: any }">
-            <el-button type="primary" @click="onEdit(row)"><el-icon><EditPen /></el-icon></el-button>
+        <el-table-column sortable label="設定筆數">
+          <template #default="scope">
+            {{ scope.row.studentPermissions.length }}
           </template>
-        </el-table-column> -->
+        </el-table-column>
       </el-table>
     </el-col>
   </el-row>
   <!-- /table 多時段-->
 
   <!-- table 多時段 樣式2-->
-  <el-row v-if="false">
+  <!-- <el-row v-if="false">
     <el-col :span="24">
       <el-table name="userInfoMTITable" style="width: 100%" height="400" :data="flattenedData">
         <el-table-column sortable :label="t('username')" prop="username" />
@@ -100,14 +81,14 @@
             {{ formatDoors(scope.row.groupIds) }}
           </template>
         </el-table-column>
-        <!-- <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
+        <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
           <template v-slot="{ row }: { row: any }">
             <el-button type="primary" @click="onEdit(row)"><el-icon><EditPen /></el-icon></el-button>
           </template>
-        </el-table-column> -->
+        </el-table-column>
       </el-table>
     </el-col>
-  </el-row>
+  </el-row> -->
   <!-- /table 多時段-->
 
   <!-- pagination -->
@@ -193,15 +174,16 @@ import { useI18n } from "vue-i18n";
 import API from '@/apis/TPSAPI';
 import { M_IUsers } from "@/models/M_IUser";
 import {M_IsettingAccessRuleForm} from "@/models/M_IsettingAccessRuleForm";
-import {M_IUserList_MTI} from "@/models/M_IUserList_MTI";
+import {M_IUserList_MTI, M_IUsersContent_MTI} from "@/models/M_IUserList_MTI";
 import type { ComponentSize, FormInstance, FormRules, ElMessage } from 'element-plus';
 import {formatDate, formatTime} from "@/plugins/dateUtils";
+import SearchPaginationRequest from "@/models/M_ISearchPaginationRequest";
 
 const isShowEditRoleDialog = ref(false);
 
 const { t } = useI18n();
 const userInfo = ref<M_IUsers[]>([]); // Specify the type of the array
-const userInfoMTI = ref<M_IUserList_MTI[]>([]); // Specify the type of the array
+const userInfoMTI = ref<M_IUsersContent_MTI | null>(null); // Specify the type of the array
 const currentPage4 = ref(4)
 const pageSize4 = ref(100)
 const size = ref<ComponentSize>('default')
@@ -222,6 +204,12 @@ const handleSizeChange = (val: number) => {
 const handleCurrentChange = (val: number) => {
   console.log(`current page: ${val}`)
 }
+
+const searchPagination = ref<SearchPaginationRequest>({
+  SearchText: "",
+  SearchPage: 100,
+  Page: 1
+});
 
 const parseTime = (time: string): Date => {
   const [hours, minutes] = time.split(':').map(Number);
@@ -256,29 +244,39 @@ const onFilterInputed = () => {
   }else{
     setTimeout(()=>{
       console.log(searchText.value)
-      const filteredData = userInfoMTI.value.filter(item => {
-        const matchesIp = item.displayName.includes(searchText.value);
-        return matchesIp;
-      });
-      console.log(filteredData)
-      userInfoMTI.value = filteredData;
+      searchPagination.value.SearchText = searchText.value
+      console.log(searchPagination.value);
+      getStudentPermissions();
     }, 500);
   }
 }
 
-const onEdit = (item: M_IUsers) => {
+const onEdit = (item, userId) => {
+  isShowEditRoleDialog.value = true;
+  console.log(item)
   updateRoleForm.value?.resetFields();
 
     // 格式化时间
   const timeFrom = parseTime(item.timefrom);
   const timeTo = parseTime(item.timeto);
 
-  updateFormData.userId = item.userId;
+  updateFormData.userId = userId;
   updateFormData.groupIds = item.groupIds;
   updateFormData.datepicker = [item.datefrom, item.dateto];
   updateFormData.timepicker = [timeFrom, timeTo];
-  updateFormData.days = item.days.split(',').map(Number);
-  isShowEditRoleDialog.value = true;
+
+  // 檢查 item.days 是否為字符串
+  if (typeof item.days === 'string') {
+    updateFormData.days = item.days.split(',').map(Number);
+  } else if (Array.isArray(item.days)) {
+    // 如果 item.days 已經是數組，直接賦值
+    updateFormData.days = item.days.map(Number);
+  } else {
+    // 處理其他可能的類型或情況
+    console.warn('item.days 的類型不符合預期:', typeof item.days);
+    updateFormData.days = [];
+  }
+  console.log(updateFormData)
 }
 
 
@@ -297,7 +295,7 @@ const submitUpdateForm = async () => {
 
   
   try {
-    const settingResponse = await API.setPermission(updateFormData);
+    const settingResponse = await API.patchStudentPermission(updateFormData);
     
     // 根據需要處理 settingResponse
     console.log('Permission set successfully', settingResponse);
@@ -315,7 +313,7 @@ const submitUpdateForm = async () => {
 
 // 將函式傳到父組件
 defineExpose({
-  onFilterInputed
+  onFilterInputed,
 });
 
 
@@ -324,7 +322,7 @@ defineExpose({
   
 // });
 onMounted(() => {
-  getUsers();
+
   console.log(`Received door ID: ${props.doorId}`);
   getStudentPermissions();
 });
@@ -332,21 +330,14 @@ onMounted(() => {
 //#endregion
 
 //#region Private Functions
-async function getUsers() {
-  try {
-    const getUsersResult = await API.getAllUsers();
-    if (getUsersResult.data.result != 1) throw new Error(getUsersResult.data.msg);
-    userInfo.value = getUsersResult.data.content;
-
-  } catch (error) {
-    console.error(error);
-  }
-}
-
 // 多時段API
 async function getStudentPermissions() {
   try {
-    const getStudentPermissionsResult = await API.getStudentPermissions();
+    // const getStudentPermissionsResult = await API.getStudentPermissions();
+
+    /** 取得門禁使用者清單-多時段-後端分頁 */
+    const getStudentPermissionsResult = await API.getStudentPermissions(searchPagination.value);
+    
     if (getStudentPermissionsResult.data.result != 1) throw new Error(getStudentPermissionsResult.data.msg);
     userInfoMTI.value = getStudentPermissionsResult.data.content;
     console.log(userInfoMTI.value)
@@ -382,15 +373,17 @@ const formatDoors = (groupIds: number[]) => {
   return groupIds.map(door => doorMap[door]).join(', ');
 };
 
-const flattenedData = computed(() => {
-  return userInfoMTI.value.flatMap(user => 
-    user.studentPermissions.map(permission => ({
-      username: user.username,
-      displayName: user.displayName,
-      ...permission
-    }))
-  );
-});
+
+// 表格樣式2 使用
+// const flattenedData = computed(() => {
+//   return userInfoMTI.value?.pageItems.flatMap(user => 
+//     user.studentPermissions.map(permission => ({
+//       username: user.username,
+//       displayName: user.displayName,
+//       ...permission
+//     }))
+//   );
+// });
 
 </script>
 

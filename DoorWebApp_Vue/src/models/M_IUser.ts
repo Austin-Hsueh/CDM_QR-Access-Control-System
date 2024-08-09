@@ -17,3 +17,10 @@ export interface M_IUsers {
   timeto: string;
   days: string;
 }
+
+export interface M_IUsersContent {
+  totalItems: number;
+  totalPages: number;
+  pageSize: number;
+  pageItems: M_IUsers[];
+}

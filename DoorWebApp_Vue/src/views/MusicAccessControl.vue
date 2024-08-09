@@ -4,7 +4,7 @@
     <div class="text-start mb-3">
       <span class="fs-4 fw-bold content-title">{{ t("Access Control") }}</span>
     </div>
-    <el-tabs type="border-card">
+    <el-tabs type="border-card" @tab-click="handleTabClick">
       <el-tab-pane label="開門按鈕">
         <el-button  @click="callApi()">開啟大門</el-button>
         <el-button  @click="callApiCar()">開啟Car教室</el-button>
@@ -20,7 +20,7 @@
                   <el-option
                     v-for="item in usersOptions"
                     :key="item.userId"
-                    :label="item.username"
+                    :label="item.displayName"
                     :value="item.userId"
                   />
                 </el-select>
@@ -69,26 +69,48 @@
               <el-form-item style="margin-top: auto;">
                 <el-button type="primary" @click="settingForm()">{{ t("Settings") }}</el-button>
                 <el-button type="primary" @click="clearForm()">清除</el-button>
+                <el-button type="primary" @click="onUploadClicked()">批次匯入</el-button>
               </el-form-item>
             </el-form>
           </div>
         </div>
-        <el-divider />
-        <DoorUserSettingList ref="doorUserSettingListRef"/>
       </el-tab-pane>
-      <el-tab-pane label="大門">
+      <el-tab-pane label="使用者通行資料" name="doorUser">
+        <DoorUserSettingList ref="doorUserSettingListRef" />
+      </el-tab-pane>
+      <el-tab-pane label="大門" v-if="false">
         <DoorUserList :doorId="1"/>
       </el-tab-pane>
-      <el-tab-pane label="Car教室">
+      <el-tab-pane label="Car教室" v-if="false">
         <DoorUserList :doorId="2"/>
       </el-tab-pane>
-      <el-tab-pane label="Sunny教室">
+      <el-tab-pane label="Sunny教室" v-if="false">
         <DoorUserList :doorId="3"/>
       </el-tab-pane>
-      <el-tab-pane label="儲藏室">
+      <el-tab-pane label="儲藏室" v-if="false">
         <DoorUserList :doorId="4"/>
       </el-tab-pane>
     </el-tabs>
+
+    <!-- Dialog : 批次匯入-->
+      <el-dialog width="500px" title="批次匯入" v-model="isShowUploadDialog">
+        <el-upload
+          class="upload-demo"
+          drag
+          :before-upload="beforeUpload"
+          action="https://run.mocky.io/v3/9d059bf9-4660-45f2-925d-ce80ad6c4d15"
+          :on-change="handleChange"
+          :file-list="fileList"
+          multiple>
+          <el-icon><upload-filled /></el-icon>
+          <div class="el-upload__text">拖曳文件至此 或 <em>點擊上傳</em></div>
+          <template #tip>
+            <div class="el-upload__tip">上傳檔案格式: *.csv</div>
+          </template>
+        </el-upload>
+        <el-button type="primary" @click="onFileUploadClicked">處理檔案</el-button>
+      </el-dialog>
+    <!-- #endregion -->
   </div>
 
 </template>
@@ -98,13 +120,14 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useUserInfoStore } from "@/stores/UserInfoStore";
 import API from '@/apis/TPSAPI';
-import type {  FormInstance, FormRules  } from 'element-plus';
+import { FormInstance, FormRules, UploadProps, UploadUserFile, ElMessage, NotificationParams, ElNotification  } from 'element-plus';
 import {formatDate, formatTime} from "@/plugins/dateUtils";
 
 import DoorUserList from "@/components/DoorUserList.vue";
 import DoorUserSettingList from "@/components/DoorUserSeetingList.vue";
 import {M_IUsersOptions} from "@/models/M_IUsersOptions";
 import {M_IsettingAccessRuleForm} from "@/models/M_IsettingAccessRuleForm";
+import CreateStudentPermission from "@/models/M_CreateStudentPermission";
 
 
 
@@ -116,6 +139,7 @@ const doors = [1,2,3,4];
 const days = [1,2,3,4,5,6,7];
 
 const doorUserSettingListRef = ref(null);
+const isShowUploadDialog = ref(false);
 
 
 //#region UI Events
@@ -147,6 +171,22 @@ const settingForm = async () => {
         console.log('Permission set successfully', settingResponse);
         console.log('Permission set successfully', settingResponse.data);
 
+        let notifyParam: NotificationParams = {};
+        if (settingResponse.data.result == 1) {
+            notifyParam = {
+            title: "成功",
+            type: "success",
+            message:`門禁設定成功`,
+            duration: 1000,
+          };
+          clearForm();
+        }
+        if (settingResponse.data.result != 1) {
+          clearForm();
+          return;
+        }
+        ElNotification(notifyParam);
+
       } catch (error) {
         console.error('Failed to set permission', error);
       }
@@ -155,14 +195,22 @@ const settingForm = async () => {
       console.log('error submit!');
     }
   });
-  // 呼叫子組件(doorUserSettingList)的搜尋函式，更新表格
-  // doorUserSettingListRef.value?.onFilterInputed();
 };
 
 const clearForm = ()=>{
   settingAccessTimeForm.value?.resetFields();
   settingAccessTimeFormData.datepicker = '';
   settingAccessTimeFormData.timepicker = '';
+};
+
+const onUploadClicked = () => {
+  isShowUploadDialog.value = true;
+};
+
+const handleTabClick = (tab) => {
+  if (tab.name === 'doorUser') {
+    doorUserSettingListRef.value?.onFilterInputed(); // 调用 DoorUserSettingList 中的方法
+  }
 }
 
 //#region Hook functions
@@ -283,6 +331,119 @@ const callApiStore = () => {
       console.error(error);
   });
 }
+
+// #region 批次匯入功能
+const fileList = ref<UploadUserFile[]>([])
+
+const csvContent = ref<Array<CreateStudentPermission>>([]);
+
+const beforeUpload = (file: File) => {
+  const isCSV = file.type === 'text/csv';
+  if (!isCSV) {
+    ElMessage.error('上傳檔案格式不正確');
+  }
+  return isCSV;
+};
+
+
+const handleChange: UploadProps['onChange'] = (uploadFile, uploadFiles) => {
+  // Add the new file entry to the fileList
+  fileList.value.push({
+    name: uploadFile.name,
+    url: '' // Assuming there's no URL for this local file
+  })
+  
+  // Keep only the last 3 entries in the fileList
+  fileList.value = fileList.value.slice(-3)
+
+  const reader = new FileReader();
+  console.log(123)
+  reader.onload = (e: ProgressEvent<FileReader>) => {
+    if (e.target && e.target.result) {
+      const content = e.target.result.toString();
+      csvContent.value = csvToArray(content);
+      console.log(JSON.stringify(csvContent.value, null, 2));
+    }
+  };
+  if (uploadFile.raw) {
+    reader.readAsText(uploadFile.raw);
+  }
+}
+
+// 將 CSV 字串轉換為物件陣列
+const csvToArray = (str: string, delimiter = ",") => {
+  const headers = str.slice(0, str.indexOf("\n")).split(delimiter).map(header => header.trim());
+  const rows = str.slice(str.indexOf("\n") + 1).split("\n").filter(row => row.trim() !== '');
+  return rows.map(row => {
+    const values = row.split(delimiter).map(value => value.trim());
+    const obj = headers.reduce((object, header, index) => {
+      object[header] = values[index];
+      return object;
+    }, {} as Record<string, any>);
+    
+    const parseArray = (str: string) => {
+      return str ? str.split(',').map(value => {
+        const num = Number(value.trim());
+        return isNaN(num) ? null : num;
+      }).filter(num => num !== null) : [];
+    };
+
+    // 使用更严格的解析方法
+    const request: M_IsettingAccessRuleForm = {
+      userId: parseInt(obj.userId),
+      datefrom: obj.datefrom,
+      dateto: obj.dateto,
+      timefrom: obj.timefrom,
+      timeto: obj.timeto,
+      days: parseArray(obj.days),
+      groupIds: parseArray(obj.groupIds)
+      // datepicker: obj.datefrom,  // 假设 datepicker 为 datefrom 的值
+      // timepicker: `${obj.timefrom} - ${obj.timeto}`  // 假设 timepicker 为 timefrom 和 timeto 的组合
+    };
+    
+    return request;
+  });
+};
+
+const onFileUploadClicked = async () => {
+  for (const item of csvContent.value) {
+    try {
+      const response = await API.setStudentPermission(item);
+      console.log(response.data);
+
+      let notifyParam: NotificationParams = {};
+
+      if (response.data.result != 1) {
+          notifyParam = {
+          title: "失敗",
+          type: "error",
+          message: `新增失敗：${item.userId} : ${response.data.msg}`,
+          duration: 1000,
+        };
+      }
+
+      if (response.data.result == 1) {
+          notifyParam = {
+          title: "成功",
+          type: "success",
+          message:`已新增使用者：${item.userId}`,
+          duration: 1000,
+        };
+      }
+
+      ElNotification(notifyParam);
+
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  // 清空 fileList
+  fileList.value = [];
+
+  isShowUploadDialog.value = false;
+};
+//#endregion
 </script>
 
 <style scoped>
