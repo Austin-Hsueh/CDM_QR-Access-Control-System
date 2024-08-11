@@ -30,9 +30,11 @@ const userInfoStore = useUserInfoStore();
 
 const qrcode = ref('');
 const imageSrc = ref('');
+let executionCount = 0; // 計數器
 
 onMounted(() => {
-  getUserSettingPermission()
+  // getUserSettingPermission()
+  scheduleGetUserSettingPermission();
 });
 
 //#region Private Functions
@@ -48,6 +50,27 @@ async function getUserSettingPermission() {
   } catch (error) {
     console.error(error);
   }
+}
+
+function scheduleGetUserSettingPermission() {
+  const interval = 5 * 60 * 1000; // 每隔 30 分鐘
+  const startHour = 7;
+  const endHour = 23;
+
+  const executeFunction = () => {
+    const now = new Date();
+    const currentHour = now.getHours();
+
+    if (currentHour >= startHour && currentHour < endHour) {
+      executionCount++;
+      console.log(`第 ${executionCount} 次執行`);
+      getUserSettingPermission();
+    }
+  };
+
+  // 立即執行一次，然後每隔 30 分鐘執行
+  executeFunction();
+  setInterval(executeFunction, interval);
 }
 //#endregion
 </script>
