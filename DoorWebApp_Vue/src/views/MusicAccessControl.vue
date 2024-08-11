@@ -180,6 +180,7 @@ const settingForm = async () => {
             duration: 1000,
           };
           clearForm();
+          doorUserSettingListRef.value?.onFilterInputed();
         }
         if (settingResponse.data.result != 1) {
           clearForm();
