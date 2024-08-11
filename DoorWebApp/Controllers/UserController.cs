@@ -325,7 +325,7 @@ namespace DoorWebApp.Controllers
                     .Include(x => x.Permission)
                     .ThenInclude(x => x.PermissionGroups)
                     .Where(x => x.IsDelete == false)
-                    .Where(x => x.Permission.PermissionGroups.Select(x => x.Id).Count() > 0)
+                    // .Where(x => x.Permission.PermissionGroups.Select(x => x.Id).Count() > 0)
                     //查詢 名稱 
                     .Where(x => data.SearchText != "" ? x.DisplayName.Contains(data.SearchText) : true)
                     .Select(x => new ResGetAllUsersInfoDTO()
