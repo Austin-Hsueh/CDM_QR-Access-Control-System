@@ -21,6 +21,7 @@ using DoorWebApp.Extensions;
 using System;
 using System.Reflection;
 using System.Drawing.Printing;
+using System.Net.Mail;
 
 namespace DoorWebApp.Controllers
 {
@@ -396,6 +397,72 @@ namespace DoorWebApp.Controllers
                     pageSize = onePage,
                     pageItems = UserList.ToList()
                 };
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
+        /// <summary>
+        /// 取得使用者清單(含角色資訊)
+        /// </summary>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [HttpPost("v1/User/{UserId}")]
+        public IActionResult GetUserWithRoles(int UserId)
+        {
+            APIResponse<ResGetAllUsersInfoDTO> res = new APIResponse<ResGetAllUsersInfoDTO>();
+
+            try
+            {
+                /// 1. 查詢
+                var User= ctx.TblUsers
+                    .Include(x => x.Roles)
+                    .Include(x => x.Permission)
+                    .ThenInclude(x => x.PermissionGroups)
+                    .Where(x => x.IsDelete == false)
+                    .Where(x => x.Id == UserId)
+                    .Select(x => new ResGetAllUsersInfoDTO()
+                    {
+                        userId = x.Id,
+                        username = x.Username,
+                        displayName = x.DisplayName,
+                        email = x.Email,
+                        roleId = x.Roles.FirstOrDefault().Id,
+                        roleName = x.Roles.FirstOrDefault().Name,
+                        groupNames = x.Permission.PermissionGroups
+                        .Select(y => y.Name).ToList(),
+                        groupIds = x.Permission.PermissionGroups
+                        .Select(y => y.Id).ToList(),
+                        phone = x.Phone,
+                        accessTime = x.Permission.DateFrom.ToString() + " " + x.Permission.TimeFrom.ToString() + "~" + x.Permission.DateTo.ToString() + " " + x.Permission.TimeTo.ToString(),
+                        accessDays = x.Permission.Days.Replace("1", "周一").Replace("2", "周二").Replace("3", "周三").Replace("4", "周四").Replace("5", "周五").Replace("6", "周六").Replace("7", "周日"),
+                        datefrom = x.Permission.DateFrom.ToString(),
+                        dateto = x.Permission.DateTo.ToString(),
+                        timefrom = x.Permission.TimeFrom.ToString(),
+                        timeto = x.Permission.TimeTo.ToString(),
+                        days = x.Permission.Days
+                    })
+                    .FirstOrDefault();
+
+                // 2.筆數
+                if (User == null)
+                {
+                    res.result = APIResultCode.user_not_found;
+                    res.msg = "查無使用者";
+                    return Ok(res);
+                }
+
+
+
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                res.content = User;
                 return Ok(res);
             }
             catch (Exception err)
@@ -1328,6 +1395,100 @@ namespace DoorWebApp.Controllers
             }
         }
 
+        /// <summary>
+        /// 忘記密碼
+        /// </summary>
+        /// <param name=""></param>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [HttpPost("v1/User/resetPassword")]
+        public IActionResult ResetPassword(ForgetPasswordDTO forgetPassword)
+        {
+            APIResponse<PermissionDTO> res = new APIResponse<PermissionDTO>();
+
+            try
+            {
+                // 1. 資料檢核
+                var targetUserEntity = ctx.TblUsers.Where(x => x.Username == forgetPassword.username).FirstOrDefault();
+                if (targetUserEntity == null)
+                {
+                    log.LogWarning($"[{Request.Path}] User (帳號:{forgetPassword.username}) not found");
+                    res.result = APIResultCode.user_not_found;
+                    res.msg = "帳號查無使用者";
+                    return Ok(res);
+                }
+
+                if (targetUserEntity.Email == null)
+                {
+                    log.LogWarning($"[{Request.Path}] User (帳號:{forgetPassword.username}) Email is null");
+                    res.result = APIResultCode.email_is_required;
+                    res.msg = "帳號無信箱";
+                    return Ok(res);
+                }
+
+
+                log.LogInformation($"[{Request.Path}] Target user found! , Username:{targetUserEntity.Username}");
+
+
+                // 2. 更新資料
+                //更新使用者密碼
+                string newSecret = GenerateRandomString(6);
+                targetUserEntity.Secret = newSecret;
+                targetUserEntity.ModifiedTime = DateTime.Now;
+
+                // 3. 存檔
+                log.LogInformation($"[{Request.Path}] Save changes");
+                int EffectRow = ctx.SaveChanges();
+                log.LogInformation($"[{Request.Path}] Update success. (EffectRow:{EffectRow})");
+
+
+                string formMail = "doormusic2024@gmail.com";
+                string formPassword = "rgjdcnzxswcazpvt";
+
+                MailMessage message = new MailMessage();
+                message.From = new MailAddress(formMail);
+                message.Subject = "樂光音樂教室 重設密碼";
+                message.To.Add(new MailAddress(targetUserEntity.Email));
+                message.Body = $"<html><body> 已重設密碼為 {newSecret} </body></html>";
+                message.IsBodyHtml = true;
+
+                var smtpClient = new SmtpClient("smtp.gmail.com")
+                {
+                    Port = 587,
+                    Credentials = new NetworkCredential(formMail, formPassword),
+                    EnableSsl = true
+                };
+
+                smtpClient.Send(message);
+                log.LogInformation($"[{Request.Path}] 忘記密碼更新密碼+寄信成功 : User id={targetUserEntity.Id}");
+
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
+
+        public static string GenerateRandomString(int length)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            Random random = new Random();
+            char[] stringChars = new char[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                stringChars[i] = chars[random.Next(chars.Length)];
+            }
+
+            return new string(stringChars);
+        }
 
         /// <summary>
         /// 取得使用者權限Id清單
