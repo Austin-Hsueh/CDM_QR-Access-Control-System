@@ -413,6 +413,11 @@ class APIService {
     return this.axiosInstance.post<IAPIResponse<M_IUsersContent>>("v1/Users", data);
   }
 
+  /** 取得單一使用者清單 */
+  getOnerUser(id: number){
+    return this.axiosInstance.post<IAPIResponse<M_IUsers>>(`v1/User/${id}`);
+  }
+
   /** 更新使用者資訊 */
   updateUsers(cmd: M_IUpdateRuleForm){
     return this.axiosInstance.patch<IBaseAPIResponse>("v1/UpdateUser", cmd);
@@ -436,6 +441,10 @@ class APIService {
 
   getUsersDoor(doorid: number){
     return this.axiosInstance.get<IAPIResponse<M_IUsersDoor>>(`v1/Users/Door/${doorid}`);
+  }
+
+  getNewPassword(data:any){
+    return this.axiosInstance.post<IAPIResponse<any>>("v1/User/resetPassword", data);
   }
   //#endregion
 

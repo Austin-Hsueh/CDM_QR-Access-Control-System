@@ -31,7 +31,7 @@
         <el-table-column width="160px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
           <template #default="{ row }: { row: any }">
             <el-button type="primary" size="small" @click="onEdit(row)"><el-icon><EditPen /></el-icon> 編輯</el-button>
-            <el-button type="danger" size="small" @click="onDelet(row)" :disabled="(row.userId === 51)">
+            <el-button type="danger" size="small" @click="onDelet(row)" v-if="(row.userId != 51)">
               <el-icon><Delete /></el-icon> 刪除
             </el-button>
           </template>
@@ -158,6 +158,7 @@ import { M_IUsers, M_IUsersContent } from "@/models/M_IUser";
 import { M_ICreateRuleForm, M_IUpdateRuleForm, M_IDeleteRuleForm } from '@/models/M_IRuleForm';
 import { ComponentSize, FormInstance, FormRules, ElNotification, NotificationParams, ElMessageBox  } from 'element-plus';
 import SearchPaginationRequest from "@/models/M_ISearchPaginationRequest";
+import { useUserInfoStore } from "@/stores/UserInfoStore";
 
 const isShowAddRoleDialog = ref(false);
 const isShowEditRoleDialog = ref(false);
@@ -167,6 +168,7 @@ const userInfo = ref<M_IUsersContent | null>(null);  // Specify the type of the 
 const currentPage4 = ref(4)
 const size = ref<ComponentSize>('default')
 const searchText = ref('')
+const userInfoStore = useUserInfoStore();
 
 const handleCurrentChange = async (currentPage: number, pageSize: number) => {
   searchPagination.value.Page = currentPage;

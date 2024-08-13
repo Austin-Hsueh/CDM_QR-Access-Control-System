@@ -15,31 +15,34 @@
   <!-- table 多時段 樣式1-->
   <el-row>
     <el-col :span="24">
-      <el-table name="userInfoMTITable" style="width: 100%" height="400" :data="userInfoMTI?.pageItems">
+      <el-table name="userInfoMTITable" style="width: 100%" height="400" :data="userInfoMTI?.pageItems" >
         <el-table-column type="expand">
           <template #default="props">
             <div class="m-2">
-              <el-table :data="props.row.studentPermissions"  border="true">
-                <el-table-column label="開始日期" prop="datefrom" />
-                <el-table-column label="結束日期" prop="dateto" />
-                <el-table-column label="時間">
+              <el-table :data="props.row.studentPermissions"  border="true" :header-cell-style="{ backgroundColor: '#F2F2F2' }">
+                <el-table-column label="開始日期" prop="datefrom"  align="center"/>
+                <el-table-column label="結束日期" prop="dateto"  align="center"/>
+                <el-table-column label="時間" align="center">
                   <template #default="scope">
                     {{ scope.row.timefrom }} ~ {{ scope.row.timeto }}
                   </template>
                 </el-table-column>
-                <el-table-column label="週期">
+                <el-table-column label="週期" align="center">
                   <template #default="scope">
                     {{ formatDays(scope.row.days) }}
                   </template>
                 </el-table-column>
-                <el-table-column label="門組">
+                <el-table-column label="門組" align="center">
                   <template #default="scope">
                     {{ formatDoors(scope.row.groupIds) }}
                   </template>
                 </el-table-column>
-                <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
+                <el-table-column width="160px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
                   <template v-slot="{ row }: { row: any }">
                     <el-button type="primary" size="small" @click="onEdit(row, props.row.userId)"><el-icon><EditPen /></el-icon>編輯</el-button>
+                    <!-- <el-button type="danger" size="small">
+                      <el-icon><Delete /></el-icon> 刪除
+                    </el-button> -->
                   </template>
                 </el-table-column>
               </el-table>

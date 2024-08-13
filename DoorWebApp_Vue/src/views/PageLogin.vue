@@ -3,7 +3,6 @@
     <el-card class="box-card" shadow="hover" :body-style="singinInputCardStyle">
       <div class="d-flex flex-column justify-content-start align-items-center mb-3">
         <img class="box-logo mt-3 mb-3" src="../assets/logo.png" alt="Logo" />
-        <!-- <span class="box-title mb-2">{{ t("QRcode Access Control") }}</span> -->
         <el-form @submit.prevent :model="loginData" :rules="loginFormRules" ref="loginForm">
           <el-form-item prop="username">
             <el-input
@@ -41,12 +40,30 @@
           <el-button class="w-100" type="primary" plain @click="onSigninClicked()" :loading="isSigninBtnLoading">
             {{ isSigninBtnLoading ? t("processing") : t("login") }}
           </el-button>
+          <el-button class="w-100" type="primary" text="忘記密碼" plain @click="onPasswordClicked()" :loading="isSigninBtnLoading" style="margin-left: 0; margin-top: 5px;">
+            忘記密碼
+          </el-button>
         </el-form>
 
         <div class="error-msg" v-if="isShowErrorMsg">{{ t('wrong_password') }}</div>
       </div>
     </el-card>
   </div>
+  <!-- 忘記密碼彈窗 -->
+  <el-dialog class="dialog" top="3vh" v-model="isShowPasswordDialog" :title="t('PasswordForget')">
+    <el-form label-width="100px"  ref="passwordForm" :rules="passwordRules" :model="passwordFormData">
+      <el-form-item :label="t('username')" prop="username"  >
+        <el-input style="width:90%" v-model="passwordFormData.username"/>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="isShowPasswordDialog = false">{{ t("Cancel") }}</el-button>
+        <el-button type="primary"  @click="submitNewPasswordForm()">{{ t("Confirm") }}</el-button>
+      </span>
+    </template>
+  </el-dialog>
+  <!-- /編輯彈窗 -->
 </template>
 
 <script lang="ts">
@@ -60,6 +77,7 @@ import { User, Lock } from "@element-plus/icons-vue";
 import { delay } from "@/plugins/utility";
 import i18n from "@/locale";
 import {LocaleType} from "@/models/enums/LocaleType";
+import { FormInstance, FormRules, ElNotification, NotificationParams  } from 'element-plus';
 
 export default defineComponent({
   name: "login-view",
@@ -71,6 +89,7 @@ export default defineComponent({
     const state = reactive({
       isSigninBtnLoading: false,
       isShowErrorMsg: false,
+      isShowPasswordDialog: false,
       errorMsg: "",
       singinInputCardStyle: {
         padding: "10px 30px",
@@ -82,6 +101,7 @@ export default defineComponent({
       loginData: {} as IReqLoginDTO,
       //selectedLang: localStorage.getItem("locale") as "en_us" | "zh_tw" | "zh_cn",
       //isKeepSignin: false,
+      passwordFormData:{username:''}
     });
 
     //#region 建立表單ref與Validator
@@ -92,6 +112,14 @@ export default defineComponent({
         { pattern: /^[a-zA-Z0-9]+$/, message: () => t("validation_msg.only_letters_and_numbers") },
       ],
       password: [{ required: true, message: () => t("validation_msg.password_is_required"), trigger: "blur" }],
+    });
+
+    const passwordForm = ref();
+    const passwordRules = ref({
+      username: [
+        { required: true, message: () => t("validation_msg.username_is_required"), trigger: "blur" },
+        { pattern: /^[a-zA-Z0-9]+$/, message: () => t("validation_msg.only_letters_and_numbers") },
+      ],
     });
     //#endregion
 
@@ -157,6 +185,36 @@ export default defineComponent({
       state.isShowErrorMsg = false;
       state.errorMsg = "";
     };
+
+    /** 按下忘記密碼按鈕 */
+    const onPasswordClicked = () => {
+      state.isShowPasswordDialog = true;
+    };
+    
+    /** 提交使用者帳號 */
+    const submitNewPasswordForm = async() => {
+      console.log(state.passwordFormData.username)
+      let notifyParam: NotificationParams = {};
+      const updateResponse = await API.getNewPassword(state.passwordFormData);
+      if (updateResponse.data.result != 1) {
+        notifyParam = {
+          title: "失敗",
+          type: "error",
+          message: `帳號：${state.passwordFormData.username} 取得密碼失敗`,
+          duration: 2000,
+        };
+      } else {
+        notifyParam = {
+          title: "成功",
+          type: "success",
+          message: `帳號：${state.passwordFormData.username} 密碼已更新，請至信箱收信。`,
+          duration: 2000,
+        };
+      }
+
+      ElNotification(notifyParam);
+      state.isShowPasswordDialog = false;
+    }
     //#endregion
 
     //#region Private Functions
@@ -167,12 +225,16 @@ export default defineComponent({
       t,
       loginForm,
       loginFormRules,
+      passwordForm,
+      passwordRules,
       User,
       Lock,
       LocaleType,
       onSigninClicked,
       onLangSelectChanged,
       onKeydown,
+      onPasswordClicked,
+      submitNewPasswordForm
     };
   },
 });

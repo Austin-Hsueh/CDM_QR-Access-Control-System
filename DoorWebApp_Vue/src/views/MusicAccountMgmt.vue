@@ -6,7 +6,8 @@
     </div>
     <el-tabs type="border-card">
       <el-tab-pane label="帳號設定">
-        <AccountUserMgmtVue ref="AccountUserMgmtRef" />
+        <AccountUserMgmtVue ref="AccountUserMgmtRef" v-if="userInfoStore.userId == 51"/>
+        <AccountOnerUserMgmt v-else/>
       </el-tab-pane>
     </el-tabs>
   </div>
@@ -16,11 +17,15 @@
 import { defineComponent } from "vue";
 import { useI18n } from "vue-i18n";
 import AccountUserMgmtVue from "@/components/AccountUserMgmt.vue";
+import AccountOnerUserMgmt from "@/components/AccountOnerUserMgmt.vue";
+import { useUserInfoStore } from "@/stores/UserInfoStore";
 
+const userInfoStore = useUserInfoStore();
 
 defineComponent({
   components: {
     AccountUserMgmtVue,
+    AccountOnerUserMgmt
   },
 });
 
