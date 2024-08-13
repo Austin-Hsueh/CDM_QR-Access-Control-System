@@ -22,13 +22,33 @@ $primary-base: #0FE3C6;
   --el-button-hover-bg-color: #F2EEE5;
 }
 
-.el-tabs--border-card>.el-tabs__header .el-tabs__item.is-active{
-  color: #526E60;
+.el-button--primary.is-plain, .el-button--primary.is-text {
+  --el-button-text-color: #{$normal-base};
+  --el-button-bg-color: lighten(#526E60, 50%);
+  --el-button-border-color: lighten(#526E60, 70%);
+  --el-button-hover-bg-color: #{$normal-base};
+  --el-button-hover-border-color: #{$normal-base};
 }
 
-.el-tabs--border-card>.el-tabs__header .el-tabs__item:hover {
-  color: #526E60; 
+.el-tabs__item {
+  --el-color-primary:#{$normal-base};
 }
+
+.el-checkbox{
+  --el-checkbox-checked-text-color: #{$normal-base};
+  --el-checkbox-checked-bg-color: #{$normal-base};
+  --el-checkbox-checked-input-border-color: #{$normal-base};
+  --el-checkbox-input-border-color-hover: #{$normal-base};
+}
+
+.el-input{
+  --el-select-input-focus-border-color: #{$normal-base};
+}
+
+.el-range-editor.is-active:hover{
+  --el-input-focus-border-color: #{$normal-base};
+}
+
 
 body {
   background-color: #f8f9fa;

@@ -41,7 +41,7 @@
         <el-input  style="width:90%" v-model="updateFormData.password"  placeholder="若不變更密碼，留空即可。" />
       </el-form-item>
       <el-form-item :label="t('Role')" prop="role" >
-        <el-select v-model="updateFormData.roleid" placeholder="請選擇一個角色" style="width:90%">
+        <el-select v-model="updateFormData.roleid" placeholder="請選擇一個角色" style="width:90%" disabled>
           <el-option label="管理者" :value="1" />
           <el-option label="老師" :value="2" />
           <el-option label="學生" :value="3" />
