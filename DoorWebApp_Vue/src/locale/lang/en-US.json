@@ -265,5 +265,6 @@
   "Permissions": "Permissions",
   "releaseTime": "Release Time",
   "Settings": "Setting",
-  "Import":"Import"
+  "Import":"Import",
+  "PasswordForget":"Password Forget"
 }

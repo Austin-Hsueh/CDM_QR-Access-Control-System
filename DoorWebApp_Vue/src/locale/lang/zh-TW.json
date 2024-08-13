@@ -320,7 +320,8 @@
   "Permissions": "權限",
   "releaseTime": "通行時間",
   "Settings": "設定",
-  "Import":"批次匯入"
+  "Import":"批次匯入",
+  "PasswordForget":"忘記密碼"
 
 
 }

@@ -13,6 +13,7 @@ import mock from "@/apis/mocks/mock";
 import { MyAuthPlugin } from "@/plugins/myAuth";
 import { useUserInfoStore } from "./stores/UserInfoStore";
 import { usePaginatorSetup } from "@/stores/PaginatorStore";
+import './assets/style/index.scss';
 
 //#region 初始設置
 

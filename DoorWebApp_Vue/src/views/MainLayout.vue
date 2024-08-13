@@ -41,9 +41,10 @@ export default defineComponent({
 :root {
   --sidebar-width: 200px;
   --sidebar-z-index: 5;
-  --header-height: 65px;
+  --header-height: 60px;
   --el-header-padding-sm: 0px 20px;
   --el-header-padding: 0px 5px;
+  --el-header-height: 65px;
 }
 
 .el-menu {
@@ -61,6 +62,7 @@ export default defineComponent({
   overflow-y: auto;
   transform: translate(0);
   transition: background-color var(--el-transition-duration-fast), opacity 0.25s, transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+  background-color: #CCA596;
 }
 
 .sidebar.open {

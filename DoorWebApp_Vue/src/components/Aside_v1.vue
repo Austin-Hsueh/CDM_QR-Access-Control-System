@@ -10,7 +10,7 @@
     :router="true"
     background-color="#CCA596"
     text-color="#fff"
-    active-text-color="#ffd04b"
+    active-text-color="#526E60"
   >
     <el-menu-item index="/accesscontrol" v-if="isShowMenu">
         <el-icon><Calendar /></el-icon>
@@ -24,7 +24,7 @@
         <el-icon><Menu /></el-icon>
         <span>{{ t("Temporary QRcode") }}</span>
     </el-menu-item>
-    <el-menu-item index="/accountMgmt" v-if="isShowMenu">
+    <el-menu-item index="/accountMgmt">
         <el-icon><Setting /></el-icon>
         <span>{{ t("Account_Mgmt_Music") }}</span>
     </el-menu-item>

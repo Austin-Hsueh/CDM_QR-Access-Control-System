@@ -176,4 +176,5 @@ ion-icon {
 .el-loading-mask {
   background: rgba(0, 0, 0, 0.2);
 }
+
 </style>
