@@ -930,7 +930,7 @@ namespace DoorWebApp.Controllers
                 UserEntity.Email = UserDTO.email;
                 UserEntity.Phone = UserDTO.phone;
 
-                if(string.IsNullOrEmpty( UserDTO.email ) )
+                if(!string.IsNullOrEmpty( UserDTO.password) )
                     UserEntity.Secret = UserDTO.password;
 
                 UserEntity.ModifiedTime = DateTime.Now;
