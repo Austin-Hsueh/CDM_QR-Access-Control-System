@@ -16,9 +16,16 @@
 
   <!-- table -->
   <el-row>
+    <el-switch 
+      v-model="showId" 
+      active-text="顯示帳號ID欄位" 
+      inactive-text="隱藏帳號ID欄位" 
+      style="--el-switch-on-color: #526E60; "
+      width="100"/>
     <el-col :span="24">
       <!-- <el-table name="userInfoTable" style="width: 100%" height="400" :data="userInfo"> -->
       <el-table name="userInfoTable" style="width: 100%" height="400" :data="userInfo?.pageItems">
+        <el-table-column sortable :label="t('userID')"  prop="userId" v-if="showId"/>
         <el-table-column sortable :label="t('username')"  prop="username"/>
         <el-table-column sortable :label="t('displayName')" prop="displayName" />
         <el-table-column sortable :label="t('Email')" prop="email"/>
@@ -169,6 +176,7 @@ const currentPage4 = ref(4)
 const size = ref<ComponentSize>('default')
 const searchText = ref('')
 const userInfoStore = useUserInfoStore();
+const showId = ref(false);
 
 const handleCurrentChange = async (currentPage: number, pageSize: number) => {
   searchPagination.value.Page = currentPage;
@@ -272,18 +280,19 @@ const submitForm = async () => {
         notifyParam = {
           title: "失敗",
           type: "error",
-          message: `帳號：${createFormData.username} 新增失敗`,
+          message: `帳號：${createFormData.username} 新增失敗<br>原因：${addUser.data.msg}`,
           duration: 2000,
+          dangerouslyUseHTMLString: true
         };
-        return;
+      }else{
+        notifyParam = {
+          title: "成功",
+          type: "success",
+          message: `帳號：${updateFormData.username} 已成功更新<br>請至門禁管理為${updateFormData.username}設定通行權限。`,
+          duration: 3000,
+          dangerouslyUseHTMLString: true // 啟用 HTML 字符串，message 中使用<br>。
+        };
       }
-      notifyParam = {
-        title: "成功",
-        type: "success",
-        message: `帳號：${updateFormData.username} 已成功更新<br>請至門禁管理為${updateFormData.username}設定通行權限。`,
-        duration: 3000,
-        dangerouslyUseHTMLString: true // 啟用 HTML 字符串，message 中使用<br>。
-      };
 
       ElNotification(notifyParam);
       isShowAddRoleDialog.value = false;
@@ -391,12 +400,14 @@ const rules  = reactive<FormRules>({
   displayName: [{ required: true, message: () => t("validation_msg.displayname_is_required"), trigger: "blur" }],
   email: [{ required: true, message: () => t("validation_msg.email_is_required"), trigger: "blur" }],
   password: [{ required: true, message: () => t("validation_msg.password_is_required"), trigger: "blur" }],
+  phone: [{ required: true, message: () => t("validation_msg.phone_is_required"), trigger: "blur" }],
 });
 
 const editRules  = reactive<FormRules>({
   username: [{ required: true, message: () => t("validation_msg.username_is_required"), trigger: "blur" }],
   displayName: [{ required: true, message: () => t("validation_msg.displayname_is_required"), trigger: "blur" }],
   email: [{ required: true, message: () => t("validation_msg.email_is_required"), trigger: "blur" }],
+  phone: [{ required: true, message: () => t("validation_msg.phone_is_required"), trigger: "blur" }],
 });
 
 

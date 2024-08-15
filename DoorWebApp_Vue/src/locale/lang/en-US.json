@@ -9,6 +9,7 @@
   "validation_msg": {
     "username_is_required": "Username is required",
     "password_is_required": "Password is required",
+    "phone_is_required": "Phone is required",
     "displayname_is_required": "Display Name is required",
     "email_is_required": "Email is required",
     "only_letters_and_numbers": "Please enter only letters and numbers.",
@@ -266,5 +267,6 @@
   "releaseTime": "Release Time",
   "Settings": "Setting",
   "Import":"Import",
-  "PasswordForget":"Password Forget"
+  "PasswordForget":"Password Forget",
+  "userID":"Account ID"
 }

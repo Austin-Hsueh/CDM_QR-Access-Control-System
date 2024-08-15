@@ -9,6 +9,7 @@
   "validation_msg": {
     "username_is_required": "請輸入帳號",
     "password_is_required": "請輸入密碼",
+    "phone_is_required": "請輸入電話",
     "displayname_is_required": "請輸入顯示名稱",
     "email_is_required": "請輸入電子郵件",
     "only_letters_and_numbers": "請輸入英文及數字",
@@ -321,7 +322,8 @@
   "releaseTime": "通行時間",
   "Settings": "設定",
   "Import":"批次匯入",
-  "PasswordForget":"忘記密碼"
+  "PasswordForget":"忘記密碼",
+  "userID":"帳號ID"
 
 
 }
