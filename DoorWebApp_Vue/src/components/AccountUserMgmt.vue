@@ -49,15 +49,18 @@
   <!-- /table -->
 
   <!-- pagination -->
-  <el-row justify="end" class="mt-3" v-if="false">
+  <el-row justify="end" class="mt-3">
     <el-col>
       <div class="demo-pagination-block mt-3 d-flex justify-content-end">
         <el-pagination
-          v-model:page-sizes="searchPagination.SearchPage"
+          v-model:current-page="searchPagination.Page"
+          v-model:page-size="searchPagination.SearchPage"
+          :page-sizes="[10, 50, 100]"
           :size="size"
           layout="total, sizes, prev, pager, next, jumper"
           :total= "userInfo?.totalItems"
-          @change="handleCurrentChange"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
           justify="end"
         />
       </div>
@@ -178,12 +181,15 @@ const searchText = ref('')
 const userInfoStore = useUserInfoStore();
 const showId = ref(false);
 
-const handleCurrentChange = async (currentPage: number, pageSize: number) => {
-  searchPagination.value.Page = currentPage;
-  console.log(searchPagination.value.Page)
-  searchPagination.value.SearchPage = pageSize;
-  console.log(searchPagination.value.SearchPage)
-  // await getUsers();
+const handleSizeChange = async(val: number) => {
+  console.log(`${val} items per page`)
+  searchPagination.value.SearchPage = val;
+  await getUsers();
+}
+const handleCurrentChange = async(val: number) => {
+  console.log(`current page: ${val}`)
+  searchPagination.value.Page = val;
+  await getUsers();
 }
 
 const searchPagination = ref<SearchPaginationRequest>({
@@ -288,7 +294,7 @@ const submitForm = async () => {
         notifyParam = {
           title: "成功",
           type: "success",
-          message: `帳號：${updateFormData.username} 已成功更新<br>請至門禁管理為${updateFormData.username}設定通行權限。`,
+          message: `帳號：${createFormData.username} 已成功更新<br>請至門禁管理為${createFormData.username}設定通行權限。`,
           duration: 3000,
           dangerouslyUseHTMLString: true // 啟用 HTML 字符串，message 中使用<br>。
         };

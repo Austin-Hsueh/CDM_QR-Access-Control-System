@@ -96,16 +96,16 @@
 
   <!-- pagination -->
    <!-- 20240731 上線測試, 暫時排除未完分頁功能 by Austin -->
-  <el-row justify="end" class="mt-3" v-if="false">
+  <el-row justify="end" class="mt-3">
     <el-col>
       <div class="demo-pagination-block mt-3 d-flex justify-content-end">
         <el-pagination
-          v-model:current-page="currentPage4"
-          v-model:page-size="pageSize4"
-          :page-sizes="[100, 200, 300, 400]"
+          v-model:current-page="searchPagination.Page"
+          v-model:page-size="searchPagination.SearchPage"
+          :page-sizes="[10, 50, 100]"
           :size="size"
           layout="total, sizes, prev, pager, next, jumper"
-          :total="400"
+          :total= "userInfoMTI?.totalItems"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
           justify="end"
@@ -187,8 +187,6 @@ const isShowEditRoleDialog = ref(false);
 const { t } = useI18n();
 const userInfo = ref<M_IUsers[]>([]); // Specify the type of the array
 const userInfoMTI = ref<M_IUsersContent_MTI | null>(null); // Specify the type of the array
-const currentPage4 = ref(4)
-const pageSize4 = ref(100)
 const size = ref<ComponentSize>('default')
 const searchText = ref('')
 const doors = [1,2,3,4];
@@ -201,16 +199,21 @@ const props = defineProps<{
 
 
 
-const handleSizeChange = (val: number) => {
+const handleSizeChange = async(val: number) => {
   console.log(`${val} items per page`)
+  searchPagination.value.SearchPage = val;
+  await getStudentPermissions();
 }
-const handleCurrentChange = (val: number) => {
+
+const handleCurrentChange = async(val: number) => {
   console.log(`current page: ${val}`)
+  searchPagination.value.Page = val;
+  await getStudentPermissions();
 }
 
 const searchPagination = ref<SearchPaginationRequest>({
   SearchText: "",
-  SearchPage: 100,
+  SearchPage: 10,
   Page: 1
 });
 

@@ -49,6 +49,13 @@ $primary-base: #0FE3C6;
   --el-input-focus-border-color: #{$normal-base};
 }
 
+.el-switch__label.is-active{
+  --el-color-primary: #{$normal-base};
+}
+
+.el-switch__label {
+  --el-text-color-primary: #909399;
+}
 
 body {
   background-color: #f8f9fa;

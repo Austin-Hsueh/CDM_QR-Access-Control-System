@@ -1524,5 +1524,156 @@ namespace DoorWebApp.Controllers
                                                          .ToArray();
             return result;
         }
+
+        /// <summary>
+        /// 新增多位使用者
+        /// </summary>
+        /// <param name="UserDTOs"></param>
+        /// <returns></returns>
+        [HttpPost("v1/Userss")]
+        public async Task<IActionResult> AddUsers(List<ReqNewUserDTO> UserDTOs)
+        {
+            APIResponse res = new APIResponse();
+            log.LogInformation($"[{Request.Path}] AddUsers Request");
+            try
+            {
+                int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+                string OperatorUsername = User.Identity?.Name ?? "N/A";
+
+                foreach (var UserDTO in UserDTOs)
+                {
+                    // 1. 檢查輸入參數
+                    // 1-1 必填欄位缺少
+                    //帳號
+                    if (string.IsNullOrEmpty(UserDTO.username))
+                    {
+                        log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.username})");
+                        res.result = APIResultCode.username_is_required;
+                        res.msg = "username_is_required";
+                        return Ok(res);
+                    }
+                    //姓名
+                    if (string.IsNullOrEmpty(UserDTO.displayName))
+                    {
+                        log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.displayName})");
+                        res.result = APIResultCode.display_name_is_required;
+                        res.msg = "display_name_is_required";
+                        return Ok(res);
+                    }
+                    //Email
+                    if (string.IsNullOrEmpty(UserDTO.email))
+                    {
+                        log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.email})");
+                        res.result = APIResultCode.email_is_required;
+                        res.msg = "email_is_required";
+                        return Ok(res);
+                    }
+                    //角色Id
+                    if (UserDTO.roleid == null || UserDTO.roleid == 0)
+                    {
+                        log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.roleid})");
+                        res.result = APIResultCode.roleid_is_required;
+                        res.msg = "roleid_is_required";
+                        return Ok(res);
+                    }
+                    //密碼
+                    if (string.IsNullOrEmpty(UserDTO.password))
+                    {
+                        log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.password})");
+                        res.result = APIResultCode.password_is_required;
+                        res.msg = "password_is_required";
+                        return Ok(res);
+                    }
+                    //電話
+                    if (string.IsNullOrEmpty(UserDTO.phone))
+                    {
+                        log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.phone})");
+                        res.result = APIResultCode.phone_is_required;
+                        res.msg = "phone_is_required";
+                        return Ok(res);
+                    }
+
+                    // 1-2 重複帳號 //todo 排除已經刪除的
+                    TblUser? tblUser = ctx.TblUsers.Where(x => x.IsDelete == false)
+                                                .FirstOrDefault(x => x.Username == UserDTO.username);
+                    if (tblUser != null)
+                    {
+                        log.LogWarning($"[{Request.Path}] Duplicate username: {UserDTO.username}");
+                        res.result = APIResultCode.duplicate_username;
+                        res.msg = $"duplicate_username: {UserDTO.username}";
+                        return Ok(res);
+                    }
+
+                    // 2. 新增使用者
+                    TblUser NewUser = new TblUser();
+                    NewUser.Username = UserDTO.username;
+                    NewUser.DisplayName = UserDTO.displayName;
+                    NewUser.Email = UserDTO.email;
+                    NewUser.Phone = UserDTO.phone;
+                    NewUser.Secret = UserDTO.password;
+                    NewUser.AccountType = LoginAccountType.LOCAL;
+                    NewUser.IsDelete = false;
+                    NewUser.IsEnable = true;
+                    NewUser.locale = LocaleType.zh_tw;
+                    NewUser.LastLoginIP = "";
+                    NewUser.LastLoginTime = null;
+                    NewUser.CreateTime = DateTime.Now;
+                    NewUser.ModifiedTime = DateTime.Now;
+
+                    //3-1. 新增角色關聯,再加到使用者
+                    List<TblRole> Roles = ctx.TblRoles.Where(x => x.IsDelete == false)
+                                                .Where(x => x.Id == UserDTO.roleid).ToList();
+                    NewUser.Roles = Roles;
+                    ctx.TblUsers.Add(NewUser);
+                    ctx.SaveChanges(); // Save user to generate UserId
+                    log.LogInformation($"[{Request.Path}] Create User : Name={NewUser.Username}, DisplayName={NewUser.DisplayName}");
+
+                    // 3-2. 新增門禁,再加到使用者
+                    TblPermission NewPermission = new TblPermission();
+                    NewPermission.IsEnable = true;
+                    NewPermission.IsDelete = false;
+                    NewPermission.DateFrom = "2024/07/20";
+                    NewPermission.DateTo = "2024/07/20";
+                    NewPermission.TimeFrom = "09:00";
+                    NewPermission.TimeTo = "21:00";
+                    NewPermission.Days = "";
+                    NewPermission.PermissionLevel = 1;
+                    NewPermission.UserId = NewUser.Id;
+
+                    ctx.TblPermission.Add(NewPermission);
+                    log.LogInformation($"[{Request.Path}] Create Permission : TblPermission UserId ={NewUser.Id}");
+
+                    // 4. 寫入資料庫
+                    log.LogInformation($"[{Request.Path}] Save changes for user: {NewUser.Username}");
+                    ctx.SaveChanges();
+
+                    // 寫入日誌
+                    auditLog.WriteAuditLog(AuditActType.Create, $" Create User : Username={NewUser.Username}, Displayname={NewUser.DisplayName}", OperatorUsername);
+                }
+
+                // 5. 回傳結果
+                res.result = APIResultCode.success;
+                res.msg = "success";
+
+                return Ok(res);
+            }
+            catch (DbUpdateException ex)
+            {
+                // Log the detailed error message
+                var errorMessage = ex.InnerException?.Message ?? ex.Message;
+                Console.WriteLine($"Error: {errorMessage}");
+                // You can also log this to a file or another logging system
+                res.result = APIResultCode.unknow_error;
+                res.msg = ex.Message;
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
     }
 }
