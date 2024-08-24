@@ -1,4 +1,5 @@
 export interface M_IsettingAccessRuleForm {
+  Id?: number;
   userId: number;
   datepicker?: string[];
   timepicker?: string[];
@@ -8,4 +9,6 @@ export interface M_IsettingAccessRuleForm {
   dateto?: string;
   timefrom?: string;
   timeto?: string;
+  IsDelete?: boolean;
+  displayName?: string;
 }

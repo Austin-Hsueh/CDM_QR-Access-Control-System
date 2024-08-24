@@ -6,20 +6,19 @@
     </div>
 
     <el-tabs type="border-card">
-      <el-tab-pane label="臨時門禁設定-大門">
+      <el-tab-pane :label="t('Temporary Access Control Settings - Main Door')" >
         <div class="d-flex flex-column">
           <div class="col-12 text-start">
             <el-button type="primary" @click="setTemp()">{{ t("Settings") }}(通行時間1小時)</el-button>
           </div>
+          <el-divider />
         </div>
-        <el-divider />
-        <div class="d-flex flex-column">
-          <div class="col-md-4  col-xs-12 col-sm-12">
-            <span>可通行時間</span><br>
-            <span>{{ pass.datefrom }} {{ pass.timefrom }}~{{ pass.timeto }}</span>
-            <el-image :src="imageSrc" alt="Base64 Image" />
-          </div>
-        </div>
+        <el-card style="max-width: 250px">
+          <el-image :src="imageSrc" alt="Base64 Image" />
+          <el-divider />
+          <span>可通行時間</span><br>
+          <span>{{ pass.datefrom }} {{ pass.timefrom }}~{{ pass.timeto }}</span>
+        </el-card>
       </el-tab-pane>
     </el-tabs>
   </div>

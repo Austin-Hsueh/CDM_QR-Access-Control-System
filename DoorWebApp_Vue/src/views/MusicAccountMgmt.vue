@@ -5,7 +5,7 @@
       <span class="fs-4 fw-bold content-title">{{ t("Account_Mgmt_Music") }}</span>
     </div>
     <el-tabs type="border-card">
-      <el-tab-pane label="帳號設定">
+      <el-tab-pane :label="t('Account Settings')" >
         <AccountUserMgmtVue ref="AccountUserMgmtRef" v-if="userInfoStore.userId == 51"/>
         <AccountOnerUserMgmt v-else/>
       </el-tab-pane>

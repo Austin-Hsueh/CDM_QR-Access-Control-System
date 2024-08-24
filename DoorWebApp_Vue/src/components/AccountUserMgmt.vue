@@ -18,8 +18,8 @@
   <el-row>
     <el-switch 
       v-model="showId" 
-      active-text="顯示帳號ID欄位" 
-      inactive-text="隱藏帳號ID欄位" 
+      :active-text="t('Show Account ID Field')" 
+      :inactive-text="t('Hide Account ID Field')" 
       style="--el-switch-on-color: #526E60; "
       width="100"/>
     <el-col :span="24">
@@ -35,11 +35,11 @@
             {{ roleMap[scope.row.roleId as keyof typeof roleMap] }}
           </template>
         </el-table-column>
-        <el-table-column width="160px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
+        <el-table-column width="170px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
           <template #default="{ row }: { row: any }">
-            <el-button type="primary" size="small" @click="onEdit(row)"><el-icon><EditPen /></el-icon> 編輯</el-button>
+            <el-button type="primary" size="small" @click="onEdit(row)"><el-icon><EditPen /></el-icon>{{ t('edit') }}</el-button>
             <el-button type="danger" size="small" @click="onDelet(row)" v-if="(row.userId != 51)">
-              <el-icon><Delete /></el-icon> 刪除
+              <el-icon><Delete /></el-icon>{{ t('delete') }}
             </el-button>
           </template>
         </el-table-column>

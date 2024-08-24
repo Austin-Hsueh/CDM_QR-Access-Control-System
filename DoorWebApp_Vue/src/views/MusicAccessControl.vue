@@ -5,13 +5,13 @@
       <span class="fs-4 fw-bold content-title">{{ t("Access Control") }}</span>
     </div>
     <el-tabs type="border-card" @tab-click="handleTabClick">
-      <el-tab-pane label="開門按鈕">
+      <el-tab-pane :label="t('Open Door Button')">
         <el-button  @click="callApi()">開啟大門</el-button>
         <el-button  @click="callApiCar()">開啟Car教室</el-button>
         <el-button  @click="callApiSunny()">開啟Sunny教室</el-button>
         <el-button  @click="callApiStore()">開啟儲藏室</el-button>
       </el-tab-pane>
-      <el-tab-pane label="門禁設定">
+      <el-tab-pane :label="t('Access Control Settings')">
         <div class="d-flex flex-column">
           <div class="col-12 text-start d-flex">
             <el-form class="col-4" :inline="true" label-width="100px"  ref="settingAccessTimeForm" :rules="rules" :model="settingAccessTimeFormData" label-position="top" style="margin-top: 15px; width:100%;">
@@ -75,7 +75,7 @@
           </div>
         </div>
       </el-tab-pane>
-      <el-tab-pane label="使用者通行資料" name="doorUser">
+      <el-tab-pane :label="t('User Access Data')" name="doorUser">
         <DoorUserSettingList ref="doorUserSettingListRef" />
       </el-tab-pane>
       <el-tab-pane label="大門" v-if="false">

@@ -268,5 +268,20 @@
   "Settings": "Setting",
   "Import":"Import",
   "PasswordForget":"Password Forget",
-  "userID":"Account ID"
+  "userID":"Account ID",
+  "Open Door Button":"Open Door Button",
+  "Access Control Settings":"Access Control Settings",
+  "User Access Data":"User Access Data",
+  "Number of Settings":"Number of Settings",
+  "Start Date":"Start Date",
+  "End Date":"End Date",
+  "Time":"Time",
+  "Period":"Period",
+  "Door Group":"Door Group",
+  "Access QRCode":"Access QRCode",
+  "Temporary Access Control Settings - Main Door":"Temporary Access Control Settings - Main Door",
+  "Account Settings":"Account Settings",
+  "Show Account ID Field":"Show Account ID Field",
+  "Hide Account ID Field":"Hide Account ID Field"
+
 }

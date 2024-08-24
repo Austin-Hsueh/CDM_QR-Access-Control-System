@@ -323,7 +323,21 @@
   "Settings": "設定",
   "Import":"批次匯入",
   "PasswordForget":"忘記密碼",
-  "userID":"帳號ID"
+  "userID":"帳號ID",
+  "Open Door Button":"開門按鈕",
+  "Access Control Settings":"門禁設定",
+  "User Access Data":"使用者通行資料",
+  "Number of Settings":"設定筆數",
+  "Start Date":"開始日期",
+  "End Date":"結束日期",
+  "Time":"時間",
+  "Period":"週期",
+  "Door Group":"門組",
+  "Access QR Code":"通行QRcode",
+  "Temporary Access Control Settings - Main Door":"臨時門禁設定-大門",
+  "Account Settings":"帳號設定",
+  "Show Account ID Field":"顯示帳號ID欄位",
+  "Hide Account ID Field":"隱藏帳號ID欄位"
 
 
 }

@@ -41,7 +41,7 @@
             {{ isSigninBtnLoading ? t("processing") : t("login") }}
           </el-button>
           <el-button class="w-100" type="primary" text="忘記密碼" plain @click="onPasswordClicked()" :loading="isSigninBtnLoading" style="margin-left: 0; margin-top: 5px;">
-            忘記密碼
+            {{ t('PasswordForget') }}
           </el-button>
         </el-form>
 

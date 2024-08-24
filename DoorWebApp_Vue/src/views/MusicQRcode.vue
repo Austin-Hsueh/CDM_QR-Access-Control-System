@@ -6,7 +6,7 @@
     </div>
 
     <el-tabs type="border-card">
-      <el-tab-pane label="通行QRcode">
+      <el-tab-pane :label="t('Access QR Code')" >
         <div class="d-flex flex-column">
           <div class="col-md-4 col-xs-12 col-sm-12">
             <el-image :src="imageSrc" alt="Base64 Image" />

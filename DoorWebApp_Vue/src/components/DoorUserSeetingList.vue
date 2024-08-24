@@ -20,29 +20,29 @@
           <template #default="props">
             <div class="m-2">
               <el-table :data="props.row.studentPermissions"  border="true" :header-cell-style="{ backgroundColor: '#F2F2F2' }">
-                <el-table-column label="開始日期" prop="datefrom"  align="center"/>
-                <el-table-column label="結束日期" prop="dateto"  align="center"/>
-                <el-table-column label="時間" align="center">
+                <el-table-column :label="t('Start Date')" prop="datefrom"  align="center"/>
+                <el-table-column :label="t('End Date')" prop="dateto"  align="center"/>
+                <el-table-column :label="t('Time')" align="center">
                   <template #default="scope">
                     {{ scope.row.timefrom }} ~ {{ scope.row.timeto }}
                   </template>
                 </el-table-column>
-                <el-table-column label="週期" align="center">
+                <el-table-column :label="t('Period')" align="center">
                   <template #default="scope">
                     {{ formatDays(scope.row.days) }}
                   </template>
                 </el-table-column>
-                <el-table-column label="門組" align="center">
+                <el-table-column :label="t('Door Group')" align="center">
                   <template #default="scope">
                     {{ formatDoors(scope.row.groupIds) }}
                   </template>
                 </el-table-column>
-                <el-table-column width="160px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
+                <el-table-column width="170px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
                   <template v-slot="{ row }: { row: any }">
-                    <el-button type="primary" size="small" @click="onEdit(row, props.row.userId)"><el-icon><EditPen /></el-icon>編輯</el-button>
-                    <!-- <el-button type="danger" size="small">
-                      <el-icon><Delete /></el-icon> 刪除
-                    </el-button> -->
+                    <el-button type="primary" size="small" @click="onEdit(row, props.row.userId, props.row.displayName)"><el-icon><EditPen /></el-icon>{{ t('edit') }}</el-button>
+                    <el-button type="danger" size="small" @click="onDelet(row, props.row.userId, props.row.displayName)">
+                      <el-icon><Delete /></el-icon> {{ t('delete') }}
+                    </el-button>
                   </template>
                 </el-table-column>
               </el-table>
@@ -51,7 +51,7 @@
         </el-table-column>
         <el-table-column sortable :label="t('username')"  prop="username" />
         <el-table-column sortable :label="t('displayName')" prop="displayName" />
-        <el-table-column sortable label="設定筆數">
+        <el-table-column sortable :label="t('Number of Settings')">
           <template #default="scope">
             {{ scope.row.studentPermissions.length }}
           </template>
@@ -178,7 +178,7 @@ import API from '@/apis/TPSAPI';
 import { M_IUsers } from "@/models/M_IUser";
 import {M_IsettingAccessRuleForm} from "@/models/M_IsettingAccessRuleForm";
 import {M_IUserList_MTI, M_IUsersContent_MTI} from "@/models/M_IUserList_MTI";
-import type { ComponentSize, FormInstance, FormRules, ElMessage } from 'element-plus';
+import { ComponentSize, FormInstance, FormRules, ElNotification, NotificationParams, ElMessageBox  } from 'element-plus';
 import {formatDate, formatTime} from "@/plugins/dateUtils";
 import SearchPaginationRequest from "@/models/M_ISearchPaginationRequest";
 
@@ -228,6 +228,7 @@ const parseTime = (time: string): Date => {
 // 編輯門禁設定表單
 const updateRoleForm = ref<FormInstance>()
 const updateFormData = reactive<M_IsettingAccessRuleForm>({
+  Id:0,
   userId: 0,
   datepicker: [], // 修改为 Date 对象数组
   timepicker: [],
@@ -237,6 +238,7 @@ const updateFormData = reactive<M_IsettingAccessRuleForm>({
   dateto: '',
   timefrom:'',
   timeto: '',
+  displayName: ''
 
 })
 //#endregion
@@ -257,7 +259,7 @@ const onFilterInputed = () => {
   }
 }
 
-const onEdit = (item, userId) => {
+const onEdit = (item, userId, displayName) => {
   isShowEditRoleDialog.value = true;
   console.log(item)
   updateRoleForm.value?.resetFields();
@@ -265,11 +267,13 @@ const onEdit = (item, userId) => {
     // 格式化时间
   const timeFrom = parseTime(item.timefrom);
   const timeTo = parseTime(item.timeto);
-
+  
+  updateFormData.Id = item.id;
   updateFormData.userId = userId;
   updateFormData.groupIds = item.groupIds;
   updateFormData.datepicker = [item.datefrom, item.dateto];
   updateFormData.timepicker = [timeFrom, timeTo];
+  updateFormData.displayName = displayName;
 
   // 檢查 item.days 是否為字符串
   if (typeof item.days === 'string') {
@@ -285,6 +289,81 @@ const onEdit = (item, userId) => {
   console.log(updateFormData)
 }
 
+const onDelet = async(item, userId, displayName) => {
+ 
+ try {
+    await ElMessageBox.confirm("確定刪除?", "提示", {
+      confirmButtonText: "確定",
+      cancelButtonText: "取消",
+      type: "warning",
+    });
+  } catch (error) {
+    return;
+  }
+
+ const deleteFormData = reactive<M_IsettingAccessRuleForm>({
+    Id:0,
+    userId: 0,
+    datefrom: '',
+    dateto: '',
+    timefrom:'',
+    timeto: '',
+    days: [],
+    groupIds: [],
+    IsDelete: false
+  })
+
+  deleteFormData.Id = item.id;
+  deleteFormData.userId = userId;
+  deleteFormData.groupIds = item.groupIds;
+  deleteFormData.datefrom = item.datefrom;
+  deleteFormData.dateto = item.dateto;
+
+  // 格式化时间
+  const timeFrom = parseTime(item.timefrom);
+  const timeTo = parseTime(item.timeto);
+
+  deleteFormData.timefrom = item.timefrom;
+  deleteFormData.timeto = item.timeto;
+  deleteFormData.days = item.days;
+  deleteFormData.groupIds = item.groupIds;
+  deleteFormData.IsDelete = true;
+
+  console.log(deleteFormData)
+
+ try {
+    let notifyParam: NotificationParams = {};
+    const settingResponse = await API.patchStudentPermission(deleteFormData);
+    
+    // 根據需要處理 settingResponse
+    console.log('Permission set successfully', settingResponse);
+    console.log('Permission set successfully', settingResponse.data);
+
+    if (settingResponse.data.result != 1) {
+        notifyParam = {
+          title: "失敗",
+          type: "error",
+          message: `帳號：${displayName} 刪除失敗`,
+          duration: 2000,
+        };
+      } else {
+        notifyParam = {
+          title: "成功",
+          type: "success",
+          message: `帳號：${displayName} 已成功刪除`,
+          duration: 2000,
+        };
+      }
+
+      ElNotification(notifyParam);
+      isShowEditRoleDialog.value = false;
+      onFilterInputed();
+
+  } catch (error) {
+    console.error('Failed to set permission', error);
+  }
+}
+
 
 const submitUpdateForm = async () => {
   console.log('Form submitted', updateFormData);
@@ -297,18 +376,59 @@ const submitUpdateForm = async () => {
   updateFormData.timefrom = formatTime(new Date(updateFormData.timepicker[0]));
   updateFormData.timeto = formatTime(new Date(updateFormData.timepicker[1]));
   
-  console.log(updateFormData);
+  console.log('setTime&Date',updateFormData);
+
+  const sentFormData = reactive<M_IsettingAccessRuleForm>({
+    Id:0,
+    userId: 0,
+    datefrom: '',
+    dateto: '',
+    timefrom:'',
+    timeto: '',
+    days: [],
+    groupIds: [],
+    IsDelete: false
+  })
+
+  sentFormData.Id = updateFormData.Id;
+  sentFormData.userId = updateFormData.userId;
+  sentFormData.datefrom = updateFormData.datefrom;
+  sentFormData.dateto = updateFormData.dateto;
+  sentFormData.timefrom = updateFormData.timefrom;
+  sentFormData.timeto = updateFormData.timeto;
+  sentFormData.days = updateFormData.days;
+  sentFormData.groupIds = updateFormData.groupIds;
+
+  console.log('change Data From updateFormData to sentFormData',sentFormData);
 
   
   try {
-    const settingResponse = await API.patchStudentPermission(updateFormData);
+    let notifyParam: NotificationParams = {};
+    const settingResponse = await API.patchStudentPermission(sentFormData);
     
     // 根據需要處理 settingResponse
     console.log('Permission set successfully', settingResponse);
     console.log('Permission set successfully', settingResponse.data);
 
-    isShowEditRoleDialog.value = false;
-    onFilterInputed();
+    if (settingResponse.data.result != 1) {
+        notifyParam = {
+          title: "失敗",
+          type: "error",
+          message: `帳號：${updateFormData.displayName} 更新失敗`,
+          duration: 2000,
+        };
+      } else {
+        notifyParam = {
+          title: "成功",
+          type: "success",
+          message: `帳號：${updateFormData.displayName} 已成功更新`,
+          duration: 2000,
+        };
+      }
+
+      ElNotification(notifyParam);
+      isShowEditRoleDialog.value = false;
+      onFilterInputed();
 
   } catch (error) {
     console.error('Failed to set permission', error);

@@ -489,7 +489,7 @@ class APIService {
 
   /** 設定使用者門禁設定-多時段 */
   patchStudentPermission(cmd: M_IsettingAccessRuleForm){
-    return this.axiosInstance.patch<IBaseAPIResponse>(`v1/User/StudentPermission`, cmd);
+    return this.axiosInstance.patch<IBaseAPIResponse>(`v1/StudentPermission`, cmd);
   }
   //#endregion
 
