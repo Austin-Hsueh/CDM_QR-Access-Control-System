@@ -44,7 +44,9 @@ public class ScheduledJob : IJob
 
             // 1. 撈出要更新的UserId
             //單一時段設定
-            var permissions = ctx.TblPermission.Where(p => p.IsDelete == false)
+            var permissions = ctx.TblPermission.Include(x => x.User)
+                                                  .Where(x => x.User.IsDelete == false)
+                                                  .Where(p => p.IsDelete == false)
                                                   .Where(p => p.Days.Contains(day.ToString()))
                                                   .Where(p => p.DateFrom.CompareTo(nowDate) <= 0 && p.DateTo.CompareTo(nowDate) >= 0)
                                                   .Where(p => p.TimeFrom.CompareTo(time) <= 0 && p.TimeTo.CompareTo(time) >= 0)
@@ -54,7 +56,9 @@ public class ScheduledJob : IJob
                                                       PermissionGroupIds = p.PermissionGroups.Select(pg => pg.Id).ToList()
                                                   }).ToList();
             //多時段設定
-            var studentPermissions = ctx.TblStudentPermission.Where(p => p.IsDelete == false)
+            var studentPermissions = ctx.TblStudentPermission.Include(x => x.User)
+                                                         .Where(x => x.User.IsDelete == false)
+                                                         .Where(p => p.IsDelete == false)
                                                          .Where(p => p.Days.Contains(day.ToString()))
                                                          .Where(p => p.DateFrom.CompareTo(nowDate) <= 0 && p.DateTo.CompareTo(nowDate) >= 0)
                                                          .Where(p => p.TimeFrom.CompareTo(time) <= 0 && p.TimeTo.CompareTo(time) >= 0)
