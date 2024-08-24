@@ -35,6 +35,7 @@ public class ScheduledJob : IJob
             log.LogInformation($"更新 QRCode 半小時時效開始");
             DateTime now = DateTime.Now;
             string nowDate = now.ToString("yyyy/MM/dd");
+            string Nowtime = now.AddMinutes(-1).ToString("HH:mm"); //8:30跑  門禁時間 9:00~10:00 所以要補35分鐘
             string time = now.AddMinutes(35).ToString("HH:mm"); //8:30跑  門禁時間 9:00~10:00 所以要補35分鐘
             //8:00 更新 8:00~8:35
             //8:30 更新 8:30~9:05
@@ -49,7 +50,7 @@ public class ScheduledJob : IJob
                                                   .Where(p => p.IsDelete == false)
                                                   .Where(p => p.Days.Contains(day.ToString()))
                                                   .Where(p => p.DateFrom.CompareTo(nowDate) <= 0 && p.DateTo.CompareTo(nowDate) >= 0)
-                                                  .Where(p => p.TimeFrom.CompareTo(time) <= 0 && p.TimeTo.CompareTo(time) >= 0)
+                                                  .Where(p => p.TimeFrom.CompareTo(time) <= 0 && p.TimeTo.CompareTo(Nowtime) >= 0)
                                                   .Select(p => new
                                                   {
                                                       UserId = p.UserId,
@@ -61,7 +62,7 @@ public class ScheduledJob : IJob
                                                          .Where(p => p.IsDelete == false)
                                                          .Where(p => p.Days.Contains(day.ToString()))
                                                          .Where(p => p.DateFrom.CompareTo(nowDate) <= 0 && p.DateTo.CompareTo(nowDate) >= 0)
-                                                         .Where(p => p.TimeFrom.CompareTo(time) <= 0 && p.TimeTo.CompareTo(time) >= 0)
+                                                         .Where(p => p.TimeFrom.CompareTo(time) <= 0 && p.TimeTo.CompareTo(Nowtime) >= 0)
                                                          .Select(sp => new
                                                          {
                                                              UserId = sp.UserId,
