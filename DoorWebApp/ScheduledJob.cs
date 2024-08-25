@@ -52,7 +52,7 @@ public class ScheduledJob : IJob
                                                 LEFT JOIN Tbluser s ON p.UserId = s.Id 
                                                 WHERE @nowDate BETWEEN p.DateFrom AND p.DateTo
                                                 AND TIME(@time) BETWEEN TIME(p.TimeFrom) AND TIME(p.TimeTo)
-                                                AND p.IsDelete = 0
+                                                AND p.IsDelete = 0 AND u.IsDelete = 0
                                                 AND p.Days LIKE CONCAT('%', @day, '%')",
                                                 new MySqlConnector.MySqlParameter("@nowDate", nowDate),
                                                 new MySqlConnector.MySqlParameter("@time", time),
@@ -70,7 +70,7 @@ public class ScheduledJob : IJob
                                                 LEFT JOIN Tbluser s ON p.UserId = s.Id 
                                                 WHERE @nowDate BETWEEN p.DateFrom AND p.DateTo
                                                 AND TIME(@time) BETWEEN TIME(p.TimeFrom) AND TIME(p.TimeTo)
-                                                AND p.IsDelete = 0
+                                                AND p.IsDelete = 0 AND u.IsDelete = 0
                                                 AND p.Days LIKE CONCAT('%', @day, '%')",
                                                 new MySqlConnector.MySqlParameter("@nowDate", nowDate),
                                                 new MySqlConnector.MySqlParameter("@time", time),
