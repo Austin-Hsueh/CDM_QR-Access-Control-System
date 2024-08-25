@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using DoorWebApp.Models.DTO;
 using DoorWebApp.Extensions;
 using System.Collections.Generic;
+using Microsoft.Data.SqlClient;
 
 public class ScheduledJob : IJob
 {
@@ -35,7 +36,7 @@ public class ScheduledJob : IJob
             log.LogInformation($"更新 QRCode 半小時時效開始");
             DateTime now = DateTime.Now;
             string nowDate = now.ToString("yyyy/MM/dd");
-            string time = now.AddMinutes(35).ToString("HH:mm"); //8:30跑  門禁時間 9:00~10:00 所以要補35分鐘
+            string time = "11:00"; //8:30跑  門禁時間 9:00~10:00 所以要補35分鐘
             //8:00 更新 8:00~8:35
             //8:30 更新 8:30~9:05
             //9:00 更新 9:00~9:35
@@ -46,12 +47,16 @@ public class ScheduledJob : IJob
 
             // 1. 撈出要更新的UserId
             //單一時段設定
-            var permissions = ctx.TblPermission.Include(x => x.User)
-                                                  .Where(x => x.User.IsDelete == false)
-                                                  .Where(p => p.IsDelete == false)
-                                                  .Where(p => p.Days.Contains(day.ToString()))
-                                                  .Where(p => nowDate.CompareTo(p.DateFrom) >= 0 && nowDate.CompareTo(p.DateTo) <= 0)
-                                                  .Where(p => String.Compare(time, p.TimeFrom) >= 0 && String.Compare(time, p.TimeTo) <= 0)
+            var permissions = ctx.TblPermission.FromSqlRaw(@"SELECT p.* 
+                                                FROM TblPermission p 
+                                                LEFT JOIN Tbluser s ON p.UserId = s.Id 
+                                                WHERE @nowDate BETWEEN p.DateFrom AND p.DateTo
+                                                AND TIME(@time) BETWEEN TIME(p.TimeFrom) AND TIME(p.TimeTo)
+                                                AND p.IsDelete = 0
+                                                AND p.Days LIKE CONCAT('%', @day, '%')",
+                                                new MySqlConnector.MySqlParameter("@nowDate", nowDate),
+                                                new MySqlConnector.MySqlParameter("@time", time),
+                                                new MySqlConnector.MySqlParameter("@day", day))
                                                   // .Where(p => String.Compare(time, p.TimeFrom) >= 0 && String.Compare(time, p.TimeTo) <= 0)
                                                   .Select(p => new
                                                   {
@@ -60,12 +65,16 @@ public class ScheduledJob : IJob
                                                   }).ToList();
 
             //多時段設定
-            var studentPermissions = ctx.TblStudentPermission.Include(x => x.User)
-                                                         .Where(x => x.User.IsDelete == false)
-                                                         .Where(p => p.IsDelete == false)
-                                                         .Where(p => p.Days.Contains(day.ToString()))
-                                                         .Where(p => nowDate.CompareTo(p.DateFrom) >= 0 && nowDate.CompareTo(p.DateTo) <= 0)
-                                                         .Where(p => String.Compare(time, p.TimeFrom) >= 0 && String.Compare(time, p.TimeTo) <= 0)
+            var studentPermissions = ctx.TblStudentPermission.FromSqlRaw(@"SELECT p.* 
+                                                FROM TblStudentPermission p 
+                                                LEFT JOIN Tbluser s ON p.UserId = s.Id 
+                                                WHERE @nowDate BETWEEN p.DateFrom AND p.DateTo
+                                                AND TIME(@time) BETWEEN TIME(p.TimeFrom) AND TIME(p.TimeTo)
+                                                AND p.IsDelete = 0
+                                                AND p.Days LIKE CONCAT('%', @day, '%')",
+                                                new MySqlConnector.MySqlParameter("@nowDate", nowDate),
+                                                new MySqlConnector.MySqlParameter("@time", time),
+                                                new MySqlConnector.MySqlParameter("@day", day))
                                                          // .Where(p => String.Compare(time, p.TimeFrom) >= 0 && String.Compare(time, p.TimeTo) <= 0)
 
                                                          .Select(sp => new
