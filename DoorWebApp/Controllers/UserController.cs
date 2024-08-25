@@ -172,6 +172,9 @@ namespace DoorWebApp.Controllers
                 DateTime now = DateTime.Now;
                 string nowDate = now.ToString("yyyy/MM/dd");
                 int day = (int)now.DayOfWeek;
+                if (day == 0)
+                    day = 7;
+
                 //單一時段設定
                 var permissions = ctx.TblPermission.Where(p => p.IsDelete == false)
                                                       .Where(p => p.Days.Contains(day.ToString()))
