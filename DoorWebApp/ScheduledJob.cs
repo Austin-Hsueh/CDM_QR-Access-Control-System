@@ -35,13 +35,14 @@ public class ScheduledJob : IJob
             log.LogInformation($"更新 QRCode 半小時時效開始");
             DateTime now = DateTime.Now;
             string nowDate = now.ToString("yyyy/MM/dd");
-            string nowTime = now.AddMinutes(-55).ToString("HH:mm"); //8:30跑  門禁時間 9:00~10:00 所以要補35分鐘
-            string endTime = now.AddMinutes(35).ToString("HH:mm"); //8:30跑  門禁時間 9:00~10:00 所以要補35分鐘
+            string time = now.AddMinutes(35).ToString("HH:mm"); //8:30跑  門禁時間 9:00~10:00 所以要補35分鐘
             //8:00 更新 8:00~8:35
             //8:30 更新 8:30~9:05
             //9:00 更新 9:00~9:35
             //9:30 更新 9:30~10:05
             int day = (int) now.DayOfWeek;
+            if (day == 0)
+                day = 7;
 
             // 1. 撈出要更新的UserId
             //單一時段設定
@@ -49,22 +50,24 @@ public class ScheduledJob : IJob
                                                   .Where(x => x.User.IsDelete == false)
                                                   .Where(p => p.IsDelete == false)
                                                   .Where(p => p.Days.Contains(day.ToString()))
-                                                  .Where(p => DateTime.Compare(DateTime.Parse(nowDate), DateTime.Parse(p.DateFrom)) >= 0 &&
-                                                            DateTime.Compare(DateTime.Parse(nowDate), DateTime.Parse(p.DateTo)) <= 0)
-                                                  .Where(p => String.Compare(nowTime, p.TimeFrom) >= 0 &&String.Compare(endTime, p.TimeTo) <= 0)
+                                                  .Where(p => nowDate.CompareTo(p.DateFrom) >= 0 && nowDate.CompareTo(p.DateTo) <= 0)
+                                                  .Where(p => String.Compare(time, p.TimeFrom) >= 0 && String.Compare(time, p.TimeTo) <= 0)
+                                                  // .Where(p => String.Compare(time, p.TimeFrom) >= 0 && String.Compare(time, p.TimeTo) <= 0)
                                                   .Select(p => new
                                                   {
                                                       UserId = p.UserId,
                                                       PermissionGroupIds = p.PermissionGroups.Select(pg => pg.Id).ToList()
                                                   }).ToList();
+
             //多時段設定
             var studentPermissions = ctx.TblStudentPermission.Include(x => x.User)
                                                          .Where(x => x.User.IsDelete == false)
                                                          .Where(p => p.IsDelete == false)
                                                          .Where(p => p.Days.Contains(day.ToString()))
-                                                         .Where(p => DateTime.Compare(DateTime.Parse(nowDate), DateTime.Parse(p.DateFrom)) >= 0 &&
-                                                            DateTime.Compare(DateTime.Parse(nowDate), DateTime.Parse(p.DateTo)) <= 0)
-                                                         .Where(p => String.Compare(nowTime, p.TimeFrom) >= 0 && String.Compare(endTime, p.TimeTo) <= 0)
+                                                         .Where(p => nowDate.CompareTo(p.DateFrom) >= 0 && nowDate.CompareTo(p.DateTo) <= 0)
+                                                         .Where(p => String.Compare(time, p.TimeFrom) >= 0 && String.Compare(time, p.TimeTo) <= 0)
+                                                         // .Where(p => String.Compare(time, p.TimeFrom) >= 0 && String.Compare(time, p.TimeTo) <= 0)
+
                                                          .Select(sp => new
                                                          {
                                                              UserId = sp.UserId,
@@ -83,7 +86,7 @@ public class ScheduledJob : IJob
                     isGrant = true,
                     doorList = g.SelectMany(p => p.PermissionGroupIds).Distinct().ToList(),
                     beginTime = nowDate.Replace("/", "-").ToString() + "T" + now.ToString("HH:mm") + ":00",
-                    endTime = nowDate.Replace("/", "-").ToString() + "T" + endTime + ":00"
+                    endTime = nowDate.Replace("/", "-").ToString() + "T" + time + ":00"
                 })
                 .ToList();
 
