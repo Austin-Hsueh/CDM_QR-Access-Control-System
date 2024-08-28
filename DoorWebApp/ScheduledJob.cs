@@ -33,10 +33,10 @@ public class ScheduledJob : IJob
     {
         try
         {
-            log.LogInformation($"更新 QRCode 半小時時效開始");
+            log.LogInformation($"更新 QRCode 15分鐘時效開始");
             DateTime now = DateTime.Now;
             string nowDate = now.ToString("yyyy/MM/dd");
-            string time = now.AddMinutes(6).ToString("HH:mm"); //每6分鐘跑一次
+            string time = now.AddMinutes(15).ToString("HH:mm"); //每15分鐘跑一次
             //8:30跑  門禁時間 9:00~10:00 所以要補35分鐘
             //8:00 更新 8:00~8:35
             //8:30 更新 8:30~9:05
@@ -130,7 +130,7 @@ public class ScheduledJob : IJob
                         ctx.TbQRCodeStorages.Add(NewQRCode);
 
                         ctx.SaveChanges(); // Save user to generate UserId
-                        log.LogInformation($"更新QRCode排程-半小時 Create QRCode : Id={NewQRCode.Id}, Add to UserId={qrcode.userAddr}");
+                        log.LogInformation($"更新QRCode排程-15分鐘 Create QRCode : Id={NewQRCode.Id}, Add to UserId={qrcode.userAddr}");
                     }
                     else //更新 Qrcode
                     {
@@ -140,7 +140,7 @@ public class ScheduledJob : IJob
                         qrcodeEntity.ModifiedTime = DateTime.Now;
 
                         ctx.SaveChanges(); // Save user to generate UserId
-                        log.LogInformation($"更新QRCode排程-半小時 update QRCode : Id={qrcodeEntity.Id}, Add to UserId={qrcode.userAddr}");
+                        log.LogInformation($"更新QRCode排程-15分鐘 update QRCode : Id={qrcodeEntity.Id}, Add to UserId={qrcode.userAddr}");
                     }
                 }
             }

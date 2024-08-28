@@ -112,7 +112,7 @@ namespace DoorWebApp
                 q.AddTrigger(opts => opts
                     .ForJob(jobKey)
                     .WithIdentity("ScheduledJob-trigger")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0,6,12,18,24,30,36,42,48,54 * * * ?")));
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0,15,30,45 * * * ?")));
             });
 
             // �K�[ Quartz �D���A��
