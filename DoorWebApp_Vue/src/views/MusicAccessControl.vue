@@ -6,10 +6,11 @@
     </div>
     <el-tabs type="border-card" @tab-click="handleTabClick">
       <el-tab-pane :label="t('Open Door Button')">
-        <el-button  @click="callApi()">開啟大門</el-button>
-        <el-button  @click="callApiCar()">開啟Car教室</el-button>
-        <el-button  @click="callApiSunny()">開啟Sunny教室</el-button>
-        <el-button  @click="callApiStore()">開啟儲藏室</el-button>
+        <el-button  @click="callApi()" :disabled="!trueURL">開啟大門</el-button>
+        <el-button  @click="callApiCar()" :disabled="!trueURL">開啟Car教室</el-button>
+        <el-button  @click="callApiSunny()" :disabled="!trueURL">開啟Sunny教室</el-button>
+        <el-button  @click="callApiStore()" :disabled="!trueURL">開啟儲藏室</el-button>
+        <p v-if="trueURL">※  {{ fullURL  }} 目前不再內網，無法可使用 ※</p>
       </el-tab-pane>
       <el-tab-pane :label="t('Access Control Settings')">
         <div class="d-flex flex-column">
@@ -115,7 +116,7 @@
 
 </template>
 <script setup lang="ts">
-import { onMounted, ref, reactive } from "vue";
+import { onMounted, ref, reactive, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useUserInfoStore } from "@/stores/UserInfoStore";
@@ -217,7 +218,7 @@ const handleTabClick = (tab) => {
 //#region Hook functions
 onMounted(() => {
   console.log('Component is mounted');
-  getUsersOptions()
+  getUsersOptions();
 });
 //#endregion
 
@@ -444,6 +445,29 @@ const onFileUploadClicked = async () => {
 
   isShowUploadDialog.value = false;
 };
+//#endregion
+
+// #region 偵測IP
+import { useRoute } from 'vue-router';
+
+const route = useRoute();
+const trueURL = ref<boolean>(false);
+
+const fullURL = computed(() => {
+  const { protocol, host } = window.location;
+  const path = route.fullPath;
+  return `${protocol}//${host}${path}`;
+});
+
+// 使用 watch 侦听 fullURL 的变化
+watch(fullURL, (newURL) => {
+  if (newURL === "http://127.0.0.1/accesscontrol") {
+    trueURL.value = true;
+  } else {
+    trueURL.value = false;
+  }
+});
+
 //#endregion
 </script>
 
