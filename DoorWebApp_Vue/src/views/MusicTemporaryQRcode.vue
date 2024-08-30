@@ -15,7 +15,7 @@
         </div>
         <el-card style="max-width: 250px">
           <el-image :src="imageSrc" alt="Base64 Image" />
-          <el-divider />
+          <el-divider style="margin: 15px 0;"/>
           <span>可通行時間</span><br>
           <span>{{ pass.datefrom }} {{ pass.timefrom }}~{{ pass.timeto }}</span>
         </el-card>

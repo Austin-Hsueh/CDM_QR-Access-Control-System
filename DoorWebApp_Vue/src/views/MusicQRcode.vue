@@ -7,11 +7,17 @@
 
     <el-tabs type="border-card">
       <el-tab-pane :label="t('Access QR Code')" >
-        <div class="d-flex flex-column">
+        <!-- <div class="d-flex flex-column">
           <div class="col-md-4 col-xs-12 col-sm-12">
             <el-image :src="imageSrc" alt="Base64 Image" />
           </div>
-        </div>
+        </div> -->
+        <el-card style="max-width: 250px">
+          <el-image :src="imageSrc" alt="Base64 Image" />
+          <el-divider style="margin: 15px 0;"/>
+          <!-- <span>可通行時間</span><br> -->
+          <span>※ 無法使用時重新整理網頁</span>
+        </el-card>
       </el-tab-pane>
     </el-tabs>
   </div>
