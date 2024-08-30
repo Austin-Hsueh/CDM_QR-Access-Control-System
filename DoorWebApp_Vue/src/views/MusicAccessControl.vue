@@ -16,7 +16,7 @@
           <div class="col-12 text-start d-flex">
             <el-form class="col-4" :inline="true" label-width="100px"  ref="settingAccessTimeForm" :rules="rules" :model="settingAccessTimeFormData" label-position="top" style="margin-top: 15px; width:100%;">
               <el-form-item label="姓名" prop="userId">
-                <el-select placeholder="請選擇" v-model="settingAccessTimeFormData.userId">
+                <el-select filterable placeholder="請選擇" v-model="settingAccessTimeFormData.userId">
                   <el-option
                     v-for="item in usersOptions"
                     :key="item.userId"
