@@ -83,5 +83,6 @@ namespace DoorDB
 
         public List<TblPermissionGroup> PermissionGroups { set; get; }
         public TblUser User { set; get; }
+        public virtual List<TblQRCodeStorage> StudentQRCodeStorages { set; get; }
     }
 }

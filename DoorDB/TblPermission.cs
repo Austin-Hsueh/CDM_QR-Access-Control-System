@@ -85,5 +85,6 @@ namespace DoorDB
         public List<TblPermissionGroup> PermissionGroups { set; get; }
         public TblUser User { set; get; }
         //public virtual ICollection<TblRolePermission> RolePermissions { set; get; }
+        public virtual List<TblQRCodeStorage> QRCodeStorages { set; get; }
     }
 }

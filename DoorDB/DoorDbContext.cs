@@ -237,6 +237,14 @@ namespace DoorDB
                 .HasMany(p => p.PermissionGroups)
                 .WithMany(pg => pg.StudentPermissions);
 
+            modelBuilder.Entity<TblQRCodeStorage>()
+                .HasMany(x => x.Permissions)
+                .WithMany(x => x.QRCodeStorages);
+
+            modelBuilder.Entity<TblQRCodeStorage>()
+                .HasMany(x => x.StudentPermissions)
+                .WithMany(x => x.StudentQRCodeStorages);
+
             #endregion
 
 
