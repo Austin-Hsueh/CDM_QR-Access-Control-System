@@ -62,6 +62,8 @@ public class ScheduledJob : IJob
                                                   .Select(p => new
                                                   {
                                                       UserId = p.UserId,
+                                                      PermissionId = p.Id,
+                                                      StudentPermissionId = 0,
                                                       PermissionGroupIds = p.PermissionGroups.Select(pg => pg.Id).ToList()
                                                   }).ToList();
 
@@ -81,6 +83,8 @@ public class ScheduledJob : IJob
                                                          .Select(sp => new
                                                          {
                                                              UserId = sp.UserId,
+                                                             PermissionId = 0,
+                                                             StudentPermissionId = sp.Id,
                                                              PermissionGroupIds = sp.PermissionGroups.Select(pg => pg.Id).ToList()
                                                          }).ToList();
 
@@ -100,6 +104,16 @@ public class ScheduledJob : IJob
                 })
                 .ToList();
 
+            var PermissionList = permissions.Union(studentPermissions)
+                .GroupBy(p => p.UserId)
+                .Select(g => new UserPermissionCronJob()
+                {
+                    userAddr = (ushort)g.Key,
+                    PermissionIds = g.Select(p => p.PermissionId).Distinct().ToList(),
+                    StudentPermissionIds = g.Select(p => p.StudentPermissionId).Distinct().ToList()
+                })
+                .ToList();
+
             //API 設定並取得QRcode
             if(UserList.Count == 0)
             {
@@ -112,8 +126,26 @@ public class ScheduledJob : IJob
             {
                 foreach (var qrcode in result.content)
                 {
+                    //找單一時段
+                    //var permission = ctx.TblPermission.Where(x => PermissionList.Any(p => p.userAddr == x.UserId) && PermissionList.Any(p => p.PermissionIds.Contains(x.Id))).ToList();
+                    var permission = ctx.TblPermission
+                        .AsEnumerable() // 將查詢結果載入到內存中
+                        .Where(x => PermissionList.Any(p => p.userAddr == x.UserId)
+                                 && PermissionList.Any(p => p.PermissionIds.Contains(x.Id)))
+                        .Where(x => x.UserId == qrcode.userAddr)
+                        .ToList();
+
+                    //找多時段
+                    //var Stuendtpermission = ctx.TblStudentPermission.Where(x => PermissionList.Any(p => p.userAddr == x.UserId) && PermissionList.Any(p => p.StudentPermissionIds.Contains(x.Id))).ToList();
+                    var Stuendtpermission = ctx.TblStudentPermission
+                        .AsEnumerable() // 將查詢結果載入到內存中
+                        .Where(x => PermissionList.Any(p => p.userAddr == x.UserId) && PermissionList.Any(p => p.StudentPermissionIds.Contains(x.Id)))
+                        .Where(x => x.UserId == qrcode.userAddr)
+                        .ToList();
+
+
                     // 新增 Qrcode 或更新 Qrcode
-                    var qrcodeEntity = ctx.TbQRCodeStorages.Include(x => x.Users).Where(x => x.Users.Select(u => u.Id).Contains(qrcode.userAddr)).FirstOrDefault();
+                    var qrcodeEntity = ctx.TbQRCodeStorages.Include(x => x.Users).Include(x => x.Permissions).Include(x => x.StudentPermissions).Where(x => x.Users.Select(u => u.Id).Contains(qrcode.userAddr)).FirstOrDefault();
                     if (qrcodeEntity == null)
                     {
 
@@ -127,6 +159,28 @@ public class ScheduledJob : IJob
 
                         var userEntity = ctx.TblUsers.Where(x => x.Id == qrcode.userAddr).ToList();
                         NewQRCode.Users = userEntity;
+                        //關聯Qrcode 跟單一時段TblPermission
+                        if (permission.Count > 0)
+                        {
+                            if (NewQRCode.Permissions == null)
+                                NewQRCode.Permissions = new List<TblPermission>();
+
+                            NewQRCode.Permissions.AddRange(permission);
+                            var permissionIds = permission.Select(p => p.Id).ToList();
+                            log.LogInformation($"新增QRCode Permission 關聯 : Id={NewQRCode.Id}, Add to PermissionId={string.Join(", ", permissionIds)}");
+                        }
+
+                        //關聯Qrcode 跟多時段TblStudentPermission
+                        if (Stuendtpermission.Count > 0)
+                        {
+                            if (NewQRCode.StudentPermissions == null)
+                                NewQRCode.StudentPermissions = new List<TblStudentPermission>();
+
+                            NewQRCode.StudentPermissions.AddRange(Stuendtpermission);
+                            var StuendtpermissionIds = permission.Select(p => p.Id).ToList();
+                            log.LogInformation($"新增QRCode Permission 關聯 : Id={NewQRCode.Id}, Add to PermissionId={string.Join(", ", StuendtpermissionIds)}");
+                        }
+
                         ctx.TbQRCodeStorages.Add(NewQRCode);
 
                         ctx.SaveChanges(); // Save user to generate UserId
@@ -138,6 +192,32 @@ public class ScheduledJob : IJob
                         qrcodeEntity.qrcodeTxt = qrcode.qrcodeTxt;
                         qrcodeEntity.QRCodeData = qrcode.qrcodeImg;
                         qrcodeEntity.ModifiedTime = DateTime.Now;
+
+                        //關聯Qrcode 跟單一時段TblPermission
+                        if (permission.Count > 0)
+                        {
+                            if (qrcodeEntity.Permissions == null)
+                                qrcodeEntity.Permissions = new List<TblPermission>();
+                            else
+                                qrcodeEntity.Permissions.Clear();
+
+                            qrcodeEntity.Permissions.AddRange(permission);
+                            var permissionIds = permission.Select(p => p.Id).ToList();
+                            log.LogInformation($"新增QRCode Permission 關聯 : Id={qrcodeEntity.Id}, Add to PermissionId={string.Join(", ", permissionIds)}");
+                        }
+
+                        //關聯Qrcode 跟多時段TblStudentPermission
+                        if (Stuendtpermission.Count > 0)
+                        {
+                            if (qrcodeEntity.StudentPermissions == null)
+                                qrcodeEntity.StudentPermissions = new List<TblStudentPermission>();
+                            else
+                                qrcodeEntity.StudentPermissions.Clear();
+
+                            qrcodeEntity.StudentPermissions.AddRange(Stuendtpermission);
+                            var StuendtpermissionIds = permission.Select(p => p.Id).ToList();
+                            log.LogInformation($"新增QRCode Permission 關聯 : Id={qrcodeEntity.Id}, Add to PermissionId={string.Join(", ", StuendtpermissionIds)}");
+                        }
 
                         ctx.SaveChanges(); // Save user to generate UserId
                         log.LogInformation($"更新QRCode排程-15分鐘 update QRCode : Id={qrcodeEntity.Id}, Add to UserId={qrcode.userAddr}");
