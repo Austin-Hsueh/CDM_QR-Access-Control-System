@@ -1209,7 +1209,7 @@ namespace DoorWebApp.Controllers
         [HttpGet("v1/User/PermissionSetting/{UserId}")]
         public IActionResult GetPermissionSetting(int UserId)
         {
-            APIResponse<PermissionDTO> res = new APIResponse<PermissionDTO>();
+            APIResponse<ManyPermissionsDTO> res = new APIResponse<ManyPermissionsDTO>();
 
             try
             {
@@ -1234,7 +1234,8 @@ namespace DoorWebApp.Controllers
                 
                 var userPermission = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == UserId).FirstOrDefault();
 
-                var QRCodeData = ctx.TbQRCodeStorages.Include(x => x.Users).Where(x => x.Users.Select(u => u.Id).Contains(OperatorId)).Select(x => x.QRCodeData).FirstOrDefault();
+                var QRCodeData = ctx.TbQRCodeStorages.Include(x => x.Users).Where(x => x.Users.Select(u => u.Id).Contains(UserId)).Select(x => x.QRCodeData).FirstOrDefault();
+                var Data = ctx.TbQRCodeStorages.Include(x => x.Users).Include(x => x.Permissions).Include(x => x.StudentPermissions).Where(x => x.Users.Select(u => u.Id).Contains(UserId)).FirstOrDefault();
                 string qrcode = QRCodeData == null ? "" : QRCodeData.ToString();
 
                 var days = userPermission.Days
@@ -1242,8 +1243,8 @@ namespace DoorWebApp.Controllers
                     .Select(int.Parse)  // Convert each day string to integer
                     .ToList();  // Convert to List<int>
 
-                // Map the result to PermissionDTO
-                var userPermissions = new PermissionDTO
+                // Map the result to ManyPermissionsDTO
+                var userPermissions = new ManyPermissionsDTO
                 {
                     datefrom = userPermission.DateFrom,
                     dateto = userPermission.DateTo,
@@ -1251,6 +1252,28 @@ namespace DoorWebApp.Controllers
                     timeto = userPermission.TimeTo,
                     days = days,  // Set the converted list of days
                     qrcode = qrcode,
+                    permissions = Data.Permissions.Select(x => new ManyTimePermissionDTO
+                    {
+                        datefrom = x.DateFrom,
+                        dateto = x.DateTo,
+                        timefrom = x.TimeFrom,
+                        timeto = x.TimeTo,
+                        days = x.Days.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                .Select(int.Parse)  // Convert each day string to integer
+                                .ToList(),  // Set the converted list of days
+                        id = x.Id
+                    }).ToList(),
+                    studentpermissions = Data.StudentPermissions.Select(x => new ManyTimePermissionDTO
+                    {
+                        datefrom = x.DateFrom,
+                        dateto = x.DateTo,
+                        timefrom = x.TimeFrom,
+                        timeto = x.TimeTo,
+                        days = x.Days.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                .Select(int.Parse)  // Convert each day string to integer
+                                .ToList(),  // Set the converted list of days
+                        id = x.Id
+                    }).ToList(),
                     groupIds = userPermission.PermissionGroups
                         .Select(y => y.Id)
                         .ToList()  // Convert the IEnumerable<int> to List<int>
