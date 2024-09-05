@@ -1234,8 +1234,79 @@ namespace DoorWebApp.Controllers
                 
                 var userPermission = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == UserId).FirstOrDefault();
 
-                var QRCodeData = ctx.TbQRCodeStorages.Include(x => x.Users).Where(x => x.Users.Select(u => u.Id).Contains(UserId)).Select(x => x.QRCodeData).FirstOrDefault();
-                var Data = ctx.TbQRCodeStorages.Include(x => x.Users).Include(x => x.Permissions).Include(x => x.StudentPermissions).Where(x => x.Users.Select(u => u.Id).Contains(UserId)).FirstOrDefault();
+                var QRCodeData = ctx.TbQRCodeStorages.Include(x => x.Users)
+                                                     .Where(x => x.Users.Select(u => u.Id)
+                                                     .Contains(UserId))
+                                                     .Select(x => new { x.QRCodeData, 
+                                                                        x.ModifiedTime
+                                                                      }
+                                                     ).FirstOrDefault();
+                List<ManyTimePermissionDTO> Permissions = new List<ManyTimePermissionDTO>();
+                List<ManyTimePermissionDTO> StudentPermissions = new List<ManyTimePermissionDTO>();
+                if (QRCodeData != null)
+                {
+                    var permissions = ctx.TblPermission
+                                        .Where(x => x.UserId == UserId)
+                                        .Where(p =>
+                                            string.Compare(p.DateFrom, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) <= 0 &&
+                                            string.Compare(p.DateTo, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) >= 0 &&
+                                            string.Compare(p.TimeFrom, QRCodeData.ModifiedTime.ToString("HH:mm")) <= 0 &&
+                                            string.Compare(p.TimeTo, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0 
+                                        )
+                                        .Select(x => new
+                                        {
+                                            x.DateFrom,
+                                            x.DateTo,
+                                            x.TimeFrom,
+                                            x.TimeTo,
+                                            x.Days,
+                                            x.Id
+                                        }).ToList(); // Move data into memory
+
+
+                    Permissions = permissions.Select(x => new ManyTimePermissionDTO
+                                            {
+                                                datefrom = x.DateFrom,
+                                                dateto = x.DateTo,
+                                                timefrom = x.TimeFrom,
+                                                timeto = x.TimeTo,
+                                                days = x.Days.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                                    .Select(int.Parse)  // Convert each day string to integer
+                                                    .ToList(),
+                                                id = x.Id
+                                            }).ToList();
+
+                    var studentpermissions = ctx.TblStudentPermission
+                                                .Where(x => x.UserId == UserId)
+                                                .Where(p =>
+                                                    string.Compare(p.DateFrom, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) <= 0 &&
+                                                    string.Compare(p.DateTo, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) >= 0 &&
+                                                    string.Compare(p.TimeFrom, QRCodeData.ModifiedTime.ToString("HH:mm")) <= 0 &&
+                                                    string.Compare(p.TimeTo, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0 
+                                                )
+                                                .Select(x => new
+                                                {
+                                                    x.DateFrom,
+                                                    x.DateTo,
+                                                    x.TimeFrom,
+                                                    x.TimeTo,
+                                                    x.Days,
+                                                    x.Id
+                                                }).ToList(); // Move data into memory
+
+                    StudentPermissions = studentpermissions.Select(x => new ManyTimePermissionDTO
+                    {
+                        datefrom = x.DateFrom,
+                        dateto = x.DateTo,
+                        timefrom = x.TimeFrom,
+                        timeto = x.TimeTo,
+                        days = x.Days.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                                    .Select(int.Parse)  // Convert each day string to integer
+                                                    .ToList(),
+                        id = x.Id
+                    }).ToList();
+                }
+                
                 string qrcode = QRCodeData == null ? "" : QRCodeData.ToString();
 
                 var days = userPermission.Days
@@ -1252,28 +1323,8 @@ namespace DoorWebApp.Controllers
                     timeto = userPermission.TimeTo,
                     days = days,  // Set the converted list of days
                     qrcode = qrcode,
-                    permissions = Data.Permissions.Select(x => new ManyTimePermissionDTO
-                    {
-                        datefrom = x.DateFrom,
-                        dateto = x.DateTo,
-                        timefrom = x.TimeFrom,
-                        timeto = x.TimeTo,
-                        days = x.Days.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(int.Parse)  // Convert each day string to integer
-                                .ToList(),  // Set the converted list of days
-                        id = x.Id
-                    }).ToList(),
-                    studentpermissions = Data.StudentPermissions.Select(x => new ManyTimePermissionDTO
-                    {
-                        datefrom = x.DateFrom,
-                        dateto = x.DateTo,
-                        timefrom = x.TimeFrom,
-                        timeto = x.TimeTo,
-                        days = x.Days.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                                .Select(int.Parse)  // Convert each day string to integer
-                                .ToList(),  // Set the converted list of days
-                        id = x.Id
-                    }).ToList(),
+                    permissions = Permissions,
+                    studentpermissions = StudentPermissions,
                     groupIds = userPermission.PermissionGroups
                         .Select(y => y.Id)
                         .ToList()  // Convert the IEnumerable<int> to List<int>
