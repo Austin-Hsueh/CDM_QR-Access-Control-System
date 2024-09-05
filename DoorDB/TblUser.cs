@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DoorDB.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace DoorDB
 {
@@ -96,6 +97,12 @@ namespace DoorDB
         /// </summary>
         [Required]
         public DateTime CreateTime { get; set; }
+
+        /// <summary>
+        /// 權限日期起
+        /// </summary>
+        [Comment("選課狀態 預設0,1在學,2停課,3約課")]
+        public int Type { get; set; }
 
 
         public virtual List<TblRole> Roles { set; get; }

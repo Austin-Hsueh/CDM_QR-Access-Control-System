@@ -332,6 +332,7 @@ namespace DoorWebApp.Controllers
                     // .Where(x => x.Permission.PermissionGroups.Select(x => x.Id).Count() > 0)
                     //查詢 名稱 
                     .Where(x => data.SearchText != "" ? x.DisplayName.Contains(data.SearchText) : true)
+                    .Where(x => data.type != 0 ? x.Type == data.type : true) //選課狀態
                     .Select(x => new ResGetAllUsersInfoDTO()
                     {
                         userId = x.Id,
@@ -730,6 +731,7 @@ namespace DoorWebApp.Controllers
                 NewUser.Phone = UserDTO.phone;
                 NewUser.Secret = UserDTO.password;
                 NewUser.AccountType = LoginAccountType.LOCAL;
+                NewUser.Type = UserDTO.type;
                 NewUser.IsDelete = false;
                 NewUser.IsEnable = true;
                 NewUser.locale = LocaleType.zh_tw;
@@ -932,6 +934,7 @@ namespace DoorWebApp.Controllers
                 UserEntity.DisplayName = UserDTO.displayName;
                 UserEntity.Email = UserDTO.email;
                 UserEntity.Phone = UserDTO.phone;
+                UserEntity.Type = UserDTO.type;
 
                 if(!string.IsNullOrEmpty( UserDTO.password) )
                     UserEntity.Secret = UserDTO.password;

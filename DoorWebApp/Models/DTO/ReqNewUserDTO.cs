@@ -32,5 +32,11 @@
         /// 該使用者的角色Id
         /// </summary>
         public int roleid { set; get; }
+
+        /// <summary>
+        /// 選課狀態 
+        /// </summary>
+        /// 0預設 1 在學 2 停課 3 約課
+        public int type { set; get; } = 0;
     }
 }
