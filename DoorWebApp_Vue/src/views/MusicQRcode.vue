@@ -59,7 +59,7 @@ async function getUserSettingPermission() {
 }
 
 function scheduleGetUserSettingPermission() {
-  const interval = 5 * 60 * 1000; // 每隔 30 分鐘
+  const interval = 5 * 60 * 1000; // 每隔 5 分鐘
   const startHour = 7;
   const endHour = 23;
 
@@ -67,14 +67,20 @@ function scheduleGetUserSettingPermission() {
     const now = new Date();
     const currentHour = now.getHours();
 
-    if (currentHour >= startHour && currentHour < endHour) {
-      executionCount++;
-      console.log(`第 ${executionCount} 次執行`);
-      getUserSettingPermission();
-    }
+    // 7點-23點 每5分鐘問一次資料庫QRcode
+    // if (currentHour >= startHour && currentHour < endHour) {
+    //   executionCount++;
+    //   console.log(`第 ${executionCount} 次執行`);
+    //   getUserSettingPermission();
+    // }
+    
+    // 整天都每5分鐘問一次資料庫QRcode
+    executionCount++;
+    console.log(`第 ${executionCount} 次執行`);
+    getUserSettingPermission();
   };
 
-  // 立即執行一次，然後每隔 30 分鐘執行
+  // 立即執行一次，然後每隔 5 分鐘執行
   executeFunction();
   setInterval(executeFunction, interval);
 }
