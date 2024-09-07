@@ -77,7 +77,7 @@ namespace DoorWebApp.Controllers
 
 
                 // 2. 取得帳號Entity
-                var targetUserEntity = ctx.TblUsers.FirstOrDefault(x => x.Username == loginInDTO.username);
+                var targetUserEntity = ctx.TblUsers.FirstOrDefault(x => x.Username == loginInDTO.username && x.IsDelete == false);
 
 
 
