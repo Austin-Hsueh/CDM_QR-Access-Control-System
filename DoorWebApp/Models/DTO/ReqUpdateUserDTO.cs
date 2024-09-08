@@ -48,5 +48,11 @@
         /// </summary>
         //public List<int> groupIds { get; set; }
 
+        /// <summary>
+        /// 選課狀態 
+        /// </summary>
+        /// 0預設 1 在學 2 停課 3 約課
+        public int type { set; get; } = 0;
+
     }
 }

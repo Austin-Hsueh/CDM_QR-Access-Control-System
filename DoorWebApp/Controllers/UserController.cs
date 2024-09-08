@@ -332,6 +332,7 @@ namespace DoorWebApp.Controllers
                     // .Where(x => x.Permission.PermissionGroups.Select(x => x.Id).Count() > 0)
                     //查詢 名稱 
                     .Where(x => data.SearchText != "" ? x.DisplayName.Contains(data.SearchText) : true)
+                    .Where(x => data.type != 0 ? x.Type == data.type : true) //選課狀態
                     .Select(x => new ResGetAllUsersInfoDTO()
                     {
                         userId = x.Id,
@@ -730,6 +731,7 @@ namespace DoorWebApp.Controllers
                 NewUser.Phone = UserDTO.phone;
                 NewUser.Secret = UserDTO.password;
                 NewUser.AccountType = LoginAccountType.LOCAL;
+                NewUser.Type = UserDTO.type;
                 NewUser.IsDelete = false;
                 NewUser.IsEnable = true;
                 NewUser.locale = LocaleType.zh_tw;
@@ -932,6 +934,7 @@ namespace DoorWebApp.Controllers
                 UserEntity.DisplayName = UserDTO.displayName;
                 UserEntity.Email = UserDTO.email;
                 UserEntity.Phone = UserDTO.phone;
+                UserEntity.Type = UserDTO.type;
 
                 if(!string.IsNullOrEmpty( UserDTO.password) )
                     UserEntity.Secret = UserDTO.password;
@@ -1209,7 +1212,7 @@ namespace DoorWebApp.Controllers
         [HttpGet("v1/User/PermissionSetting/{UserId}")]
         public IActionResult GetPermissionSetting(int UserId)
         {
-            APIResponse<PermissionDTO> res = new APIResponse<PermissionDTO>();
+            APIResponse<ManyPermissionsDTO> res = new APIResponse<ManyPermissionsDTO>();
 
             try
             {
@@ -1234,7 +1237,79 @@ namespace DoorWebApp.Controllers
                 
                 var userPermission = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == UserId).FirstOrDefault();
 
-                var QRCodeData = ctx.TbQRCodeStorages.Include(x => x.Users).Where(x => x.Users.Select(u => u.Id).Contains(OperatorId)).Select(x => x.QRCodeData).FirstOrDefault();
+                var QRCodeData = ctx.TbQRCodeStorages.Include(x => x.Users)
+                                                     .Where(x => x.Users.Select(u => u.Id)
+                                                     .Contains(UserId))
+                                                     .Select(x => new { x.QRCodeData, 
+                                                                        x.ModifiedTime
+                                                                      }
+                                                     ).FirstOrDefault();
+                List<ManyTimePermissionDTO> Permissions = new List<ManyTimePermissionDTO>();
+                List<ManyTimePermissionDTO> StudentPermissions = new List<ManyTimePermissionDTO>();
+                if (QRCodeData != null)
+                {
+                    var permissions = ctx.TblPermission
+                                        .Where(x => x.UserId == UserId)
+                                        .Where(p =>
+                                            string.Compare(p.DateFrom, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) <= 0 &&
+                                            string.Compare(p.DateTo, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) >= 0 &&
+                                            string.Compare(p.TimeFrom, QRCodeData.ModifiedTime.ToString("HH:mm")) <= 0 &&
+                                            string.Compare(p.TimeTo, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0 
+                                        )
+                                        .Select(x => new
+                                        {
+                                            x.DateFrom,
+                                            x.DateTo,
+                                            x.TimeFrom,
+                                            x.TimeTo,
+                                            x.Days,
+                                            x.Id
+                                        }).ToList(); // Move data into memory
+
+
+                    Permissions = permissions.Select(x => new ManyTimePermissionDTO
+                                            {
+                                                datefrom = x.DateFrom,
+                                                dateto = x.DateTo,
+                                                timefrom = x.TimeFrom,
+                                                timeto = x.TimeTo,
+                                                days = x.Days.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                                    .Select(int.Parse)  // Convert each day string to integer
+                                                    .ToList(),
+                                                id = x.Id
+                                            }).ToList();
+
+                    var studentpermissions = ctx.TblStudentPermission
+                                                .Where(x => x.UserId == UserId)
+                                                .Where(p =>
+                                                    string.Compare(p.DateFrom, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) <= 0 &&
+                                                    string.Compare(p.DateTo, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) >= 0 &&
+                                                    string.Compare(p.TimeFrom, QRCodeData.ModifiedTime.ToString("HH:mm")) <= 0 &&
+                                                    string.Compare(p.TimeTo, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0 
+                                                )
+                                                .Select(x => new
+                                                {
+                                                    x.DateFrom,
+                                                    x.DateTo,
+                                                    x.TimeFrom,
+                                                    x.TimeTo,
+                                                    x.Days,
+                                                    x.Id
+                                                }).ToList(); // Move data into memory
+
+                    StudentPermissions = studentpermissions.Select(x => new ManyTimePermissionDTO
+                    {
+                        datefrom = x.DateFrom,
+                        dateto = x.DateTo,
+                        timefrom = x.TimeFrom,
+                        timeto = x.TimeTo,
+                        days = x.Days.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                                    .Select(int.Parse)  // Convert each day string to integer
+                                                    .ToList(),
+                        id = x.Id
+                    }).ToList();
+                }
+                
                 string qrcode = QRCodeData == null ? "" : QRCodeData.ToString();
 
                 var days = userPermission.Days
@@ -1242,8 +1317,8 @@ namespace DoorWebApp.Controllers
                     .Select(int.Parse)  // Convert each day string to integer
                     .ToList();  // Convert to List<int>
 
-                // Map the result to PermissionDTO
-                var userPermissions = new PermissionDTO
+                // Map the result to ManyPermissionsDTO
+                var userPermissions = new ManyPermissionsDTO
                 {
                     datefrom = userPermission.DateFrom,
                     dateto = userPermission.DateTo,
@@ -1251,6 +1326,8 @@ namespace DoorWebApp.Controllers
                     timeto = userPermission.TimeTo,
                     days = days,  // Set the converted list of days
                     qrcode = qrcode,
+                    permissions = Permissions,
+                    studentpermissions = StudentPermissions,
                     groupIds = userPermission.PermissionGroups
                         .Select(y => y.Id)
                         .ToList()  // Convert the IEnumerable<int> to List<int>
