@@ -3,10 +3,10 @@
   <div class="d-flex mb-2 pl-2">
     <!-- 搜尋列 -->
     <el-form class="d-flex" @submit.prevent>
-      <el-form-item style="width: 240px">
+      <el-form-item style="width: 240px; margin-right: 5px;">
         <el-input v-model="searchText" clearable :placeholder="t('NameFilter')" />
       </el-form-item>
-      <el-form-item style="width: 200px">
+      <el-form-item style="width: 200px; margin-right: 5px;">
         <el-select v-model="searchType" aria-label="選擇模式" :placeholder="t('Type')" >
           <el-option label="全部" :value="0" />
           <el-option label="在學" :value="1" />
