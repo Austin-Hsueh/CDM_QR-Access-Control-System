@@ -352,7 +352,8 @@ namespace DoorWebApp.Controllers
                         dateto = x.Permission.DateTo.ToString(),
                         timefrom = x.Permission.TimeFrom.ToString(),
                         timeto = x.Permission.TimeTo.ToString(),
-                        days = x.Permission.Days
+                        days = x.Permission.Days,
+                        type = x.Type
                     })
                     .AsQueryable();
 
