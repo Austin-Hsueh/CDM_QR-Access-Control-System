@@ -1311,7 +1311,7 @@ namespace DoorWebApp.Controllers
                     }).ToList();
                 }
                 
-                string qrcode = QRCodeData == null ? "" : QRCodeData.ToString();
+                string qrcode = QRCodeData == null ? "" : QRCodeData.QRCodeData.ToString();
 
                 var days = userPermission.Days
                     .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
