@@ -5,6 +5,8 @@ export interface M_ICreateRuleForm {
   phone: string;
   password: string;
   roleid: number;
+  type:number;
+  
 }
 
 export interface M_IUpdateRuleForm {
@@ -15,6 +17,7 @@ export interface M_IUpdateRuleForm {
   phone: string;
   password: string;
   roleid: number;
+  type:number;
 }
 
 export interface M_IDeleteRuleForm {

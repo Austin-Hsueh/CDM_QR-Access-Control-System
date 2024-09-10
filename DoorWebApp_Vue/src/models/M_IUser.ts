@@ -16,6 +16,7 @@ export interface M_IUsers {
   timefrom: string;
   timeto: string;
   days: string;
+  type: number;
 }
 
 export interface M_IUsersContent {

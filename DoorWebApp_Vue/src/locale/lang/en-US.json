@@ -282,6 +282,7 @@
   "Temporary Access Control Settings - Main Door":"Temporary Access Control Settings - Main Door",
   "Account Settings":"Account Settings",
   "Show Account ID Field":"Show Account ID Field",
-  "Hide Account ID Field":"Hide Account ID Field"
+  "Hide Account ID Field":"Hide Account ID Field",
+  "Type": "Status"
 
 }

@@ -1,17 +1,23 @@
 <template>
   <!-- Ipt、Btn Group -->
   <div class="d-flex mb-2 pl-2">
-    <el-input
-      class="me-auto"
-      style="width: 240px"
-      :placeholder="t('NameFilter')"
-      clearable
-      v-model="searchText"
-      :prefix-icon="Filter"
-      @input="onFilterInputed"
-    />
-    <el-button type="primary" @click="onCreateRoleClicked">{{ t("create") }}</el-button>
-    <el-button type="primary" @click="onCreateRoleClicked" v-if="false">{{ t("Import") }}</el-button>
+    <!-- 搜尋列 -->
+    <el-form class="d-flex" @submit.prevent>
+      <el-form-item style="width: 240px">
+        <el-input v-model="searchText" clearable :placeholder="t('NameFilter')" />
+      </el-form-item>
+      <el-form-item style="width: 200px">
+        <el-select v-model="searchType" aria-label="選擇模式" :placeholder="t('Type')" >
+          <el-option label="全部" :value="0" />
+          <el-option label="在學" :value="1" />
+          <el-option label="停課" :value="2" />
+          <el-option label="約課" :value="3" />
+        </el-select>
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" @click="onFilterInputed">搜尋</el-button>
+      </el-form-item>
+    </el-form>
   </div>
 
   <!-- table -->
@@ -20,8 +26,9 @@
       v-model="showId" 
       :active-text="t('Show Account ID Field')" 
       :inactive-text="t('Hide Account ID Field')" 
-      style="--el-switch-on-color: #526E60; "
+      style="--el-switch-on-color: #526E60; flex:1;"
       width="100"/>
+    <el-button type="primary" @click="onCreateRoleClicked">{{ t("create") }}</el-button>
     <el-col :span="24">
       <!-- <el-table name="userInfoTable" style="width: 100%" height="400" :data="userInfo"> -->
       <el-table name="userInfoTable" style="width: 100%" height="400" :data="userInfo?.pageItems">
@@ -33,6 +40,11 @@
         <el-table-column sortable :label="t('Role')">
           <template #default="scope">
             {{ roleMap[scope.row.roleId as keyof typeof roleMap] }}
+          </template>
+        </el-table-column>
+        <el-table-column sortable :label="t('Type')">
+          <template #default="scope">
+            {{ typeMap[scope.row.type as keyof typeof typeMap] }}
           </template>
         </el-table-column>
         <el-table-column width="170px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
@@ -102,6 +114,14 @@
           <el-checkbox label="儲藏室" :value="4" />
         </el-checkbox-group>
       </el-form-item>
+      <el-form-item :label="t('Type')" prop="type" >
+        <el-select v-model="createFormData.type" placeholder="請選擇一個角色" style="width:90%">
+          <el-option label="預設" :value="0" />
+          <el-option label="在學" :value="1" />
+          <el-option label="停課" :value="2" />
+          <el-option label="約課" :value="3" />
+        </el-select>
+      </el-form-item>
     </el-form>
     <template #footer>
       <span class="dialog-footer">
@@ -146,6 +166,14 @@
           <el-checkbox label="儲藏室" :value="4" />
         </el-checkbox-group>
       </el-form-item>
+      <el-form-item :label="t('Type')" prop="type" >
+        <el-select v-model="updateFormData.type" placeholder="請選擇一個角色" style="width:90%">
+          <el-option label="預設" :value="0" />
+          <el-option label="在學" :value="1" />
+          <el-option label="停課" :value="2" />
+          <el-option label="約課" :value="3" />
+        </el-select>
+      </el-form-item>
     </el-form>
     <template #footer>
       <span class="dialog-footer">
@@ -178,6 +206,7 @@ const userInfo = ref<M_IUsersContent | null>(null);  // Specify the type of the 
 const currentPage4 = ref(4)
 const size = ref<ComponentSize>('default')
 const searchText = ref('')
+const searchType = ref(0)
 const userInfoStore = useUserInfoStore();
 const showId = ref(false);
 
@@ -195,7 +224,8 @@ const handleCurrentChange = async(val: number) => {
 const searchPagination = ref<SearchPaginationRequest>({
   SearchText: "",
   SearchPage: 10,
-  Page: 1
+  Page: 1,
+  type: 0
 });
 
 const roleMap = computed(() => ({
@@ -203,6 +233,13 @@ const roleMap = computed(() => ({
   2: '老師',
   3: '學生',
   4: '值班人員'
+}));
+
+const typeMap = computed(() => ({
+  0: '預設',
+  1: '在學',
+  2: '停課',
+  3: '約課'
 }));
 
 const Error = (error: string) => {
@@ -225,6 +262,7 @@ const onEdit = (item: M_IUsers) => {
   updateFormData.email = item.email;
   updateFormData.phone = item.phone ?? '';
   updateFormData.roleid = item.roleId;
+  updateFormData.type = item.type;
   isShowEditRoleDialog.value = true;
 }
 
@@ -346,12 +384,15 @@ const submitUpdateForm = async () => {
 
 const onFilterInputed = () => {
   console.log("Search Function");
-  if(!searchText.value || searchText.value.trim() === ''){
+  if(!searchText.value || searchText.value.trim() === '' || searchType.value){
+    searchPagination.value.SearchText = searchText.value
+    searchPagination.value.type = searchType.value
     getUsers();
   }else{
     setTimeout(()=>{
       console.log(searchText.value)
       searchPagination.value.SearchText = searchText.value
+      searchPagination.value.type = searchType.value
       console.log(searchPagination.value);
       getUsers();
       // const filteredData = userInfo.value.filter(item => {
@@ -374,7 +415,8 @@ const createFormData = reactive<M_ICreateRuleForm>({
   email: '',
   phone: '',
   password: '',
-  roleid: 1
+  roleid: 3,
+  type:1
 })
 
 // 編輯使用者表單
@@ -386,7 +428,8 @@ const updateFormData = reactive<M_IUpdateRuleForm>({
   email: '',
   phone: '',
   password: '',
-  roleid: 0
+  roleid: 0,
+  type:0
 })
 
 const deleteFormData = reactive<M_IDeleteRuleForm>({

@@ -337,7 +337,8 @@
   "Temporary Access Control Settings - Main Door":"臨時門禁設定-大門",
   "Account Settings":"帳號設定",
   "Show Account ID Field":"顯示帳號ID欄位",
-  "Hide Account ID Field":"隱藏帳號ID欄位"
+  "Hide Account ID Field":"隱藏帳號ID欄位",
+  "Type": "狀態"
 
 
 }
