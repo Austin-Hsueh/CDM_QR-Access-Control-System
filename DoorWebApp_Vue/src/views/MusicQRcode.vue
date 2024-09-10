@@ -7,15 +7,16 @@
 
     <el-tabs type="border-card">
       <el-tab-pane :label="t('Access QR Code')" >
-        <!-- <div class="d-flex flex-column">
-          <div class="col-md-4 col-xs-12 col-sm-12">
-            <el-image :src="imageSrc" alt="Base64 Image" />
+        <el-card style="max-width: 300px">
+          <span v-if="ifCodeError">QRcode將於上課前2分鐘顯示</span>
+          <div v-if="ifCodeLoad">
+            <span>可通行時間</span><br>
+            <span>{{dayNames}}</span><br>
+            <span>{{ pass.timefrom }}~{{ pass.timeto }}</span>
           </div>
-        </div> -->
-        <el-card style="max-width: 250px">
-          <el-image :src="imageSrc" alt="Base64 Image" />
+          <el-divider style="margin: 15px 0;"/> 
+          <el-image :src="imageSrc" alt="Base64 Image"  @error="handleImageError" @load="handleImageLoad"/>
           <el-divider style="margin: 15px 0;"/>
-          <!-- <span>可通行時間</span><br> -->
           <span>※ 無法使用時重新整理網頁</span>
         </el-card>
       </el-tab-pane>
@@ -23,12 +24,13 @@
   </div>
 </template>
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, reactive, computed} from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useUserInfoStore } from "@/stores/UserInfoStore";
 import API from "@/apis/TPSAPI";
 import { APIResultCode } from "@/models/enums/APIResultCode";
+import { pa } from "element-plus/es/locale";
 
 const { t, locale } = useI18n();
 const router = useRouter();
@@ -36,7 +38,27 @@ const userInfoStore = useUserInfoStore();
 
 const qrcode = ref('');
 const imageSrc = ref('');
+const ifCodeError = ref(false);
+const ifCodeLoad = ref(false);
+const pass = ref({
+      datefrom: '',
+      timefrom: '',
+      timeto: '',
+      days:[]
+});
+
+
 let executionCount = 0; // 計數器
+
+const handleImageError = () => {
+  ifCodeError.value = true;
+  ifCodeLoad.value = false;
+}
+
+const handleImageLoad = () => {
+  ifCodeError.value = false;
+  ifCodeLoad.value = true;
+};
 
 onMounted(() => {
   // getUserSettingPermission()
@@ -52,6 +74,16 @@ async function getUserSettingPermission() {
     imageSrc.value = `data:image/png;base64,${qrcode.value}`;
 
     console.log(getUserSettingPermission.data.content)
+    const QRcodeResult = getUserSettingPermission.data.content;
+    if (QRcodeResult.studentpermissions && QRcodeResult.studentpermissions.length > 0) {
+        pass.value.datefrom = QRcodeResult.studentpermissions[0].datefrom;
+        pass.value.timefrom = QRcodeResult.studentpermissions[0].timefrom;
+        pass.value.timeto = QRcodeResult.studentpermissions[0].timeto;
+        pass.value.days = QRcodeResult.studentpermissions[0].days;
+    } else {
+        console.log("studentpermissions array is empty or undefined");
+    }
+    console.log(pass)
 
   } catch (error) {
     console.error(error);
@@ -84,6 +116,13 @@ function scheduleGetUserSettingPermission() {
   executeFunction();
   setInterval(executeFunction, interval);
 }
+
+const dayNamesArray = ["", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六","星期日"];
+// 使用 computed 將 pass.days 轉換成對應的中文星期
+const dayNames = computed(() => {
+  return pass.value.days.map(day => dayNamesArray[day]).join(', ');
+});
+
 //#endregion
 </script>
 
