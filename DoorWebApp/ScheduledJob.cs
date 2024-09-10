@@ -33,15 +33,11 @@ public class ScheduledJob : IJob
     {
         try
         {
-            log.LogInformation($"更新 QRCode 15分鐘時效開始");
+            log.LogInformation($"更新 QRCode 分鐘時效開始");
             DateTime now = DateTime.Now;
             string nowDate = now.ToString("yyyy/MM/dd");
-            string time = now.AddMinutes(15).ToString("HH:mm"); //每15分鐘跑一次
-            //8:30跑  門禁時間 9:00~10:00 所以要補35分鐘
-            //8:00 更新 8:00~8:35
-            //8:30 更新 8:30~9:05
-            //9:00 更新 9:00~9:35
-            //9:30 更新 9:30~10:05
+            string time = now.AddMinutes(10).AddSeconds(15).ToString("HH:mm"); //每9分鐘45秒跑一次
+            //8:09:45跑  門禁時間 更新8:20:00
             int day = (int) now.DayOfWeek;
             if (day == 0)
                 day = 7;
@@ -95,7 +91,7 @@ public class ScheduledJob : IJob
                     userAddr = (ushort)g.Key,
                     isGrant = true,
                     doorList = g.SelectMany(p => p.PermissionGroupIds).Distinct().ToList(),
-                    beginTime = nowDate.Replace("/", "-").ToString() + "T" + now.ToString("HH:mm") + ":00",
+                    beginTime = nowDate.Replace("/", "-").ToString() + "T" + now.AddSeconds(15).ToString("HH:mm") + ":00",
                     endTime = nowDate.Replace("/", "-").ToString() + "T" + time + ":00"
                 })
                 .ToList();
