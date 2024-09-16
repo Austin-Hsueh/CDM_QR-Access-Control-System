@@ -36,74 +36,72 @@ public class ScheduledJob : IJob
             log.LogInformation($"更新 QRCode 分鐘時效開始");
             DateTime now = DateTime.Now;
             string nowDate = now.ToString("yyyy/MM/dd");
-            string time = now.AddMinutes(10).AddSeconds(15).ToString("HH:mm"); //每9分鐘45秒跑一次
-            //8:09:45跑  門禁時間 更新8:20:00
+            string time = now.AddSeconds(15).ToString("HH:mm");
+            string Endtime = now.AddMinutes(10).AddSeconds(15).ToString("HH:mm"); //每9分鐘45秒跑一次
+            //09:09:45 跑的排程
+            //開始時間在09:10:00～09:20:00 之間都會被撈到
+            //09:11:00 09:15:00 09:19:00 09:20:00
+            //起訖有包含09:10:00的
             int day = (int) now.DayOfWeek;
             if (day == 0)
                 day = 7;
 
             // 1. 撈出要更新的UserId
             //單一時段設定
-            var permissions = ctx.TblPermission.FromSqlRaw(@"SELECT p.* 
-                                                FROM TblPermission p 
-                                                LEFT JOIN Tbluser s ON p.UserId = s.Id 
-                                                WHERE @nowDate BETWEEN p.DateFrom AND p.DateTo
-                                                AND TIME(@time) BETWEEN TIME(p.TimeFrom) AND TIME(p.TimeTo)
-                                                AND p.IsDelete = 0 AND s.IsDelete = 0
-                                                AND p.Days LIKE CONCAT('%', @day, '%')",
-                                                new MySqlConnector.MySqlParameter("@nowDate", nowDate),
-                                                new MySqlConnector.MySqlParameter("@time", time),
-                                                new MySqlConnector.MySqlParameter("@day", day))
-                                                  // .Where(p => String.Compare(time, p.TimeFrom) >= 0 && String.Compare(time, p.TimeTo) <= 0)
-                                                  .Select(p => new
-                                                  {
-                                                      UserId = p.UserId,
-                                                      PermissionGroupIds = p.PermissionGroups.Select(pg => pg.Id).ToList()
-                                                  }).ToList();
+            //var permissions = ctx.TblPermission.FromSqlRaw(@"SELECT p.* 
+            //                                    FROM TblPermission p 
+            //                                    LEFT JOIN Tbluser s ON p.UserId = s.Id 
+            //                                    WHERE @nowDate BETWEEN p.DateFrom AND p.DateTo
+            //                                    AND TIME(@time) BETWEEN TIME(p.TimeFrom) AND TIME(p.TimeTo)
+            //                                    AND p.IsDelete = 0 AND s.IsDelete = 0
+            //                                    AND p.Days LIKE CONCAT('%', @day, '%')",
+            //                                    new MySqlConnector.MySqlParameter("@nowDate", nowDate),
+            //                                    new MySqlConnector.MySqlParameter("@time", time),
+            //                                    new MySqlConnector.MySqlParameter("@day", day))
+            //                                      // .Where(p => String.Compare(time, p.TimeFrom) >= 0 && String.Compare(time, p.TimeTo) <= 0)
+            //                                      .Select(p => new
+            //                                      {
+            //                                          UserId = p.UserId,
+            //                                          PermissionGroupIds = p.PermissionGroups.Select(pg => pg.Id).ToList()
+            //                                      }).ToList();
 
             //多時段設定
             var studentPermissions = ctx.TblStudentPermission.FromSqlRaw(@"SELECT p.* 
                                                 FROM TblStudentPermission p 
                                                 LEFT JOIN Tbluser s ON p.UserId = s.Id 
-                                                WHERE @nowDate BETWEEN p.DateFrom AND p.DateTo
-                                                AND TIME(@time) BETWEEN TIME(p.TimeFrom) AND TIME(p.TimeTo)
+                                                WHERE (@nowDate BETWEEN p.DateFrom AND p.DateTo)
+                                                AND (  
+                                                       (TIME(@time) BETWEEN TIME(p.TimeFrom) AND TIME(p.TimeTo))
+                                                        OR
+                                                       (TIME(p.TimeFrom) BETWEEN TIME(@time) AND TIME(@Endtime))
+                                                    )
                                                 AND p.IsDelete = 0 AND s.IsDelete = 0
                                                 AND p.Days LIKE CONCAT('%', @day, '%')",
                                                 new MySqlConnector.MySqlParameter("@nowDate", nowDate),
                                                 new MySqlConnector.MySqlParameter("@time", time),
+                                                new MySqlConnector.MySqlParameter("@Endtime", Endtime),
                                                 new MySqlConnector.MySqlParameter("@day", day))
                                                          // .Where(p => String.Compare(time, p.TimeFrom) >= 0 && String.Compare(time, p.TimeTo) <= 0)
 
-                                                         .Select(sp => new
-                                                         {
-                                                             UserId = sp.UserId,
-                                                             PermissionGroupIds = sp.PermissionGroups.Select(pg => pg.Id).ToList()
-                                                         }).ToList();
-
-            // 2. 準備要更新的UserList
-            
-           
-
-            var UserList = permissions.Union(studentPermissions)
-                .GroupBy(p => p.UserId)
-                .Select(g => new UserAccessProfile()
-                {
-                    userAddr = (ushort)g.Key,
-                    isGrant = true,
-                    doorList = g.SelectMany(p => p.PermissionGroupIds).Distinct().ToList(),
-                    beginTime = nowDate.Replace("/", "-").ToString() + "T" + now.AddSeconds(15).ToString("HH:mm") + ":00",
-                    endTime = nowDate.Replace("/", "-").ToString() + "T" + time + ":00"
-                })
-                .ToList();
+                                                         
+                                                        .Select(g => new UserAccessProfile()
+                                                        {
+                                                             userAddr = (ushort)g.UserId,
+                                                             isGrant = true,
+                                                             doorList = g.PermissionGroups.Select(pg => pg.Id).ToList(),
+                                                             beginTime = nowDate.Replace("/", "-").ToString() + "T" + g.TimeFrom + ":00",
+                                                             endTime = nowDate.Replace("/", "-").ToString() + "T" + g.TimeTo + ":00"
+                                                        })
+                                                        .ToList();
 
             //API 設定並取得QRcode
-            if(UserList.Count == 0)
+            if(studentPermissions.Count == 0)
             {
                 log.LogInformation($"無清單需要 更新 QRCode 完成");
                 return;
             }
 
-            var result = await SoyalAPI.SendUserAccessProfilesAsync(UserList);
+            var result = await SoyalAPI.SendUserAccessProfilesAsync(studentPermissions);
             if (result.msg == "Success" && result.content.Count > 0)
             {
                 foreach (var qrcode in result.content)

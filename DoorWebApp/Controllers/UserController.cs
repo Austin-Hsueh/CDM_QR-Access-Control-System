@@ -176,16 +176,16 @@ namespace DoorWebApp.Controllers
                     day = 7;
 
                 //單一時段設定
-                var permissions = ctx.TblPermission.Where(p => p.IsDelete == false)
-                                                      .Where(p => p.Days.Contains(day.ToString()))
-                                                      .Where(p => p.DateFrom.CompareTo(nowDate) <= 0 && p.DateTo.CompareTo(nowDate) >= 0)
-                                                      .Select(p => new
-                                                      {
-                                                          UserId = p.UserId,
-                                                          PermissionGroupIds = p.PermissionGroups.Select(pg => pg.Id).ToList(),
-                                                          TimeFrom = p.TimeFrom,
-                                                          TimeTo = p.TimeTo
-                                                      }).ToList();
+                //var permissions = ctx.TblPermission.Where(p => p.IsDelete == false)
+                //                                      .Where(p => p.Days.Contains(day.ToString()))
+                //                                      .Where(p => p.DateFrom.CompareTo(nowDate) <= 0 && p.DateTo.CompareTo(nowDate) >= 0)
+                //                                      .Select(p => new
+                //                                      {
+                //                                          UserId = p.UserId,
+                //                                          PermissionGroupIds = p.PermissionGroups.Select(pg => pg.Id).ToList(),
+                //                                          TimeFrom = p.TimeFrom,
+                //                                          TimeTo = p.TimeTo
+                //                                      }).ToList();
                 //多時段設定
                 var studentPermissions = ctx.TblStudentPermission.Where(p => p.IsDelete == false)
                                                              .Where(p => p.Days.Contains(day.ToString()))
@@ -198,7 +198,8 @@ namespace DoorWebApp.Controllers
                                                                  TimeTo = sp.TimeTo
                                                              }).ToList();
 
-                var UserList = permissions.Union(studentPermissions)
+                //var UserList = permissions.Union(studentPermissions)
+                var UserList = studentPermissions
                 .GroupBy(p => p.UserId)
                 .Select(g => new UserAccessProfile()
                 {
