@@ -6,11 +6,12 @@
     </div>
     <el-tabs type="border-card" @tab-click="handleTabClick">
       <el-tab-pane :label="t('Open Door Button')">
-        <el-button  @click="callApi()" :disabled="!trueURL">開啟大門</el-button>
-        <el-button  @click="callApiCar()" :disabled="!trueURL">開啟Car教室</el-button>
-        <el-button  @click="callApiSunny()" :disabled="!trueURL">開啟Sunny教室</el-button>
-        <el-button  @click="callApiStore()" :disabled="!trueURL">開啟儲藏室</el-button>
-        <p v-if="trueURL">※  {{ fullURL  }} 目前不再內網，無法可使用 ※</p>
+        <el-button  @click="callApi()" >開啟大門</el-button>
+        <el-button  @click="callApiCar()" >開啟Car教室</el-button>
+        <el-button  @click="callApiSunny()" >開啟Sunny教室</el-button>
+        <el-button  @click="callApiStore()" >開啟儲藏室</el-button>
+        <!-- <p v-if="!trueURL" style="margin-top: 10px;">※  {{ fullURL  }} 不在內網，無法使用 ※</p>
+        <p v-if="trueURL" style="margin-top: 10px;">※  {{ fullURL  }} 可使用 ※</p> -->
       </el-tab-pane>
       <el-tab-pane :label="t('Access Control Settings')">
         <div class="d-flex flex-column">
@@ -227,7 +228,8 @@ async function getUsersOptions() {
   try {
     const getUsersOptionsResult = await API.getUsersOptions();
     if (getUsersOptionsResult.data.result != 1) throw new Error(getUsersOptionsResult.data.msg);
-    usersOptions.value = getUsersOptionsResult.data.content;
+    // usersOptions.value = getUsersOptionsResult.data.content;
+    usersOptions.value = getUsersOptionsResult.data.content.filter(user => ![52, 54].includes(user.userId));
 
   } catch (error) {
     console.error(error);
@@ -448,25 +450,27 @@ const onFileUploadClicked = async () => {
 //#endregion
 
 // #region 偵測IP
-import { useRoute } from 'vue-router';
+// import { useRoute } from 'vue-router';
 
-const route = useRoute();
-const trueURL = ref<boolean>(false);
+// const route = useRoute();
+// const trueURL = ref<boolean>(false);
 
-const fullURL = computed(() => {
-  const { protocol, host } = window.location;
-  const path = route.fullPath;
-  return `${protocol}//${host}${path}`;
-});
+// const fullURL = computed(() => {
+//   const { protocol, host } = window.location;
+//   const path = route.fullPath;
+//   return `${protocol}//${host}${path}`;
+// });
 
-// 使用 watch 侦听 fullURL 的变化
-watch(fullURL, (newURL) => {
-  if (newURL === "http://127.0.0.1/accesscontrol") {
-    trueURL.value = true;
-  } else {
-    trueURL.value = false;
-  }
-});
+// // 使用 watch 侦听 fullURL 的变化
+// watch(fullURL, (newURL) => {
+//   if (newURL === "http://127.0.0.1/accesscontrol") {
+//     trueURL.value = true;
+//     console.log(newURL)
+//   } else {
+//     trueURL.value = false;
+//     console.log(newURL)
+//   }
+// });
 
 //#endregion
 </script>
