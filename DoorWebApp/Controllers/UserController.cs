@@ -1101,7 +1101,7 @@ namespace DoorWebApp.Controllers
         }
 
         /// <summary>
-        /// 更新暫時門禁
+        /// 更新暫時門禁_ID=5
         /// </summary>
         /// <param name="UserId"></param>
         /// <param name=""></param>
@@ -1139,6 +1139,112 @@ namespace DoorWebApp.Controllers
                     .Include(x => x.Roles)
                     .Where(x => x.IsDelete == false)
                     .Where(x => x.Id == 52)
+                    .Select(x => new UserAccessProfile()
+                    {
+                        userAddr = (ushort)x.Id,
+                        isGrant = true,
+                        doorList = x.Permission.PermissionGroups
+                        .Select(y => y.Id).ToList(),
+                        beginTime = x.Permission.DateFrom.Replace("/", "-").ToString() + "T" + x.Permission.TimeFrom.ToString() + ":00",
+                        endTime = x.Permission.DateTo.Replace("/", "-").ToString() + "T" + x.Permission.TimeTo.ToString() + ":00"
+                    })
+                    .ToList();
+
+                //取得Qrcode
+                APIResponse<List<ResGetAllUsersDTO>> resQrcodes = new APIResponse<List<ResGetAllUsersDTO>>();
+                var result = await SoyalAPI.SendUserAccessProfilesAsync(UserList);
+                if (result.msg == "Success" && result.content.Count > 0)
+                {
+                    var qrcode = result.content.FirstOrDefault();
+                    // 新增 Qrcode 或更新 Qrcode
+                    var qrcodeEntity = ctx.TbQRCodeStorages.Include(x => x.Users).Where(x => x.Users.Select(u => u.Id).Contains(qrcode.userAddr)).FirstOrDefault();
+                    if (qrcodeEntity == null)
+                    {
+
+                        //新增 Qrcode
+                        TblQRCodeStorage NewQRCode = new TblQRCodeStorage();
+                        NewQRCode.userTag = (int)qrcode.userTag;
+                        NewQRCode.qrcodeTxt = qrcode.qrcodeTxt;
+                        NewQRCode.QRCodeData = qrcode.qrcodeImg;
+                        NewQRCode.CreateTime = DateTime.Now;
+                        NewQRCode.ModifiedTime = DateTime.Now;
+
+                        var userEntity = ctx.TblUsers.Where(x => x.Id == qrcode.userAddr).ToList();
+                        NewQRCode.Users = userEntity;
+                        ctx.TbQRCodeStorages.Add(NewQRCode);
+
+                        ctx.SaveChanges(); // Save user to generate UserId
+                        log.LogInformation($"[{Request.Path}] Create QRCode : Id={NewQRCode.Id}, Add to QRCodeData={NewQRCode.QRCodeData}");
+                    }
+                    else //更新 Qrcode
+                    {
+                        qrcodeEntity.userTag = (int)qrcode.userTag;
+                        qrcodeEntity.qrcodeTxt = qrcode.qrcodeTxt;
+                        qrcodeEntity.QRCodeData = qrcode.qrcodeImg;
+                        qrcodeEntity.ModifiedTime = DateTime.Now;
+
+                        ctx.SaveChanges(); // Save user to generate UserId
+                        log.LogInformation($"[{Request.Path}] update QRCode : Id={qrcodeEntity.Id}, Add to UserId={qrcode.userAddr}");
+                    }
+
+                }
+
+                // 4. 寫入稽核紀錄
+                auditLog.WriteAuditLog(AuditActType.Modify, $"Update 更新暫時門禁:, EffectRow:{EffectRow}", UserId.ToString());
+
+                res.result = APIResultCode.success;
+                res.msg = "success";
+
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
+                /// <summary>
+        /// 更新暫時門禁_ID=54
+        /// </summary>
+        /// <param name="UserId"></param>
+        /// <param name=""></param>
+        /// <returns></returns>
+        [Authorize]
+        [HttpPatch("v1/User/TempDoorSetting54")]
+        public async Task<IActionResult> UpdateTempDoorSettingAsync54(ReqPermissionDTO PermissionDTO)
+        {
+            APIResponse res = new APIResponse();
+            try
+            {
+                int UserId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+                string OperatorUsername = User.Identity?.Name ?? "N/A";
+
+                log.LogInformation($"[{Request.Path}] Update 暫時門禁. UserId:{UserId}");
+
+
+
+                // 1. 更新資料
+                //更新角色
+                var AssignPermissionEntities = ctx.TblPermission.Where(x => x.UserId == 54).FirstOrDefault();
+                AssignPermissionEntities.DateFrom = PermissionDTO.datefrom;
+                AssignPermissionEntities.DateTo = PermissionDTO.dateto;
+                AssignPermissionEntities.TimeFrom = PermissionDTO.timefrom;
+                AssignPermissionEntities.TimeTo = PermissionDTO.timeto;
+
+
+                // 2. 存檔
+                log.LogInformation($"[{Request.Path}] Save changes");
+                int EffectRow = ctx.SaveChanges();
+                log.LogInformation($"[{Request.Path}] Update success. (EffectRow:{EffectRow})");
+
+                // 3. 取得Qrcode
+                var UserList = ctx.TblUsers
+                    .Include(x => x.Roles)
+                    .Where(x => x.IsDelete == false)
+                    .Where(x => x.Id == 54)
                     .Select(x => new UserAccessProfile()
                     {
                         userAddr = (ushort)x.Id,
@@ -1353,7 +1459,7 @@ namespace DoorWebApp.Controllers
         }
 
         /// <summary>
-        /// 取得使用者權限 門禁設定
+        /// 取得使用者權限 暫時門禁設定_ID=52
         /// </summary>
         /// <returns></returns>
         [HttpGet("v1/User/TempDoorSetting")]
@@ -1364,6 +1470,76 @@ namespace DoorWebApp.Controllers
             try
             {
                 int OperatorId = 52;
+                log.LogInformation($"[{Request.Path}] GetTempDoorSetting : id={OperatorId}");
+
+
+                // 1. 資料檢核
+                var targetUserEntity = ctx.TblUsers.Where(x => x.Id == OperatorId).FirstOrDefault();
+                if (targetUserEntity == null)
+                {
+                    log.LogWarning($"[{Request.Path}] User (Id:{OperatorId}) not found");
+                    res.result = APIResultCode.user_not_found;
+                    res.msg = "查無使用者";
+                    return Ok(res);
+                }
+
+
+                log.LogInformation($"[{Request.Path}] Target user found! UserId:{OperatorId}, Username:{targetUserEntity.Username}");
+
+
+                var userPermission = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == OperatorId).FirstOrDefault();
+                // Perform conversion outside the LINQ query
+                var days = userPermission.Days
+                    .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(int.Parse)  // Convert each day string to integer
+                    .ToList();  // Convert to List<int>
+
+                var QRCodeData = ctx.TbQRCodeStorages.Include(x => x.Users).Where(x => x.Users.Select(u => u.Id).Contains(OperatorId)).Select(x => x.QRCodeData).FirstOrDefault();
+                string qrcode = QRCodeData == null ? "" : QRCodeData.ToString();
+
+                // Map the result to PermissionDTO
+                var userPermissions = new PermissionDTO
+                {
+                    datefrom = userPermission.DateFrom,
+                    dateto = userPermission.DateTo,
+                    timefrom = userPermission.TimeFrom,
+                    timeto = userPermission.TimeTo,
+                    days = days,  // Set the converted list of days
+                    qrcode = qrcode,
+                    groupIds = userPermission.PermissionGroups
+                        .Select(y => y.Id)
+                        .ToList()  // Convert the IEnumerable<int> to List<int>
+                };
+
+                //log.LogInformation($"[{Request.Path}] Query user permissions success! Total:{UserPermissions.permissions.Count}");
+
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                res.content = userPermissions;
+
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
+                /// <summary>
+        /// 取得使用者權限 暫時門禁設定_ID=54
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("v1/User/TempDoorSetting54")]
+        public IActionResult GetTempDoorSetting54()
+        {
+            APIResponse<PermissionDTO> res = new APIResponse<PermissionDTO>();
+
+            try
+            {
+                int OperatorId = 54;
                 log.LogInformation($"[{Request.Path}] GetTempDoorSetting : id={OperatorId}");
 
 

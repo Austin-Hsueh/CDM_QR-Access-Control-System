@@ -460,6 +460,16 @@ class APIService {
   }
 
   /** 取得臨時QRcode */
+  getTempDoorCode54(){
+    return this.axiosInstance.get<IAPIResponse<M_ITempQRcode>>("v1/User/TempDoorSetting54");
+  }
+
+  /** 設定臨時QRcode */
+  setTempDoorCode54(cmd: any){
+    return this.axiosInstance.patch<IBaseAPIResponse>("v1/User/TempDoorSetting54", cmd);
+  }
+
+  /** 取得臨時QRcode */
   getUserSettingPermission(userid: number){
     return this.axiosInstance.get<IAPIResponse<any>>(`v1/User/PermissionSetting/${userid}`);
   }
