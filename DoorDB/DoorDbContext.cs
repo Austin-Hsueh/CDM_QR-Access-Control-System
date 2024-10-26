@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using DoorDB.Enums;
+using SoyalQRGen.Entities.Soyal;
 
 namespace DoorDB
 {
@@ -23,6 +24,7 @@ namespace DoorDB
         public virtual DbSet<TblRole> TblRoles { set; get; } = null!;
         public virtual DbSet<TblUser> TblUsers { set; get; } = null!;
         public virtual DbSet<TblQRCodeStorage> TbQRCodeStorages { set; get; } = null!;
+        public virtual DbSet<TblBookingLog> TblBookingLog { set; get; } = null!;
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -237,6 +239,26 @@ namespace DoorDB
                 .HasMany(p => p.PermissionGroups)
                 .WithMany(pg => pg.StudentPermissions);
 
+            modelBuilder.Entity<TblBookingLog>()
+                .HasOne(p => p.User)
+                .WithMany(pg => pg.BookingLogs)
+                .HasForeignKey(p => p.UserAddress);
+
+            modelBuilder.Entity<AccessEventLog>(entity =>
+            {
+                entity.ToTable("tblaccesseventlog");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Id).HasMaxLength(255).IsRequired();
+                entity.Property(e => e.NodeId).IsRequired();
+                entity.Property(e => e.FunctionCode).IsRequired();
+                entity.Property(e => e.EventTime).IsRequired().HasPrecision(6);
+                entity.Property(e => e.PortNumber).IsRequired();
+                entity.Property(e => e.UserAddress).IsRequired();
+                entity.Property(e => e.DoorNumber).IsRequired();
+                entity.Property(e => e.CardId1).IsRequired();
+                entity.Property(e => e.CardId2).IsRequired();
+            });
             #endregion
 
 
