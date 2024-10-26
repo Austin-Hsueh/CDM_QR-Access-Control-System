@@ -41,9 +41,6 @@ namespace DoorDB
         /// </summary>
         public int? UpdateUserId { get; set; }
 
-        public TblUser User { set; get; }
-
-        public AccessEventLog AccessEventLog { set; get; }
-        
+        public TblUser User { set; get; }    
     }
 }

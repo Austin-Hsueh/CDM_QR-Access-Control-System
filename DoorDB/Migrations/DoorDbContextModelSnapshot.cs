@@ -53,9 +53,6 @@ namespace DoorWebDB.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("varchar(255)");
 
-                    b.Property<string>("AccessEventLogId")
-                        .HasColumnType("varchar(255)");
-
                     b.Property<DateTime>("EventTime")
                         .HasColumnType("datetime(6)");
 
@@ -69,8 +66,6 @@ namespace DoorWebDB.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AccessEventLogId");
 
                     b.HasIndex("UserAddress");
 
@@ -261,48 +256,48 @@ namespace DoorWebDB.Migrations
                         {
                             Id = 1,
                             CanDelete = false,
-                            CreatedTime = new DateTime(2024, 10, 26, 18, 28, 36, 54, DateTimeKind.Local).AddTicks(6783),
+                            CreatedTime = new DateTime(2024, 10, 27, 4, 47, 32, 233, DateTimeKind.Local).AddTicks(5567),
                             CreatorUserId = 1,
                             Description = "管理者",
                             IsDelete = false,
                             IsEnable = true,
-                            ModifiedTime = new DateTime(2024, 10, 26, 18, 28, 36, 54, DateTimeKind.Local).AddTicks(6785),
+                            ModifiedTime = new DateTime(2024, 10, 27, 4, 47, 32, 233, DateTimeKind.Local).AddTicks(5567),
                             Name = "Admin"
                         },
                         new
                         {
                             Id = 2,
                             CanDelete = false,
-                            CreatedTime = new DateTime(2024, 10, 26, 18, 28, 36, 54, DateTimeKind.Local).AddTicks(6786),
+                            CreatedTime = new DateTime(2024, 10, 27, 4, 47, 32, 233, DateTimeKind.Local).AddTicks(5569),
                             CreatorUserId = 1,
                             Description = "老師",
                             IsDelete = false,
                             IsEnable = true,
-                            ModifiedTime = new DateTime(2024, 10, 26, 18, 28, 36, 54, DateTimeKind.Local).AddTicks(6787),
+                            ModifiedTime = new DateTime(2024, 10, 27, 4, 47, 32, 233, DateTimeKind.Local).AddTicks(5570),
                             Name = "User"
                         },
                         new
                         {
                             Id = 3,
                             CanDelete = false,
-                            CreatedTime = new DateTime(2024, 10, 26, 18, 28, 36, 54, DateTimeKind.Local).AddTicks(6788),
+                            CreatedTime = new DateTime(2024, 10, 27, 4, 47, 32, 233, DateTimeKind.Local).AddTicks(5571),
                             CreatorUserId = 1,
                             Description = "學生",
                             IsDelete = false,
                             IsEnable = true,
-                            ModifiedTime = new DateTime(2024, 10, 26, 18, 28, 36, 54, DateTimeKind.Local).AddTicks(6788),
+                            ModifiedTime = new DateTime(2024, 10, 27, 4, 47, 32, 233, DateTimeKind.Local).AddTicks(5571),
                             Name = "User"
                         },
                         new
                         {
                             Id = 4,
                             CanDelete = false,
-                            CreatedTime = new DateTime(2024, 10, 26, 18, 28, 36, 54, DateTimeKind.Local).AddTicks(6789),
+                            CreatedTime = new DateTime(2024, 10, 27, 4, 47, 32, 233, DateTimeKind.Local).AddTicks(5572),
                             CreatorUserId = 1,
                             Description = "值班人員",
                             IsDelete = false,
                             IsEnable = true,
-                            ModifiedTime = new DateTime(2024, 10, 26, 18, 28, 36, 54, DateTimeKind.Local).AddTicks(6789),
+                            ModifiedTime = new DateTime(2024, 10, 27, 4, 47, 32, 233, DateTimeKind.Local).AddTicks(5572),
                             Name = "User"
                         });
                 });
@@ -420,13 +415,13 @@ namespace DoorWebDB.Migrations
                         {
                             Id = 51,
                             AccountType = "LOCAL",
-                            CreateTime = new DateTime(2024, 10, 26, 18, 28, 36, 54, DateTimeKind.Local).AddTicks(6766),
+                            CreateTime = new DateTime(2024, 10, 27, 4, 47, 32, 233, DateTimeKind.Local).AddTicks(5552),
                             DisplayName = "Administrator",
                             Email = "",
                             IsDelete = false,
                             IsEnable = true,
                             LastLoginIP = "",
-                            ModifiedTime = new DateTime(2024, 10, 26, 18, 28, 36, 54, DateTimeKind.Local).AddTicks(6774),
+                            ModifiedTime = new DateTime(2024, 10, 27, 4, 47, 32, 233, DateTimeKind.Local).AddTicks(5563),
                             Phone = "0",
                             Secret = "1qaz2wsx",
                             Type = 0,
@@ -437,13 +432,13 @@ namespace DoorWebDB.Migrations
                         {
                             Id = 52,
                             AccountType = "LOCAL",
-                            CreateTime = new DateTime(2024, 10, 26, 18, 28, 36, 54, DateTimeKind.Local).AddTicks(6776),
+                            CreateTime = new DateTime(2024, 10, 27, 4, 47, 32, 233, DateTimeKind.Local).AddTicks(5565),
                             DisplayName = "臨時大門",
                             Email = "",
                             IsDelete = false,
                             IsEnable = true,
                             LastLoginIP = "",
-                            ModifiedTime = new DateTime(2024, 10, 26, 18, 28, 36, 54, DateTimeKind.Local).AddTicks(6776),
+                            ModifiedTime = new DateTime(2024, 10, 27, 4, 47, 32, 233, DateTimeKind.Local).AddTicks(5565),
                             Phone = "0",
                             Secret = "1qaz2wsx",
                             Type = 0,
@@ -589,17 +584,11 @@ namespace DoorWebDB.Migrations
 
             modelBuilder.Entity("DoorDB.TblBookingLog", b =>
                 {
-                    b.HasOne("SoyalQRGen.Entities.Soyal.AccessEventLog", "AccessEventLog")
-                        .WithMany()
-                        .HasForeignKey("AccessEventLogId");
-
                     b.HasOne("DoorDB.TblUser", "User")
                         .WithMany("BookingLogs")
                         .HasForeignKey("UserAddress")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("AccessEventLog");
 
                     b.Navigation("User");
                 });

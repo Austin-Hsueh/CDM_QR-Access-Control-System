@@ -6,6 +6,7 @@ using DoorDB.Enums;
 using DoorWebApp.Models.DTO;
 using Microsoft.AspNetCore.Authorization;
 using System.Reflection;
+using SoyalQRGen.Entities.Soyal;
 
 namespace DoorWebApp.Controllers
 {
@@ -25,7 +26,7 @@ namespace DoorWebApp.Controllers
         }
 
         /// <summary>
-        /// 取得角色清單(含權限資訊)
+        /// 取得打卡清單
         /// </summary>
         /// <returns></returns>
         [AllowAnonymous]
@@ -108,8 +109,81 @@ namespace DoorWebApp.Controllers
             }
         }
 
+        /// <summary>
+        /// 新增使用者
+        /// </summary>
+        /// <returns></returns>
+        [Authorize]
+        [HttpPost("v1/BookingLog")]
+        public async Task<IActionResult> AddBookingLog(ReqNewBookLogDTO BookLogDTO)
+        {
+            APIResponse res = new APIResponse();
+            log.LogInformation($"[{Request.Path}] AddBookLog userId Request : {BookLogDTO.userId}");
+            try
+            {
+                int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+                string OperatorUsername = User.Identity?.Name ?? "N/A";
 
-        
+                // 1. 檢查輸入參數
+                // 1-1 必填欄位缺少
+                //userid_is_required
+                if (BookLogDTO.userId == null || BookLogDTO.userId == 0)
+                {
+                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({BookLogDTO.userId})");
+                    res.result = APIResultCode.userid_is_required;
+                    res.msg = "userid_is_required";
+                    return Ok(res);
+                }
+                //打卡時間
+                if (string.IsNullOrEmpty(BookLogDTO.eventTime))
+                {
+                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({BookLogDTO.eventTime})");
+                    res.result = APIResultCode.eventime_is_required;
+                    res.msg = "eventime_is_required";
+                    return Ok(res);
+                }
+
+
+                // 2. 新增打卡紀錄
+                TblBookingLog NewBookingLog = new TblBookingLog();
+                NewBookingLog.Id = "";
+                NewBookingLog.UserAddress = BookLogDTO.userId;
+                NewBookingLog.EventTime = DateTime.Parse(BookLogDTO.eventTime);
+                NewBookingLog.IsDelete = false;
+                NewBookingLog.UpdateUserId = OperatorId;
+
+                ctx.TblBookingLog.Add(NewBookingLog);
+                ctx.SaveChanges(); // Save user to generate UserId
+                log.LogInformation($"[{Request.Path}] Create BookLogDTO : userId={BookLogDTO.userId}, UpdateUserId={OperatorId}");
+
+
+                // 3. 回傳結果
+                res.result = APIResultCode.success;
+                res.msg = "success";
+
+                auditLog.WriteAuditLog(AuditActType.Create, $" Create BookLogDTO : userId={BookLogDTO.userId}, UpdateUserId={OperatorId}", OperatorUsername);
+
+                return Ok(res);
+            }
+            catch (DbUpdateException ex)
+            {
+                // Log the detailed error message
+                var errorMessage = ex.InnerException?.Message ?? ex.Message;
+                Console.WriteLine($"Error: {errorMessage}");
+                // You can also log this to a file or another logging system
+                res.result = APIResultCode.unknow_error;
+                res.msg = ex.Message;
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
 
 
     }

@@ -36,6 +36,8 @@
         password_is_required = 406,
         duplicate_password = 407,
         phone_is_required = 408,
+        userid_is_required = 409,
+        eventime_is_required = 410,
 
         factory_not_found  = 501,
         factory_has_been_deleted = 502,
