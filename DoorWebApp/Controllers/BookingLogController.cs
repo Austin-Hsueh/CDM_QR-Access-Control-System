@@ -256,7 +256,90 @@ namespace DoorWebApp.Controllers
             }
         }
 
+        /// <summary>
+        /// 取得老師打卡清單
+        /// </summary>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [HttpPost("v1/TeacherAccesseventLog")]
+        public IActionResult GetAllTeacherAccesseventLog(ReqPagingBookDTO data)
+        {
+            APIResponse<PagingDTO<ResGetAllTeacherAccesseventLogDTO>> res = new APIResponse<PagingDTO<ResGetAllTeacherAccesseventLogDTO>>();
 
+            try
+            {
+                //老師Id 52-67
+                List<int> TeacherAddress = new List<int>();
+                TeacherAddress.AddRange(Enumerable.Range(52, 67 - 52 + 1));
+                var teacherAddress = TeacherAddress;
+
+                /// 1. 查詢
+                var AccessEventLogList = ctx.AccessEventLog
+                    .Where(x => TeacherAddress.Contains(x.UserAddress))
+                    .Where(x => data.UserId != 0 ? x.UserAddress == data.UserId : true)
+                    .Select(x => new ResGetAllTeacherAccesseventLogDTO()
+                    {
+                        Id = x.Id,
+                        EventTime = x.EventTime,
+                        UserAddress = x.UserAddress
+                    })
+                    .AsQueryable();
+
+
+                log.LogInformation($"[{Request.Path}] themes.Count():[{AccessEventLogList.Count()}]");
+
+
+                // 2.1 一頁幾筆
+                int onePage = data.SearchPage;
+
+                // 2.2 總共幾頁
+                int totalRecords = AccessEventLogList.Count();
+                log.LogInformation($"[{Request.Path}] totalRecords:[{totalRecords}]");
+                if (totalRecords == 0)
+                {
+                    res.result = APIResultCode.success;
+                    res.msg = "success 但是無資料";
+                    res.content = new PagingDTO<ResGetAllTeacherAccesseventLogDTO>()
+                    {
+                        pageItems = AccessEventLogList.ToList()
+                    };
+                    return Ok(res);
+                }
+
+                // 2.3 頁數進位
+                int allPages = (int)Math.Ceiling((double)totalRecords / onePage);
+                log.LogInformation($"[{Request.Path}] allPages:[{allPages}]");
+
+                // 2.4 非法頁數(不回報錯誤 則強制變為最大頁數)
+                if (allPages < data.Page)
+                {
+                    data.Page = allPages;
+                }
+
+                // 2.5 取第幾頁
+                AccessEventLogList = AccessEventLogList.Skip(onePage * (data.Page - 1)).Take(onePage);
+                log.LogInformation($"[{Request.Path}] [{MethodBase.GetCurrentMethod().Name}] end");
+
+
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                res.content = new PagingDTO<ResGetAllTeacherAccesseventLogDTO>()
+                {
+                    totalItems = totalRecords,
+                    totalPages = allPages,
+                    pageSize = onePage,
+                    pageItems = AccessEventLogList.ToList()
+                };
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
 
     }
 }
