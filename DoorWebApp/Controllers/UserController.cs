@@ -741,6 +741,8 @@ namespace DoorWebApp.Controllers
                 NewUser.LastLoginTime = null;
                 NewUser.CreateTime = DateTime.Now;
                 NewUser.ModifiedTime = DateTime.Now;
+                NewUser.IsRecord = UserDTO.isRecord;
+
 
                 //3-1. 新增角色關聯,再加到使用者
                 List<TblRole> Roles = ctx.TblRoles.Where(x => x.IsDelete == false)
@@ -937,8 +939,9 @@ namespace DoorWebApp.Controllers
                 UserEntity.Email = UserDTO.email;
                 UserEntity.Phone = UserDTO.phone;
                 UserEntity.Type = UserDTO.type;
+                UserEntity.IsRecord = UserDTO.isRecord;
 
-                if(!string.IsNullOrEmpty( UserDTO.password) )
+                if (!string.IsNullOrEmpty( UserDTO.password) )
                     UserEntity.Secret = UserDTO.password;
 
                 UserEntity.ModifiedTime = DateTime.Now;
