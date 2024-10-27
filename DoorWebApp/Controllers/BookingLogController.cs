@@ -47,6 +47,7 @@ namespace DoorWebApp.Controllers
                     .Where(x => data.UserId != 0 ? x.User.Id == data.UserId : true)
                     .Select(x => new ResGetAllBookingLogsInfoDTO()
                     {
+                        serial = x.Serial,
                         userId = x.UserAddress,
                         username = x.User.DisplayName,
                         EventTime = x.EventTime.ToString()
@@ -173,6 +174,77 @@ namespace DoorWebApp.Controllers
                 // You can also log this to a file or another logging system
                 res.result = APIResultCode.unknow_error;
                 res.msg = ex.Message;
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
+        /// <summary>
+        /// 更新單一名使用者打卡紀錄
+        /// </summary>
+        /// <returns></returns>
+        [Authorize]
+        [HttpPatch("v1/BookingLog")]
+        public IActionResult UpdateUserRoles(ReqUpdateBookLogDTO BookLogDTO)
+        {
+            APIResponse res = new APIResponse();
+            try
+            {
+                int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+                string OperatorUsername = User.Identity?.Name?? "N/A";
+
+                log.LogInformation($"[{Request.Path}] Update booklog. OperatorId:{OperatorId}");
+                // 1. 資料檢核
+                var BookLogEntity = ctx.TblBookingLog.Where(x => x.Serial == BookLogDTO.serial).FirstOrDefault();
+                if (BookLogEntity == null)
+                {
+                    log.LogWarning($"[{Request.Path}] User booklog (Serial:{BookLogDTO.serial}) not found");
+                    res.result = APIResultCode.booklog_not_found;
+                    res.msg = "查無打卡紀錄";
+                    return Ok(res);
+                }
+
+                
+                //1-1. 假刪除使用者
+                if (BookLogDTO.IsDelete)
+                {
+                    BookLogEntity.IsDelete = true;
+                    // 存檔
+                    log.LogInformation($"[{Request.Path}] Save changes");
+                    int EffectRowDelete = ctx.SaveChanges();
+                    log.LogInformation($"[{Request.Path}] Update success. (EffectRow:{EffectRowDelete})");
+
+                    // 1-2. 寫入稽核紀錄
+                    auditLog.WriteAuditLog(AuditActType.Modify, $"Update BookLogDTO delete. Serial: {BookLogDTO.serial}, EffectRow:{EffectRowDelete}", OperatorUsername);
+
+                    res.result = APIResultCode.success;
+                    res.msg = "success";
+
+                    return Ok(res);
+                }
+
+                // 2. 更新資料
+                //更新使用者
+                BookLogEntity.EventTime = DateTime.Parse(BookLogDTO.eventTime);
+                BookLogEntity.IsDelete = BookLogDTO.IsDelete;
+                BookLogEntity.UpdateUserId = OperatorId;
+
+
+                // 3. 存檔
+                log.LogInformation($"[{Request.Path}] Save changes");
+                int EffectRow = ctx.SaveChanges();
+                log.LogInformation($"[{Request.Path}] Update success. (EffectRow:{EffectRow})");
+
+
+                res.result = APIResultCode.success;
+                res.msg = "success";
+
                 return Ok(res);
             }
             catch (Exception err)

@@ -21,6 +21,7 @@
         account_suspend = 106,
         ldap_error = 107,
         user_has_been_deleted = 108,
+        booklog_not_found = 109,
 
         role_not_found = 301,
         duplicate_role_name = 302,

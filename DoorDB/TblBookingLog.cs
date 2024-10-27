@@ -15,7 +15,14 @@ namespace DoorDB
     public class TblBookingLog
     {
         /// <summary>
-        /// 流水號(Auto increase)
+        /// 序號(Auto increase)
+        /// </summary>
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        [Key]
+        public int Serial { get; set; }
+
+        /// <summary>
+        /// AccessEventLogId
         /// </summary>
         public string Id { get; set; }
 
