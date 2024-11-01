@@ -107,7 +107,7 @@ public class ScheduledJob : IJob
                 foreach (var qrcode in result.content)
                 {
                     // 新增 Qrcode 或更新 Qrcode
-                    var qrcodeEntity = ctx.TbQRCodeStorages.Include(x => x.Users).Where(x => x.Users.Select(u => u.Id).Contains(qrcode.userAddr)).FirstOrDefault();
+                    var qrcodeEntity = ctx.TbQRCodeStorages.Include(x => x.Users).Where(x => x.Users.Any(u => u.Id == qrcode.userAddr)).FirstOrDefault();
                     if (qrcodeEntity == null)
                     {
 
