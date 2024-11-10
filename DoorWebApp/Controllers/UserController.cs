@@ -1345,13 +1345,19 @@ namespace DoorWebApp.Controllers
                 
                 var userPermission = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == UserId).FirstOrDefault();
 
-                var QRCodeData = ctx.TbQRCodeStorages.Include(x => x.Users)
-                                                     .Where(x => x.Users.Select(u => u.Id)
-                                                     .Contains(UserId))
-                                                     .Select(x => new { x.QRCodeData, 
-                                                                        x.ModifiedTime
-                                                                      }
+                var QRCodeData = ctx.TbQRCodeStorages.FromSqlRaw(@"SELECT q.* 
+                                                            FROM tblqrcodestorage q
+                                                            LEFT JOIN tblqrcodestoragetbluser qu ON qu.QRCodesId = q.Id 
+                                                            WHERE UsersId = @UsersId",
+                                                            new MySqlConnector.MySqlParameter("@UsersId", UserId))
+                                                     .Select(x => new
+                                                     {
+                                                         x.QRCodeData,
+                                                         x.ModifiedTime
+                                                     }
                                                      ).FirstOrDefault();
+
+
                 List<ManyTimePermissionDTO> Permissions = new List<ManyTimePermissionDTO>();
                 List<ManyTimePermissionDTO> StudentPermissions = new List<ManyTimePermissionDTO>();
                 if (QRCodeData != null)
@@ -1359,8 +1365,14 @@ namespace DoorWebApp.Controllers
                     var permissions = ctx.TblPermission
                                         .Where(x => x.UserId == UserId)
                                         .Where(p =>
-                                            string.Compare(p.DateFrom, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) <= 0 &&
-                                            string.Compare(p.DateTo, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) >= 0 &&
+                                            (
+                                                (string.Compare(p.DateFrom, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) >= 0 &&
+                                                string.Compare(p.DateTo, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) >= 0 )
+                                                ||
+                                                (string.Compare(p.DateFrom, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) <= 0 &&
+                                                string.Compare(p.DateTo, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) >= 0)
+                                            )
+                                            &&
                                             string.Compare(p.TimeFrom, QRCodeData.ModifiedTime.ToString("HH:mm")) <= 0 &&
                                             string.Compare(p.TimeTo, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0 
                                         )
