@@ -1327,7 +1327,10 @@ namespace DoorWebApp.Controllers
                 int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
                 string OperatorUsername = User.Identity?.Name ?? "N/A";
                 log.LogInformation($"[{Request.Path}] GetPermissionSetting : id={OperatorId}, username={OperatorUsername})");
-
+                DateTime now = DateTime.Now;
+                int day = (int)now.DayOfWeek;
+                if (day == 0)
+                    day = 7;
 
                 // 1. 資料檢核
                 var targetUserEntity = ctx.TblUsers.Where(x => x.Id == UserId).FirstOrDefault();
@@ -1402,11 +1405,18 @@ namespace DoorWebApp.Controllers
                     var studentpermissions = ctx.TblStudentPermission
                                                 .Where(x => x.UserId == UserId)
                                                 .Where(p =>
+                                                    (
+                                                        (string.Compare(p.TimeFrom, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0 &&
+                                                        string.Compare(p.TimeTo, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0)
+                                                        ||
+                                                        (string.Compare(p.TimeFrom, QRCodeData.ModifiedTime.ToString("HH:mm")) <= 0 &&
+                                                        string.Compare(p.TimeTo, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0)
+                                                    )
+                                                    &&
                                                     string.Compare(p.DateFrom, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) <= 0 &&
-                                                    string.Compare(p.DateTo, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) >= 0 &&
-                                                    string.Compare(p.TimeFrom, QRCodeData.ModifiedTime.ToString("HH:mm")) <= 0 &&
-                                                    string.Compare(p.TimeTo, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0 
+                                                    string.Compare(p.DateTo, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) >= 0
                                                 )
+                                                .Where(x => x.Days.Contains(day.ToString()))
                                                 .Select(x => new
                                                 {
                                                     x.DateFrom,
