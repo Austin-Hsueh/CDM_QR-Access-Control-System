@@ -269,6 +269,116 @@ namespace DoorWebApp.Controllers
         }
 
         /// <summary>
+        /// 更新所有使用者當天清單門禁
+        /// </summary>
+        /// <returns></returns>
+        [Authorize]
+        [HttpPost("v1/UpdateUserPermission/{UserId}")]
+        public async Task<IActionResult> UpdateUserPermission(int UserId)
+        {
+            APIResponse<List<ResGetAllUsersDTO>> res = new APIResponse<List<ResGetAllUsersDTO>>();
+
+            try
+            {
+                int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+                string OperatorUsername = User.Identity?.Name ?? "N/A";
+                log.LogInformation($"[{Request.Path}] v1/UpdateUsersAllPermission : id={OperatorId}, username={OperatorUsername})");
+
+                log.LogInformation($"更新 當天所有 QRCode 開始");
+
+                // 1. 撈出要更新的UserId
+                DateTime now = DateTime.Now;
+                string nowDate = now.ToString("yyyy/MM/dd");
+                int day = (int)now.DayOfWeek;
+                if (day == 0)
+                    day = 7;
+
+                //多時段設定
+                var studentPermissions = ctx.TblStudentPermission.Where(p => p.IsDelete == false)
+                                                             .Where(p => p.UserId == UserId)
+                                                             .Where(p => p.Days.Contains(day.ToString()))
+                                                             .Where(p => p.DateFrom.CompareTo(nowDate) <= 0 && p.DateTo.CompareTo(nowDate) >= 0)
+                                                             .Select(sp => new
+                                                             {
+                                                                 UserId = sp.UserId,
+                                                                 PermissionGroupIds = sp.PermissionGroups.Select(pg => pg.Id).ToList(),
+                                                                 TimeFrom = sp.TimeFrom,
+                                                                 TimeTo = sp.TimeTo
+                                                             }).ToList();
+
+                //var UserList = permissions.Union(studentPermissions)
+                var UserList = studentPermissions
+                .GroupBy(p => p.UserId)
+                .Select(g => new UserAccessProfile()
+                {
+                    userAddr = (ushort)g.Key,
+                    isGrant = true,
+                    doorList = g.SelectMany(p => p.PermissionGroupIds).Distinct().ToList(),
+                    beginTime = nowDate.Replace("/", "-").ToString() + "T" + g.Min(p => p.TimeFrom).ToString() + ":00",
+                    endTime = nowDate.Replace("/", "-").ToString() + "T" + g.Max(p => p.TimeTo).ToString() + ":00"
+                })
+                .ToList();
+
+                //取得Qrcode
+                APIResponse<List<ResGetAllUsersDTO>> resQrcodes = new APIResponse<List<ResGetAllUsersDTO>>();
+                var result = await SoyalAPI.SendUserAccessProfilesAsync(UserList);
+                if (result.msg == "Success" && result.content.Count > 0)
+                {
+                    var qrcode = result.content.FirstOrDefault();
+                    // 新增 Qrcode 或更新 Qrcode
+                    var qrcodeEntity = ctx.TbQRCodeStorages.Include(x => x.Users).Where(x => x.Users.Select(u => u.Id).Contains(qrcode.userAddr)).FirstOrDefault();
+                    if (qrcodeEntity == null)
+                    {
+
+                        //新增 Qrcode
+                        TblQRCodeStorage NewQRCode = new TblQRCodeStorage();
+                        NewQRCode.userTag = (int)qrcode.userTag;
+                        NewQRCode.qrcodeTxt = qrcode.qrcodeTxt;
+                        NewQRCode.QRCodeData = qrcode.qrcodeImg;
+                        NewQRCode.CreateTime = DateTime.Now;
+                        NewQRCode.ModifiedTime = DateTime.Now;
+
+                        var userEntity = ctx.TblUsers.Where(x => x.Id == qrcode.userAddr).ToList();
+                        NewQRCode.Users.AddRange(userEntity);
+
+                        ctx.SaveChanges(); // Save user to generate UserId
+                        log.LogInformation($"[{Request.Path}] Create QRCode : Id={NewQRCode.Id}, Add to QRCodeData={NewQRCode.QRCodeData}");
+                    }
+                    else //更新 Qrcode
+                    {
+                        qrcodeEntity.userTag = (int)qrcode.userTag;
+                        qrcodeEntity.qrcodeTxt = qrcode.qrcodeTxt;
+                        qrcodeEntity.QRCodeData = qrcode.qrcodeImg;
+                        qrcodeEntity.ModifiedTime = DateTime.Now;
+
+                        var userEntity = ctx.TblUsers.Where(x => x.Id == qrcode.userAddr).ToList();
+                        qrcodeEntity.Users.AddRange(userEntity);
+
+                        ctx.SaveChanges(); // Save user to generate UserId
+                        log.LogInformation($"[{Request.Path}] update QRCode : Id={qrcodeEntity.Id}, Add to UserId={qrcode.userAddr}");
+                    }
+
+                }
+
+
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                //res.content = UserList;
+                //res.content = UserList;
+
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
+
+        /// <summary>
         /// 取得使用者清單(下拉選單)
         /// </summary>
         /// <returns></returns>
