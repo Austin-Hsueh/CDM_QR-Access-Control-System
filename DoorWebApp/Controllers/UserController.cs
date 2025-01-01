@@ -187,7 +187,8 @@ namespace DoorWebApp.Controllers
                 //                                          TimeTo = p.TimeTo
                 //                                      }).ToList();
                 //多時段設定
-                var studentPermissions = ctx.TblStudentPermission.Where(p => p.IsDelete == false)
+                var studentPermissions = ctx.TblStudentPermission.Include(x => x.User).Where(x => x.User.Type != 2) //停課的不更新QRcode
+                                                             .Where(p => p.IsDelete == false)
                                                              .Where(p => p.Days.Contains(day.ToString()))
                                                              .Where(p => p.DateFrom.CompareTo(nowDate) <= 0 && p.DateTo.CompareTo(nowDate) >= 0)
                                                              .Select(sp => new
@@ -294,7 +295,8 @@ namespace DoorWebApp.Controllers
                     day = 7;
 
                 //多時段設定
-                var studentPermissions = ctx.TblStudentPermission.Where(p => p.IsDelete == false)
+                var studentPermissions = ctx.TblStudentPermission.Include(x => x.User).Where(x => x.User.Type != 2) //停課的不更新QRcode
+                                                             .Where(p => p.IsDelete == false)
                                                              .Where(p => p.UserId == UserId)
                                                              .Where(p => p.Days.Contains(day.ToString()))
                                                              .Where(p => p.DateFrom.CompareTo(nowDate) <= 0 && p.DateTo.CompareTo(nowDate) >= 0)
@@ -926,7 +928,7 @@ namespace DoorWebApp.Controllers
         /// <returns></returns>
         [Authorize]
         [HttpPatch("v1/UpdateUser")]
-        public IActionResult UpdateUserRoles(ReqUpdateUserDTO UserDTO)
+        public async Task<IActionResult> UpdateUserRoles(ReqUpdateUserDTO UserDTO)
         {
             APIResponse res = new APIResponse();
             try
@@ -1072,6 +1074,32 @@ namespace DoorWebApp.Controllers
 
                 // 5. 寫入稽核紀錄
                 auditLog.WriteAuditLog(AuditActType.Modify, $"Update user  Old Role:{string.Join(",", UserRoleCurrent)}, New:{string.Join(",", UserRoleAssign)}, EffectRow:{EffectRow}", OperatorUsername);
+
+                if (UserEntity.Type == 2)   //停課 要停止QRcode
+                {
+                    var UserList = new List<UserAccessProfile>
+                    {
+                        new UserAccessProfile
+                        {
+                            userAddr = (ushort)UserId,
+                            isGrant = false,
+                            doorList = ctx.TblPermissionGroup.Select(x => x.Id).ToList(),
+                            beginTime = "2024-12-31T09:00:00",
+                            endTime = "2024-12-31T23:59:00"
+                        }
+                    };
+
+                    //QRcode 失效
+                    var result = await SoyalAPI.SendUserAccessProfilesAsync(UserList);
+                    if (result.msg == "Success" && result.content.Count > 0)
+                    {
+                        log.LogInformation($"[{Request.Path}] User QRcode Invalid success. (UserId:{UserId})");
+                    }
+                    else{
+                        log.LogInformation($"[{Request.Path}] Update QRcode Invalid failed. (UserId:{UserId})");
+                    }
+
+                }
 
                 res.result = APIResultCode.success;
                 res.msg = "success";
@@ -2055,6 +2083,41 @@ namespace DoorWebApp.Controllers
                 // You can also log this to a file or another logging system
                 res.result = APIResultCode.unknow_error;
                 res.msg = ex.Message;
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
+        /// <summary>
+        /// 顯示學生各狀態(在學, 停課, 約課)
+        /// </summary>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [HttpGet("v1/Users/StudentTypeCount")]
+        public IActionResult StudentTypeCount()
+        {
+            APIResponse<ResStudentTypeCountDTO> res = new APIResponse<ResStudentTypeCountDTO>();
+
+            try
+            {
+                //選課狀態 預設0,1在學,2停課,3約課
+                var StudentTypeCount = new ResStudentTypeCountDTO()
+                    {
+                        studyingCount = ctx.TblUsers.Where(x => x.IsDelete == false && x.Type == 1).Count(),
+                        stopCount = ctx.TblUsers.Where(x => x.IsDelete == false && x.Type == 2).Count(),
+                        bookingCount = ctx.TblUsers.Where(x => x.IsDelete == false && x.Type == 3).Count()
+                    };
+
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                res.content = StudentTypeCount;
+
                 return Ok(res);
             }
             catch (Exception err)
