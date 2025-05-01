@@ -73,6 +73,11 @@ namespace DoorDB
         /// </summary>
         public bool IsDelete { get; set; }
 
+        /// <summary>
+        /// 是否紀錄同意
+        /// </summary>
+        public bool IsRecord { get; set; }
+
 
         /// <summary>
         /// 最近一次登入的IP
@@ -110,5 +115,6 @@ namespace DoorDB
 
         public virtual List<TblQRCodeStorage> QRCodes { set; get; }
         public virtual List<TblStudentPermission> StudentPermissions { set; get; }
+        public virtual List<TblBookingLog> BookingLogs { set; get; }
     }
 }

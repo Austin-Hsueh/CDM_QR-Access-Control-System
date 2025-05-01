@@ -38,5 +38,10 @@
         /// </summary>
         /// 0預設 1 在學 2 停課 3 約課
         public int type { set; get; } = 0;
+
+        /// <summary>
+        /// 是否紀錄同意
+        /// </summary>
+        public bool isRecord { get; set; } = false;
     }
 }

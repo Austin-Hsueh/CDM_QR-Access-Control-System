@@ -21,6 +21,7 @@
         account_suspend = 106,
         ldap_error = 107,
         user_has_been_deleted = 108,
+        booklog_not_found = 109,
 
         role_not_found = 301,
         duplicate_role_name = 302,
@@ -36,6 +37,8 @@
         password_is_required = 406,
         duplicate_password = 407,
         phone_is_required = 408,
+        userid_is_required = 409,
+        eventime_is_required = 410,
 
         factory_not_found  = 501,
         factory_has_been_deleted = 502,
