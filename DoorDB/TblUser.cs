@@ -110,5 +110,7 @@ namespace DoorDB
 
         public virtual List<TblQRCodeStorage> QRCodes { set; get; }
         public virtual List<TblStudentPermission> StudentPermissions { set; get; }
+
+        public virtual List<TblStudentPermission> TeacherStudentPermissions { set; get; }
     }
 }

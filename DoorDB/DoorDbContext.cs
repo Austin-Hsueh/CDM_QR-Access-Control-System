@@ -24,6 +24,9 @@ namespace DoorDB
         public virtual DbSet<TblUser> TblUsers { set; get; } = null!;
         public virtual DbSet<TblQRCodeStorage> TbQRCodeStorages { set; get; } = null!;
 
+        public virtual DbSet<TblCourse> Course { set; get; } = null!;
+
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
@@ -236,6 +239,21 @@ namespace DoorDB
             modelBuilder.Entity<TblStudentPermission>()
                 .HasMany(p => p.PermissionGroups)
                 .WithMany(pg => pg.StudentPermissions);
+
+
+            // 設置 TblUser(Teacher) 與 TblStudentPermissions 一對多關係
+            modelBuilder.Entity<TblUser>()
+               .HasMany(p => p.TeacherStudentPermissions)
+               .WithOne(pg => pg.Teacher)
+               .HasForeignKey(p => p.TeacherId)
+               .OnDelete(DeleteBehavior.Cascade);
+
+            // 設置TblCourse 與 TblStudentPermissions 一對多關係
+            modelBuilder.Entity<TblCourse>()
+               .HasMany(p => p.CourseStudentPermissions)
+               .WithOne(pg => pg.Course)
+               .HasForeignKey(p => p.CourseId)
+               .OnDelete(DeleteBehavior.Cascade);
 
             #endregion
 
