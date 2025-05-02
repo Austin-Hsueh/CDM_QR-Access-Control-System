@@ -4,6 +4,8 @@
     {
         public int Id { get; set; } = 0;
         public int userId { get; set; } = 0;
+        public int courseId { get; set; } = 0;
+        public int teacherId { get; set; } = 0;
         public string datefrom { get; set; } // 權限日期起
         public string dateto { get; set; } // 權限日期訖
         public string timefrom { get; set; } // 權限時間起

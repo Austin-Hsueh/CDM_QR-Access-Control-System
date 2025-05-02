@@ -54,12 +54,12 @@
         kaizen_item_not_found = 614,
         topPNInfo_not_fount = 615,
         duplicate_kaizen_item = 617,
-        
-        
 
 
-        pn_not_found = 701,
-        route_not_found = 702,
+
+        courseName_is_required = 701,
+        duplicate_Coursename = 702,
+        Course_not_found = 703,
 
         out_of_time_range = 801,
 

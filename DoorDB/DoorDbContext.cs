@@ -24,7 +24,7 @@ namespace DoorDB
         public virtual DbSet<TblUser> TblUsers { set; get; } = null!;
         public virtual DbSet<TblQRCodeStorage> TbQRCodeStorages { set; get; } = null!;
 
-        public virtual DbSet<TblCourse> Course { set; get; } = null!;
+        public virtual DbSet<TblCourse> TbCourses { set; get; } = null!;
 
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

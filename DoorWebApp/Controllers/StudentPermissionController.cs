@@ -20,6 +20,7 @@ using System.Collections.Generic;
 using DoorWebApp.Extensions;
 using System;
 using System.Reflection;
+using DoorWebDB.Migrations;
 
 namespace DoorWebApp.Controllers
 {
@@ -81,6 +82,8 @@ namespace DoorWebApp.Controllers
                     .Select(sp => new ResStudentPermissionDTO()
                     {
                         Id = sp.Id,
+                        courseId = sp.CourseId,
+                        teacherId = sp.TeacherId,
                         datefrom = sp.DateFrom,
                         dateto = sp.DateTo,
                         timefrom = sp.TimeFrom,
@@ -176,6 +179,8 @@ namespace DoorWebApp.Controllers
                 // 2. 更新資料
                 //更新門禁設定
                 TblStudentPermission AssignPermissionEntity = new TblStudentPermission();
+                AssignPermissionEntity.CourseId = PermissionDTO.courseId;
+                AssignPermissionEntity.TeacherId = PermissionDTO.teacherId;
                 AssignPermissionEntity.DateFrom = PermissionDTO.datefrom.Replace("-", "/");
                 AssignPermissionEntity.DateTo = PermissionDTO.dateto.Replace("-", "/");
                 AssignPermissionEntity.TimeFrom = PermissionDTO.timefrom;
@@ -265,6 +270,8 @@ namespace DoorWebApp.Controllers
                 AssignPermissionEntity.DateTo = PermissionDTO.dateto.Replace("-", "/");
                 AssignPermissionEntity.TimeFrom = PermissionDTO.timefrom;
                 AssignPermissionEntity.TimeTo = PermissionDTO.timeto;
+                AssignPermissionEntity.CourseId = PermissionDTO.courseId;
+                AssignPermissionEntity.TeacherId = PermissionDTO.teacherId;
                 AssignPermissionEntity.Days = string.Join(",", PermissionDTO.days);
 
                 AssignPermissionEntity.PermissionGroups.Clear();
