@@ -97,33 +97,10 @@ namespace DoorWebDB.Migrations
                 table: "tblStudentPermission",
                 column: "TeacherId");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_tblStudentPermission_tblCourse_CourseId",
-                table: "tblStudentPermission",
-                column: "CourseId",
-                principalTable: "tblCourse",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_tblStudentPermission_tblUser_TeacherId",
-                table: "tblStudentPermission",
-                column: "TeacherId",
-                principalTable: "tblUser",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_tblStudentPermission_tblCourse_CourseId",
-                table: "tblStudentPermission");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_tblStudentPermission_tblUser_TeacherId",
-                table: "tblStudentPermission");
-
             migrationBuilder.DropTable(
                 name: "tblCourse");
 
