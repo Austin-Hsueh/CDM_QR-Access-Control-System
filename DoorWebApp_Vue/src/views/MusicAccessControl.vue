@@ -27,6 +27,28 @@
                   />
                 </el-select>
               </el-form-item>
+              <el-form-item label="課程類別" prop="courseId">
+                <el-select filterable placeholder="請選擇" v-model="settingAccessTimeFormData.courseId">
+                  <el-option label="鋼琴" :value="1"></el-option>
+                  <el-option label="歌唱" :value="2"></el-option>
+                  <el-option label="吉他" :value="3"></el-option>
+                  <el-option label="貝斯" :value="4"></el-option>
+                  <el-option label="烏克麗麗" :value="5"></el-option>
+                  <el-option label="創作" :value="6"></el-option>
+                  <el-option label="管樂" :value="7"></el-option>
+                  <el-option label="爵士鼓" :value="8"></el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item label="老師姓名" prop="teacherId">
+                <el-select filterable placeholder="請選擇" v-model="settingAccessTimeFormData.teacherId">
+                  <el-option
+                    v-for="item in teachersOptions"
+                    :key="item.userId"
+                    :label="item.displayName"
+                    :value="item.userId"
+                  />
+                </el-select>
+              </el-form-item>
               <el-form-item label="門禁權限" prop="groupIds">
                 <el-checkbox-group v-model="settingAccessTimeFormData.groupIds">
                   <el-checkbox v-for="item in doors" :key="item" :label="item" :value="item">
@@ -137,6 +159,7 @@ const { t, locale } = useI18n();
 const router = useRouter();
 const userInfoStore = useUserInfoStore();
 const usersOptions = ref<M_IUsersOptions[]>([]);
+const teachersOptions = ref<M_IUsersOptions[]>([]);
 const doors = [1,2,3,4];
 const days = [1,2,3,4,5,6,7];
 
@@ -160,6 +183,8 @@ const settingForm = async () => {
       ssetStudentPermission.userId = settingAccessTimeFormData.userId;
       ssetStudentPermission.days = settingAccessTimeFormData.days;
       ssetStudentPermission.groupIds = settingAccessTimeFormData.groupIds;
+      ssetStudentPermission.courseId = settingAccessTimeFormData.courseId;
+      ssetStudentPermission.teacherId = settingAccessTimeFormData.teacherId;
 
       console.log(ssetStudentPermission);
 
@@ -231,6 +256,9 @@ async function getUsersOptions() {
     // usersOptions.value = getUsersOptionsResult.data.content;
     usersOptions.value = getUsersOptionsResult.data.content.filter(user => ![52, 54].includes(user.userId));
 
+    const validIds = [66, 67, 68, 69, 70, 71, 72, 73, 74, 75];
+    teachersOptions.value = getUsersOptionsResult.data.content.filter(user => validIds.includes(user.userId));
+
   } catch (error) {
     console.error(error);
   }
@@ -250,6 +278,8 @@ const settingAccessTimeFormData = reactive<M_IsettingAccessRuleForm>({
   dateto: '',
   timefrom:'',
   timeto: '',
+  courseId: '',
+  teacherId: '',
 })
 const ssetStudentPermission = reactive<M_IsettingAccessRuleForm>({
   userId: '',
