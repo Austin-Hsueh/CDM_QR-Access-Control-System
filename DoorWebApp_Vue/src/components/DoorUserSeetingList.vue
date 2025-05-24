@@ -15,10 +15,11 @@
   <!-- table 多時段 樣式1-->
   <el-row>
     <el-col :span="24">
-      <el-table name="userInfoMTITable" style="width: 100%" height="400" :data="userInfoMTI?.pageItems" >
+      <el-table name="userInfoMTITable" style="width: 100%" height="800" :data="userInfoMTI?.pageItems" >
         <el-table-column type="expand">
           <template #default="props">
-            <div class="m-2">
+            <div class="m-3" style="margin-bottom: 3rem !important;">
+              <h4 style="font-weight: bold;text-decoration: underline;text-align: center;">通行資料</h4><br>
               <el-table :data="props.row.studentPermissions"  border="true" :header-cell-style="{ backgroundColor: '#F2F2F2' }">
                 <el-table-column :label="t('Start Date')" prop="datefrom"  align="center"/>
                 <el-table-column :label="t('End Date')" prop="dateto"  align="center"/>
@@ -37,12 +38,41 @@
                     {{ formatDoors(scope.row.groupIds) }}
                   </template>
                 </el-table-column>
+                <el-table-column label="課程類別" align="center">
+                  <template  #default="scope">
+                    {{ formatCourse(scope.row.courseId) }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="老師" align="center">
+                  <template #default="scope">
+                    {{ teacherMap[scope.row.teacherId] || '未知' }}
+                  </template>
+                </el-table-column>
                 <el-table-column width="170px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
                   <template v-slot="{ row }: { row: any }">
                     <el-button type="primary" size="small" @click="onEdit(row, props.row.userId, props.row.displayName)"><el-icon><EditPen /></el-icon>{{ t('edit') }}</el-button>
                     <el-button type="danger" size="small" @click="onDelet(row, props.row.userId, props.row.displayName)">
                       <el-icon><Delete /></el-icon> {{ t('delete') }}
                     </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+            <div class="m-3" style="margin-bottom: 3rem !important;">
+              <h4 style="font-weight: bold;text-decoration: underline;text-align: center;">學生簽到表</h4><br>
+              <el-table name="userInfoTable" style="width: 100%" :data="Info" border="true" :header-cell-style="{ backgroundColor: '#F2F2F2' }">
+                <el-table-column :label="t('Term')" prop="term" />
+                <el-table-column :label="t('PaymentDate')" prop="paymentDate" />
+                <el-table-column :label="t('PaymentStamp')" prop="paymentStamp" />
+                <el-table-column :label="t('AttendanceFirst')" prop="attendanceFirst" />
+                <el-table-column :label="t('AttendanceSecond')" prop="attendanceSecond" />
+                <el-table-column :label="t('AttendanceThird')" prop="attendanceThird" />
+                <el-table-column :label="t('AttendanceFourth')" prop="attendanceFourth" />
+                <el-table-column :label="t('AbsenceRecord')" prop="absenceRecord" />
+                <el-table-column :label="t('CourseDeadline')" prop="courseDeadline" />
+                <el-table-column width="170px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
+                  <template #default="{ row }: { row: any }">
+                    <el-button type="primary" size="small" @click="onEdit(row)"><el-icon><EditPen /></el-icon>{{ t('edit') }}</el-button>
                   </template>
                 </el-table-column>
               </el-table>
@@ -59,39 +89,6 @@
       </el-table>
     </el-col>
   </el-row>
-  <!-- /table 多時段-->
-
-  <!-- table 多時段 樣式2-->
-  <!-- <el-row v-if="false">
-    <el-col :span="24">
-      <el-table name="userInfoMTITable" style="width: 100%" height="400" :data="flattenedData">
-        <el-table-column sortable :label="t('username')" prop="username" />
-        <el-table-column sortable :label="t('displayName')" prop="displayName" />
-        <el-table-column label="開始日期" prop="datefrom" />
-        <el-table-column label="結束日期" prop="dateto" />
-        <el-table-column label="時間">
-          <template #default="scope">
-            {{ scope.row.timefrom }} ~ {{ scope.row.timeto }}
-          </template>
-        </el-table-column>
-        <el-table-column label="週期">
-          <template #default="scope">
-            {{ formatDays(scope.row.days) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="門組">
-          <template #default="scope">
-            {{ formatDoors(scope.row.groupIds) }}
-          </template>
-        </el-table-column>
-        <el-table-column width="150px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
-          <template v-slot="{ row }: { row: any }">
-            <el-button type="primary" @click="onEdit(row)"><el-icon><EditPen /></el-icon></el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-col>
-  </el-row> -->
   <!-- /table 多時段-->
 
   <!-- pagination -->
@@ -499,18 +496,98 @@ const formatDoors = (groupIds: number[]) => {
   return groupIds.map(door => doorMap[door]).join(', ');
 };
 
+const courseMap = {
+  1: '鋼琴',
+  2: '歌唱',
+  3: '吉他',
+  4: '貝斯',
+  5: '烏克麗麗',
+  6: '創作',
+  7: '管樂',
+  8: '爵士鼓'
+};
 
-// 表格樣式2 使用
-// const flattenedData = computed(() => {
-//   return userInfoMTI.value?.pageItems.flatMap(user => 
-//     user.studentPermissions.map(permission => ({
-//       username: user.username,
-//       displayName: user.displayName,
-//       ...permission
-//     }))
-//   );
-// });
+const formatCourse = (courseId: number): string => {
+  // 這裡告訴 TypeScript，courseId 將會是 courseMap 的一個鍵。
+  // (keyof typeof courseMap) 會推斷出 '1' | '2' | ... '8' 的聯合字串字面量型別
+  return courseMap[courseId as keyof typeof courseMap] || '未知課程';
+};
 
+const teacherMap: { [key: number]: string } = {
+  66: '丁喬',
+  67: '鄭元',
+  68: '學宜',
+  69: '周廷',
+  70: '思儂',
+  71: '琪伶',
+  72: '羽安',
+  73: '玉璇',
+  74: '建軍',
+  75: '映伶',
+};
+
+const Info = ref([
+    {
+      id: 1,
+      term: '第一期',
+      paymentDate: '2025-01-15',
+      paymentStamp: '已繳費',
+      attendanceFirst: '出席',
+      attendanceSecond: '出席',
+      attendanceThird: '請假',
+      attendanceFourth: '出席',
+      absenceRecord: '第三堂請假',
+      courseDeadline: '2025-06-30'
+    },
+    {
+      id: 2,
+      term: '第一期',
+      paymentDate: '2025-01-16',
+      paymentStamp: '已繳費',
+      attendanceFirst: '出席',
+      attendanceSecond: '缺席',
+      attendanceThird: '出席',
+      attendanceFourth: '出席',
+      absenceRecord: '第二堂缺席',
+      courseDeadline: '2025-06-30'
+    },
+    {
+      id: 3,
+      term: '第二期',
+      paymentDate: '2025-04-10',
+      paymentStamp: '未繳費',
+      attendanceFirst: '出席',
+      attendanceSecond: '出席',
+      attendanceThird: '出席',
+      attendanceFourth: '缺席',
+      absenceRecord: '第四堂缺席',
+      courseDeadline: '2025-09-15'
+    },
+    {
+      id: 4,
+      term: '第二期',
+      paymentDate: '2025-04-12',
+      paymentStamp: '已繳費',
+      attendanceFirst: '缺席',
+      attendanceSecond: '出席',
+      attendanceThird: '出席',
+      attendanceFourth: '出席',
+      absenceRecord: '第一堂缺席',
+      courseDeadline: '2025-09-15'
+    },
+    {
+      id: 5,
+      term: '第三期',
+      paymentDate: '2025-07-20',
+      paymentStamp: '已繳費',
+      attendanceFirst: '出席',
+      attendanceSecond: '出席',
+      attendanceThird: '出席',
+      attendanceFourth: '出席',
+      absenceRecord: '無',
+      courseDeadline: '2025-12-20'
+    }
+  ]);
 </script>
 
 <style scoped></style>

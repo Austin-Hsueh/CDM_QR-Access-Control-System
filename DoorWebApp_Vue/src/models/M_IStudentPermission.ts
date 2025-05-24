@@ -7,4 +7,6 @@ export default interface StudentPermission {
   timeto: string;
   days: number[];
   groupIds: number[];
+  courseId: number;
+  teacherId: number;
 }
