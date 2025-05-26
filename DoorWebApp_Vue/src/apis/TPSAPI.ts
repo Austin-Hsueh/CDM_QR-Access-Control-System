@@ -52,6 +52,7 @@ import {M_IUsersDoor} from "@/models/M_IUsersDoor";
 import {M_IUserList_MTI, M_IUsersContent_MTI} from "@/models/M_IUserList_MTI";
 // import SearchPaginationRequest from "@/models/M_ISearchPaginationRequest";
 import SearchPaginationRequest from "@/models/M_ISearchPaginationRequest";
+import { M_ICourseOptions } from "@/models/M_ICourseOptions";
 
 
 class APIService {
@@ -500,6 +501,23 @@ class APIService {
   /** 設定使用者門禁設定-多時段 */
   patchStudentPermission(cmd: M_IsettingAccessRuleForm){
     return this.axiosInstance.patch<IBaseAPIResponse>(`v1/StudentPermission`, cmd);
+  }
+  //#endregion
+
+  //#region Music 課程相關
+  /** 取得所有課程 */
+  getCourse(){
+    return this.axiosInstance.get<IAPIResponse<any>>(`v1/Courses`);
+  } 
+
+  /** 新增課程 */
+  addCourse(cmd: M_ICourseOptions){
+    return this.axiosInstance.post<IBaseAPIResponse>(`v1/Course`, cmd);
+  }
+
+  /** 更新課程 */
+  updateCourse(cmd: M_ICourseOptions){
+    return this.axiosInstance.patch<IBaseAPIResponse>(`v1/UpdateCourse`, cmd);
   }
   //#endregion
 

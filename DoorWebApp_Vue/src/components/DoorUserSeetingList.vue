@@ -271,6 +271,9 @@ const onEdit = (item, userId, displayName) => {
   updateFormData.datepicker = [item.datefrom, item.dateto];
   updateFormData.timepicker = [timeFrom, timeTo];
   updateFormData.displayName = displayName;
+  updateFormData.courseId = item.courseId;
+  updateFormData.teacherId = item.teacherId;
+
 
   // 檢查 item.days 是否為字符串
   if (typeof item.days === 'string') {
@@ -395,6 +398,8 @@ const submitUpdateForm = async () => {
   sentFormData.timeto = updateFormData.timeto;
   sentFormData.days = updateFormData.days;
   sentFormData.groupIds = updateFormData.groupIds;
+  sentFormData.courseId = updateFormData.courseId;
+  sentFormData.teacherId = updateFormData.teacherId;
 
   console.log('change Data From updateFormData to sentFormData',sentFormData);
 

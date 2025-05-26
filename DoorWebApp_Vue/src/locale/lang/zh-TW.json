@@ -25,7 +25,8 @@
     "processing_time_is_required": "請輸入改善後工時",
     "original_pph_is_required": "請輸入原PPH",
     "invalid_ufloat_value": "請輸入大於0的數值",
-    "invalid_uint_value": "請輸入大於0的整數"
+    "invalid_uint_value": "請輸入大於0的整數",
+    "coursename_is_required": "請輸入課程名稱"
 
   },
   "hello": "哈囉",
@@ -210,7 +211,6 @@
   },
   "user": "使用者",
   "role": "角色",
-  "displayName": "顯示名稱",
   "last_login": "最近登入",
   "description": "描述",
   "status": "狀態",
@@ -336,9 +336,22 @@
   "Access QR Code":"通行QRcode",
   "Temporary Access Control Settings - Main Door":"臨時門禁設定-大門",
   "Account Settings":"帳號設定",
+  "Courses Settings":"課程設定",
   "Show Account ID Field":"顯示帳號ID欄位",
   "Hide Account ID Field":"隱藏帳號ID欄位",
-  "Type": "狀態"
-
+  "Type": "狀態",
+  "displayName": "真實姓名",
+  "IdNumber": "身分證字號",
+  "Address": "住址",
+  "Term": "期數",
+  "PaymentDate": "繳費日期",
+  "PaymentStamp": "繳費章",
+  "AttendanceFirst": "簽到(一)",
+  "AttendanceSecond": "簽到(二)",
+  "AttendanceThird": "簽到(三)",
+  "AttendanceFourth": "簽到(四)",
+  "AbsenceRecord": "缺課紀錄",
+  "CourseDeadline": "課程期限",
+  "Course Name": "課程名稱"
 
 }

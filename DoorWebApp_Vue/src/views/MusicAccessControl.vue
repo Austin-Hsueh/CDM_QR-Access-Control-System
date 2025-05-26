@@ -29,14 +29,12 @@
               </el-form-item>
               <el-form-item label="課程類別" prop="courseId">
                 <el-select filterable placeholder="請選擇" v-model="settingAccessTimeFormData.courseId">
-                  <el-option label="鋼琴" :value="1"></el-option>
-                  <el-option label="歌唱" :value="2"></el-option>
-                  <el-option label="吉他" :value="3"></el-option>
-                  <el-option label="貝斯" :value="4"></el-option>
-                  <el-option label="烏克麗麗" :value="5"></el-option>
-                  <el-option label="創作" :value="6"></el-option>
-                  <el-option label="管樂" :value="7"></el-option>
-                  <el-option label="爵士鼓" :value="8"></el-option>
+                  <el-option 
+                    v-for="item in courseList" 
+                    :key="item.courseId"
+                    :label="item.courseName" 
+                    :value="item.courseId">
+                  </el-option>
                 </el-select>
               </el-form-item>
               <el-form-item label="老師姓名" prop="teacherId">
@@ -152,6 +150,7 @@ import DoorUserSettingList from "@/components/DoorUserSeetingList.vue";
 import {M_IUsersOptions} from "@/models/M_IUsersOptions";
 import {M_IsettingAccessRuleForm} from "@/models/M_IsettingAccessRuleForm";
 import CreateStudentPermission from "@/models/M_CreateStudentPermission";
+import {M_ICourseOptions} from "@/models/M_ICourseOptions";
 
 
 
@@ -160,6 +159,7 @@ const router = useRouter();
 const userInfoStore = useUserInfoStore();
 const usersOptions = ref<M_IUsersOptions[]>([]);
 const teachersOptions = ref<M_IUsersOptions[]>([]);
+const courseList = ref<M_ICourseOptions[]>([]);
 const doors = [1,2,3,4];
 const days = [1,2,3,4,5,6,7];
 
@@ -240,11 +240,13 @@ const handleTabClick = (tab) => {
     doorUserSettingListRef.value?.onFilterInputed(); // 调用 DoorUserSettingList 中的方法
   }
 }
+//#endregion
 
 //#region Hook functions
 onMounted(() => {
   console.log('Component is mounted');
   getUsersOptions();
+  getCourseOptions();
 });
 //#endregion
 
@@ -262,6 +264,17 @@ async function getUsersOptions() {
   } catch (error) {
     console.error(error);
   }
+}
+
+async function getCourseOptions () {
+  try {
+      const response = await API.getCourse();
+      courseList.value = response.data.content
+      console.log(courseList.value)
+    } catch (error) {
+      console.error('載入課程資料失敗:', error);
+      // 可以在這裡加入錯誤處理，例如顯示提示訊息
+    }
 }
 //#endregion
 

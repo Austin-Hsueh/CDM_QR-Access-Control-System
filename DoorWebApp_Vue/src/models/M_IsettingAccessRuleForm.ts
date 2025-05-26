@@ -11,6 +11,6 @@ export interface M_IsettingAccessRuleForm {
   timeto?: string;
   IsDelete?: boolean;
   displayName?: string;
-  courseId: number;
-  teacherId: number;
+  courseId?: number;
+  teacherId?: number;
 }

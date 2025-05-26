@@ -24,7 +24,8 @@
     "processing_time_is_required": "Processing time is required.",
     "original_pph_is_required": "PPH(original) is required.",
     "invalid_ufloat_value": "Invalid value",
-    "invalid_uint_value": "Invalid value"
+    "invalid_uint_value": "Invalid value",
+    "coursename_is_required": "coursename is equired"
   },
   "hello": "Hello",
   "Remember_me": "Remember me",
@@ -281,8 +282,10 @@
   "Access QRCode":"Access QRCode",
   "Temporary Access Control Settings - Main Door":"Temporary Access Control Settings - Main Door",
   "Account Settings":"Account Settings",
+  "Courses Settings":"Courses Settings",
   "Show Account ID Field":"Show Account ID Field",
   "Hide Account ID Field":"Hide Account ID Field",
-  "Type": "Status"
+  "Type": "Status",
+  "Course Name": "Course Name"
 
 }

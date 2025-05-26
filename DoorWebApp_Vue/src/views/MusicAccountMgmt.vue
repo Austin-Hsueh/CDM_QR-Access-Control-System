@@ -9,6 +9,10 @@
         <AccountUserMgmtVue ref="AccountUserMgmtRef" v-if="userInfoStore.userId == 51"/>
         <AccountOnerUserMgmt v-else/>
       </el-tab-pane>
+      <el-tab-pane :label="t('Courses Settings')" >
+        <CoursesMgmt v-if="userInfoStore.userId == 51"/>
+      </el-tab-pane>
+
     </el-tabs>
   </div>
 </template>
@@ -18,6 +22,7 @@ import { defineComponent } from "vue";
 import { useI18n } from "vue-i18n";
 import AccountUserMgmtVue from "@/components/AccountUserMgmt.vue";
 import AccountOnerUserMgmt from "@/components/AccountOnerUserMgmt.vue";
+import CoursesMgmt from "@/components/CoursesMgmt.vue";
 import { useUserInfoStore } from "@/stores/UserInfoStore";
 
 const userInfoStore = useUserInfoStore();
