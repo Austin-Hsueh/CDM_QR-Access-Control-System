@@ -44,5 +44,6 @@ namespace DoorDB
         public DateTime CreatedTime { get; set; }
 
         public virtual List<TblStudentPermission> CourseStudentPermissions { set; get; }
+        public virtual List<tblAttendance> Attendances { set; get; }
     }
 }
