@@ -66,7 +66,7 @@
         db_operate_failed = 999,
 
         attendanceDate_is_required = 1001,
-        duplicate_attendanceDate = 1002
+        duplicate_attendanceDate = 1002,
 
         courseTypeName_is_required = 1101,
         duplicate_CourseTypename = 1102,
