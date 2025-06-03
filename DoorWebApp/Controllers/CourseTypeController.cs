@@ -12,13 +12,13 @@ namespace DoorWebApp.Controllers
 {
     [Route("api/")]
     [ApiController]
-    public class CourseController : ControllerBase
+    public class CourseTypeController : ControllerBase
     {
 
         private readonly DoorDbContext ctx;
-        private readonly ILogger<CourseController> log;
+        private readonly ILogger<CourseTypeController> log;
         private readonly AuditLogWritter auditLog;
-        public CourseController(ILogger<CourseController> log, DoorDbContext ctx, AuditLogWritter auditLog)
+        public CourseTypeController(ILogger<CourseTypeController> log, DoorDbContext ctx, AuditLogWritter auditLog)
         {
             this.ctx = ctx;
             this.log = log;
@@ -29,27 +29,27 @@ namespace DoorWebApp.Controllers
         /// 取得課程清單
         /// </summary>
         /// <returns></returns>
-        [HttpGet("v1/Courses")]
+        [HttpGet("v1/CourseTypes")]
         public IActionResult GetAllRolesWithPermissions()
         {
-            APIResponse<List<ResCourseDTO>> res = new APIResponse<List<ResCourseDTO>>();
+            APIResponse<List<ResCourseTypeDTO>> res = new APIResponse<List<ResCourseTypeDTO>>();
 
             try
             {
                 // 1. 撈出資料
-                var CourseList = ctx.TbCourses
+                var CourseTypeList = ctx.TblCourseType
                     .Where(x => x.IsDelete == false)
-                    .Select(x => new ResCourseDTO()
+                    .Select(x => new ResCourseTypeDTO()
                     {
-                        courseId = x.Id,
-                        courseName = x.Name
+                        courseTypeId = x.Id,
+                        courseTypeName = x.Name
                     })
                     .ToList();
 
                 // 2. 回傳結果
                 res.result = APIResultCode.success;
                 res.msg = "success";
-                res.content = CourseList;
+                res.content = CourseTypeList;
 
                 //log.LogInformation($"[{Request.Path}] Role list query success! Total:{CourseList.Count}");
 
@@ -66,35 +66,30 @@ namespace DoorWebApp.Controllers
 
 
         /// <summary>
-        /// 取得課程
+        /// 取得分類下的課程
         /// </summary>
         /// <returns></returns>
         [Authorize]
-        [HttpGet("v1/Course/{CourseId}")]
-        public IActionResult GetCourseRoleId(int CourseId)
+        [HttpGet("v1/CourseType/Courses/{CourseTypeId}")]
+        public IActionResult GetCourseRoleId(int CourseTypeId)
         {
-            APIResponse<ResCourseDTO> res = new APIResponse<ResCourseDTO>();
+            APIResponse<List<ResCourseDTO>> res = new APIResponse<List<ResCourseDTO>>();
 
             try
             {
-                // 1. 資料檢核
-                var targetCourseEntity = ctx.TbCourses.Where(x => x.Id == CourseId).FirstOrDefault();
-                if (targetCourseEntity == null)
-                {
-                    log.LogWarning($"[{Request.Path}] Course (Id:{CourseId}) not found");
-                    res.result = APIResultCode.Course_not_found;
-                    res.msg = "查無課程";
-                    return Ok(res);
-                }
+                var CourseTypeList = ctx.TbCourses.Include(x => x.CourseTypeId == CourseTypeId)
+                   .Where(x => x.IsDelete == false)
+                   .Select(x => new ResCourseDTO()
+                   {
+                       courseId = x.Id,
+                       courseName = x.Name
+                   })
+                   .ToList();
 
                 // 2. 回傳結果
                 res.result = APIResultCode.success;
                 res.msg = "success";
-                res.content = new ResCourseDTO()
-                {
-                    courseId = targetCourseEntity.Id,
-                    courseName = targetCourseEntity.Name
-                };
+                res.content = CourseTypeList;
 
                 //log.LogInformation($"[{Request.Path}] Role list query success! Total:{CourseList.Count}");
 
@@ -110,50 +105,50 @@ namespace DoorWebApp.Controllers
         }
 
         /// <summary>
-        /// 新增課程
+        /// 新增分類
         /// </summary>
         /// <returns></returns>
-        [HttpPost("v1/Course")]
-        public async Task<IActionResult> AddCourse(ReqNewCourseDTO CourseDTO)
+        [HttpPost("v1/CourseType")]
+        public async Task<IActionResult> AddCourse(ReqNewCourseTypeDTO CourseTypeDTO)
         {
             APIResponse res = new APIResponse();
-            log.LogInformation($"[{Request.Path}] AddCourse Request : {CourseDTO.courseName}");
+            log.LogInformation($"[{Request.Path}] AddCourse Request : {CourseTypeDTO.courseTypeName}");
             try
             {
                 
                 // 1. 檢查輸入參數
                 // 1-1 必填欄位缺少
                 //課程名稱
-                if (string.IsNullOrEmpty(CourseDTO.courseName))
+                if (string.IsNullOrEmpty(CourseTypeDTO.courseTypeName))
                 {
-                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({CourseDTO.courseName})");
-                    res.result = APIResultCode.courseName_is_required;
-                    res.msg = "courseName_is_required";
+                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({CourseTypeDTO.courseTypeName})");
+                    res.result = APIResultCode.courseTypeName_is_required;
+                    res.msg = "courseTypeName_is_required";
                     return Ok(res);
                 }
 
                 // 1-2 重複課程名稱 //todo 排除已經刪除的
                 TblCourse? tblCourse = ctx.TbCourses.Where(x => x.IsDelete == false)
-                                               .FirstOrDefault(x => x.Name == CourseDTO.courseName);
+                                               .FirstOrDefault(x => x.Name == CourseTypeDTO.courseTypeName);
                 if (tblCourse != null)
                 {
                     log.LogWarning($"[{Request.Path}] Duplicate Coursename");
-                    res.result = APIResultCode.duplicate_Coursename;
-                    res.msg = "duplicate_Coursename";
+                    res.result = APIResultCode.duplicate_CourseTypename;
+                    res.msg = "duplicate_CourseTypename";
                     return Ok(res);
                 }
 
-                // 2. 新增使用者
-                TblCourse NewCourse = new TblCourse();
-                NewCourse.Name = CourseDTO.courseName;
-                NewCourse.IsDelete = false;
-                NewCourse.IsEnable = true;
-                NewCourse.CreatedTime = DateTime.Now;
-                NewCourse.ModifiedTime = DateTime.Now;
+                // 2. 新增分類
+                TblCourseType NewCourseType = new TblCourseType();
+                NewCourseType.Name = CourseTypeDTO.courseTypeName;
+                NewCourseType.IsDelete = false;
+                NewCourseType.IsEnable = true;
+                NewCourseType.CreatedTime = DateTime.Now;
+                NewCourseType.ModifiedTime = DateTime.Now;
 
-                ctx.TbCourses.Add(NewCourse);
+                ctx.TblCourseType.Add(NewCourseType);
                 ctx.SaveChanges(); // Save Course to generate CourseId
-                log.LogInformation($"[{Request.Path}] Create Course : Name={NewCourse.Name}");
+                log.LogInformation($"[{Request.Path}] Create Course : Name={NewCourseType.Name}");
 
                 // 3. 寫入資料庫
                 log.LogInformation($"[{Request.Path}] Save changes");
@@ -165,7 +160,7 @@ namespace DoorWebApp.Controllers
                 res.result = APIResultCode.success;
                 res.msg = "success";
 
-                auditLog.WriteAuditLog(AuditActType.Create, $" Create Course : Coursename={NewCourse.Name}", NewCourse.Name);
+                auditLog.WriteAuditLog(AuditActType.Create, $" Create Course : Coursename={NewCourseType.Name}", NewCourseType.Name);
 
                 return Ok(res);
             }
@@ -189,12 +184,12 @@ namespace DoorWebApp.Controllers
         }
 
         /// <summary>
-        /// 更新單一課程
+        /// 更新單一分類
         /// </summary>
         /// <returns></returns>
         [Authorize]
-        [HttpPatch("v1/UpdateCourse")]
-        public async Task<IActionResult> UpdateUserRoles(ReqUpdateCourseDTO CourseDTO)
+        [HttpPatch("v1/UpdateCourseType")]
+        public async Task<IActionResult> UpdateCourseTypes(ReqUpdateCourseTypeDTO CourseTypeDTO)
         {
             APIResponse res = new APIResponse();
             try
@@ -202,51 +197,51 @@ namespace DoorWebApp.Controllers
                 int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
                 string OperatorUsername = User.Identity?.Name?? "N/A";
 
-                log.LogInformation($"[{Request.Path}] Update course. OperatorId:{OperatorId}");
+                log.LogInformation($"[{Request.Path}] Update course. OperatorId:{CourseTypeDTO}");
                 // 1. 資料檢核
-                var CourseEntity = ctx.TbCourses.Where(x => x.Id == CourseDTO.courseId).FirstOrDefault();
-                if (CourseEntity == null)
+                var CourseTypeEntity = ctx.TblCourseType.Where(x => x.Id == CourseTypeDTO.courseTypeId).FirstOrDefault();
+                if (CourseTypeEntity == null)
                 {
-                    log.LogWarning($"[{Request.Path}] Course (Id:{CourseDTO.courseId}) not found");
-                    res.result = APIResultCode.Course_not_found;
-                    res.msg = "查無課程";
+                    log.LogWarning($"[{Request.Path}] Course (Id:{CourseTypeDTO.courseTypeId}) not found");
+                    res.result = APIResultCode.CourseType_not_found;
+                    res.msg = "查無課程分類";
                     return Ok(res);
                 }
 
                 // 1-1 必填欄位缺少
                 //課程名稱
-                if (string.IsNullOrEmpty(CourseDTO.courseName))
+                if (string.IsNullOrEmpty(CourseTypeDTO.courseTypeName))
                 {
-                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({CourseDTO.courseName})");
-                    res.result = APIResultCode.courseName_is_required;
-                    res.msg = "courseName_is_required";
+                    log.LogWarning($"[{Request.Path}] Missing Parameters, ({CourseTypeDTO.courseTypeName})");
+                    res.result = APIResultCode.courseTypeName_is_required;
+                    res.msg = "courseTypeName_is_required";
                     return Ok(res);
                 }
                 //帳號 重複
                 // 1-2 重複課程名稱 //排除已經刪除的
-                TblCourse? tblCourse = ctx.TbCourses.Where(x => x.IsDelete == false && x.Id != CourseDTO.courseId)
-                                               .FirstOrDefault(x => x.Name == CourseDTO.courseName);
-                if (tblCourse != null)
+                TblCourse? tblCourseType = ctx.TbCourses.Where(x => x.IsDelete == false && x.Id != CourseTypeDTO.courseTypeId)
+                                               .FirstOrDefault(x => x.Name == CourseTypeDTO.courseTypeName);
+                if (tblCourseType != null)
                 {
-                    log.LogWarning($"[{Request.Path}] Duplicate courseName");
-                    res.result = APIResultCode.duplicate_username;
-                    res.msg = "duplicate_username";
+                    log.LogWarning($"[{Request.Path}] Duplicate courseTypeName");
+                    res.result = APIResultCode.duplicate_CourseTypename;
+                    res.msg = "duplicate_CourseTypename";
                     return Ok(res);
                 }
 
                 
 
                 //1-1. 假刪除使用者
-                if (CourseDTO.IsDelete)
+                if (CourseTypeDTO.IsDelete)
                 {
-                    CourseEntity.IsDelete = true;
+                    CourseTypeEntity.IsDelete = true;
                     // 存檔
                     log.LogInformation($"[{Request.Path}] Save changes");
                     int EffectRowDelete = ctx.SaveChanges();
                     log.LogInformation($"[{Request.Path}] Update success. (EffectRow:{EffectRowDelete})");
 
                     // 2. 寫入稽核紀錄
-                    auditLog.WriteAuditLog(AuditActType.Modify, $"Update user delete. id: {CourseEntity.Id}, EffectRow:{EffectRowDelete}", OperatorUsername);
+                    auditLog.WriteAuditLog(AuditActType.Modify, $"Update user delete. id: {CourseTypeEntity.Id}, EffectRow:{EffectRowDelete}", OperatorUsername);
 
                     res.result = APIResultCode.success;
                     res.msg = "success";
@@ -256,9 +251,8 @@ namespace DoorWebApp.Controllers
 
                 // 3. 更新資料
                 //更新使用者
-                CourseEntity.Name = CourseDTO.courseName;
-                CourseEntity.ModifiedTime = DateTime.Now;
-                if (CourseDTO.courseTypeId != 0) CourseEntity.CourseTypeId = CourseDTO.courseTypeId; //課程加到分類
+                CourseTypeEntity.Name = CourseTypeDTO.courseTypeName;
+                CourseTypeEntity.ModifiedTime = DateTime.Now;
 
                 // 4. 存檔
                 log.LogInformation($"[{Request.Path}] Save changes");
@@ -267,44 +261,6 @@ namespace DoorWebApp.Controllers
 
                 res.result = APIResultCode.success;
                 res.msg = "success";
-
-                return Ok(res);
-            }
-            catch (Exception err)
-            {
-                log.LogError(err, $"[{Request.Path}] Error : {err}");
-                res.result = APIResultCode.unknow_error;
-                res.msg = err.Message;
-                return Ok(res);
-            }
-        }
-
-        /// <summary>
-        /// 取得老師清單
-        /// </summary>
-        /// <returns></returns>
-        [HttpGet("v1/Teachers")]
-        public IActionResult GetAllTeachers()
-        {
-            APIResponse<List<ResTeacherDTO>> res = new APIResponse<List<ResTeacherDTO>>();
-
-            try
-            {
-                // 1. 撈出資料
-                var CourseList = ctx.TblUsers.Include(x => x.Roles)
-                    .Where(x => x.Roles.Any(r => r.Id == 2)) // 角色 ID 2 是老師
-                    .Where(x => x.IsDelete == false)
-                    .Select(x => new ResTeacherDTO()
-                    {
-                        teacherId = x.Id,
-                        teacherName = x.DisplayName
-                    })
-                    .ToList();
-
-                // 2. 回傳結果
-                res.result = APIResultCode.success;
-                res.msg = "success";
-                res.content = CourseList;
 
                 return Ok(res);
             }

@@ -9,15 +9,14 @@ using System.Threading.Tasks;
 namespace DoorDB
 {
 
-    [Table("tblCourse")]
-    public class TblCourse
+    [Table("tblCourseType")]
+    public class TblCourseType
     {
         [Key]
         public int Id { get; set; }
-        public int CourseTypeId { get; set; }
 
         /// <summary>
-        /// 課程名稱
+        /// 課程分類名稱
         /// </summary>
         [Required]
         public string Name { get; set; } = "";
@@ -44,7 +43,6 @@ namespace DoorDB
         [Required]
         public DateTime CreatedTime { get; set; }
 
-        public virtual List<TblStudentPermission> CourseStudentPermissions { set; get; }
-        public virtual TblCourseType CourseType { set; get; }
+        public virtual List<TblCourse> Courses { set; get; }
     }
 }

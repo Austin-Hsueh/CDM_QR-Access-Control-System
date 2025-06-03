@@ -101,5 +101,7 @@ namespace DoorDB
 
         public TblCourse Course { set; get; }
 
+        public virtual List<TblAttendance> Attendances { set; get; }
+        public virtual List<TblPayment> Payments { set; get; }
     }
 }

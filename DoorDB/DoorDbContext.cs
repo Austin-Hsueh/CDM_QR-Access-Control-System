@@ -25,6 +25,10 @@ namespace DoorDB
         public virtual DbSet<TblQRCodeStorage> TbQRCodeStorages { set; get; } = null!;
 
         public virtual DbSet<TblCourse> TbCourses { set; get; } = null!;
+        public virtual DbSet<AccessEventLog> AccessEventLog { get; set; } = null!;
+        public virtual DbSet<TblAttendance> TblAttendance { get; set; } = null!;
+        public virtual DbSet<TblPayment> TblPayment { get; set; } = null!;
+        public virtual DbSet<TblCourseType> TblCourseType { get; set; } = null!;
 
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -253,10 +257,24 @@ namespace DoorDB
                .WithOne(pg => pg.Course)
                .HasForeignKey(p => p.CourseId);
 
+            // 設置 TblStudentPermission 與 TblAttendance (StudentPermissionId) 一對多關聯
+            modelBuilder.Entity<TblStudentPermission>()
+                .HasMany(u => u.Attendances)
+                .WithOne(a => a.StudentPermission)
+                .HasForeignKey(a => a.StudentPermissionId);
+
+            // 設置 TblStudentPermission 與 TblPayment (StudentPermissionId) 一對多關聯
+            modelBuilder.Entity<TblStudentPermission>()
+                .HasMany(c => c.Payments)
+                .WithOne(a => a.StudentPermission)
+                .HasForeignKey(a => a.StudentPermissionId);
+
+            // 設置 TblCourseType 與 TblCourse (CourseTypeId) 一對多關聯
+            modelBuilder.Entity<TblCourseType>()
+                .HasMany(c => c.Courses)
+                .WithOne(a => a.CourseType)
+                .HasForeignKey(a => a.CourseTypeId);
             #endregion
-
-
-
         }
     }
 }
