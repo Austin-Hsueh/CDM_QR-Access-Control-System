@@ -25,7 +25,10 @@ namespace DoorDB
         public virtual DbSet<TblQRCodeStorage> TbQRCodeStorages { set; get; } = null!;
 
         public virtual DbSet<TblCourse> TbCourses { set; get; } = null!;
-        public virtual DbSet<TblAttendance> TblAttendances { get; set; } = null!;
+        public virtual DbSet<AccessEventLog> AccessEventLog { get; set; } = null!;
+        public virtual DbSet<TblAttendance> TblAttendance { get; set; } = null!;
+        public virtual DbSet<TblPayment> TblPayment { get; set; } = null!;
+        public virtual DbSet<TblCourseType> TblCourseType { get; set; } = null!;
 
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -254,28 +257,24 @@ namespace DoorDB
                .WithOne(pg => pg.Course)
                .HasForeignKey(p => p.CourseId);
 
-            // 設置 TblAttendance 與 TblUser (UserId) 一對多關聯
-            modelBuilder.Entity<TblUser>()
+            // 設置 TblStudentPermission 與 TblAttendance (StudentPermissionId) 一對多關聯
+            modelBuilder.Entity<TblStudentPermission>()
                 .HasMany(u => u.Attendances)
-                .WithOne(a => a.User)
-                .HasForeignKey(a => a.UserId)
+                .WithOne(a => a.StudentPermission)
+                .HasForeignKey(a => a.StudentPermissionId);
 
-            // 設置 TblAttendance 與 TblCourse 一對多關聯
-            modelBuilder.Entity<TblCourse>()
-                .HasMany(c => c.Attendances)
-                .WithOne(a => a.Course)
-                .HasForeignKey(a => a.CourseId)
+            // 設置 TblStudentPermission 與 TblPayment (StudentPermissionId) 一對多關聯
+            modelBuilder.Entity<TblStudentPermission>()
+                .HasMany(c => c.Payments)
+                .WithOne(a => a.StudentPermission)
+                .HasForeignKey(a => a.StudentPermissionId);
 
-            // 設置 TblAttendance 與 TblUser (ModifiedUserId) 一對多關聯
-            modelBuilder.Entity<TblUser>()
-                .HasMany(u => u.ModifiedAttendances)
-                .WithOne(a => a.ModifiedUser)
-                .HasForeignKey(a => a.ModifiedUserId)
-
+            // 設置 TblCourseType 與 TblCourse (CourseTypeId) 一對多關聯
+            modelBuilder.Entity<TblCourseType>()
+                .HasMany(c => c.Courses)
+                .WithOne(a => a.CourseType)
+                .HasForeignKey(a => a.CourseTypeId);
             #endregion
-
-
-
         }
     }
 }

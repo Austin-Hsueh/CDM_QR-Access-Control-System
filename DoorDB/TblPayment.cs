@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore;
 namespace DoorDB
 {
 
-    [Table("tblAttendance")]
-    public class TblAttendance
+    [Table("tblPayment")]
+    public class TblPayment
     {
         [Key]
         public int Id { get; set; }
@@ -21,16 +21,10 @@ namespace DoorDB
         public TblStudentPermission StudentPermission { set; get; }
 
         [Required]
-        public string AttendanceDate { get; set; }
+        public string PayDate { get; set; }
 
-        /// <summary>
-        /// 0: 缺席 
-        /// 1: 出席
-        /// 2: 請假
-        /// </summary>
-        public int AttendanceType { get; set; } = 1;
-
-        public bool IsTrigger { get; set; } = true;
+        //繳費金額
+        public int Pay { get; set; } = 0;
 
         /// <summary>
         /// 操作者帳號Id

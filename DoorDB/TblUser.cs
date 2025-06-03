@@ -40,6 +40,16 @@ namespace DoorDB
         public string DisplayName { set; get; } = "";
 
         /// <summary>
+        /// 身分證
+        /// </summary>
+        public string IDcard { set; get; } = "";
+
+        /// <summary>
+        /// 地址
+        /// </summary>
+        public string Address { set; get; } = "";
+
+        /// <summary>
         /// Email
         /// </summary>
         public string Email { get; set; } = "";
