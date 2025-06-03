@@ -257,8 +257,8 @@ async function getUsersOptions() {
     if (getUsersOptionsResult.data.result != 1) throw new Error(getUsersOptionsResult.data.msg);
     // usersOptions.value = getUsersOptionsResult.data.content;
     usersOptions.value = getUsersOptionsResult.data.content.filter(user => ![52, 54].includes(user.userId));
-
-    const validIds = [66, 67, 68, 69, 70, 71, 72, 73, 74, 75];
+    
+    const validIds = [64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75];
     teachersOptions.value = getUsersOptionsResult.data.content.filter(user => validIds.includes(user.userId));
 
   } catch (error) {
