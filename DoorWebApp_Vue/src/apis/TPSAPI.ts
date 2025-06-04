@@ -53,6 +53,7 @@ import {M_IUserList_MTI, M_IUsersContent_MTI} from "@/models/M_IUserList_MTI";
 // import SearchPaginationRequest from "@/models/M_ISearchPaginationRequest";
 import SearchPaginationRequest from "@/models/M_ISearchPaginationRequest";
 import { M_ICourseOptions } from "@/models/M_ICourseOptions";
+import { M_ICourseTypeOptions } from "@/models/M_ICourseTypeOptions";
 
 
 class APIService {
@@ -508,16 +509,37 @@ class APIService {
   /** 取得所有課程 */
   getCourse(){
     return this.axiosInstance.get<IAPIResponse<any>>(`v1/Courses`);
+  }
+  
+  /** 取得所有分類 */
+  getCourseType(){
+    return this.axiosInstance.get<IAPIResponse<any>>(`v1/CourseTypes`);
+  }
+  
+  /** 取得分類下的課程 */
+  getCourseTypeCourses(CourseTypeId?: number){
+    return this.axiosInstance.get<IAPIResponse<any>>(`v1/CourseType/Courses/${CourseTypeId}`);
   } 
+
 
   /** 新增課程 */
   addCourse(cmd: M_ICourseOptions){
     return this.axiosInstance.post<IBaseAPIResponse>(`v1/Course`, cmd);
   }
 
+  /** 新增分類 */
+  addCourseType(cmd: M_ICourseTypeOptions){
+    return this.axiosInstance.post<IBaseAPIResponse>(`v1/CourseType`, cmd);
+  }
+
   /** 更新課程 */
   updateCourse(cmd: M_ICourseOptions){
     return this.axiosInstance.patch<IBaseAPIResponse>(`v1/UpdateCourse`, cmd);
+  }
+
+  /** 更新分類 */
+  updateCourseType(cmd: M_ICourseTypeOptions){
+    return this.axiosInstance.patch<IBaseAPIResponse>(`v1/UpdateCourseType`, cmd);
   }
   //#endregion
 

@@ -39,11 +39,18 @@ namespace DoorWebApp.Controllers
                 // 1. 撈出資料
                 var CourseList = ctx.TbCourses
                     .Where(x => x.IsDelete == false)
-                    .Select(x => new ResCourseDTO()
-                    {
-                        courseId = x.Id,
-                        courseName = x.Name
-                    })
+                    .GroupJoin(ctx.TblCourseType,
+                            course => course.CourseTypeId,
+                            courseType => courseType.Id,
+                            (course, courseTypes) => new { course, courseTypes })
+                    .SelectMany(x => x.courseTypes.DefaultIfEmpty(),
+                                (x, courseType) => new ResCourseDTO()
+                                {
+                                    courseId = x.course.Id,
+                                    courseName = x.course.Name,
+                                    courseTypeId = x.course.CourseTypeId,
+                                    courseTypeName = courseType != null ? courseType.Name : "未分類" // 沒有對應時顯示預設值
+                                })
                     .ToList();
 
                 // 2. 回傳結果
