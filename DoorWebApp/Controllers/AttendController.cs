@@ -72,7 +72,7 @@ namespace DoorWebApp.Controllers
         [HttpPost("v1/Attend")]
         public async Task<IActionResult> AddAttend(ReqNewAttendDTO AttendDTO)
         {
-            int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+            int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault(51);
             string OperatorUsername = User.Identity?.Name?? "N/A";
 
             log.LogInformation($"[{Request.Path}] Insert AddAttend. OperatorId:{OperatorId}");
@@ -171,8 +171,8 @@ namespace DoorWebApp.Controllers
                 if (AttendEntity == null)
                 {
                     log.LogWarning($"[{Request.Path}] Course (Id:{AttendDTO.id}) not found");
-                    res.result = APIResultCode.Course_not_found;
-                    res.msg = "查無課程";
+                    res.result = APIResultCode.attend_not_found;
+                    res.msg = "查無簽到 ";
                     return Ok(res);
                 }
 

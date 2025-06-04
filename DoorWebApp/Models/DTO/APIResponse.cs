@@ -33,9 +33,11 @@
         display_name_is_required = 404,
         email_is_required = 404,
         roleid_is_required = 405,
-        password_is_required = 406,
-        duplicate_password = 407,
+        password_is_required = 406, 
+        duplicate_password = 407, 
         phone_is_required = 408,
+        idcard_is_required = 409,
+        address_is_required = 410,
 
         factory_not_found  = 501,
         factory_has_been_deleted = 502,
@@ -67,6 +69,7 @@
 
         attendanceDate_is_required = 1001,
         duplicate_attendanceDate = 1002,
+        attend_not_found = 1003,
 
         courseTypeName_is_required = 1101,
         duplicate_CourseTypename = 1102,

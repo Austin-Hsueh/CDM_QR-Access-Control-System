@@ -62,5 +62,15 @@
         public string days { get; set; } // 權限一周哪幾天
         public int type { get; set; }
 
+        /// <summary>
+        /// 地址
+        /// </summary>
+        public string address { set; get; }
+
+        /// <summary>
+        /// 身分證
+        /// </summary>
+        public string idcard { set; get; }
+
     }
 }

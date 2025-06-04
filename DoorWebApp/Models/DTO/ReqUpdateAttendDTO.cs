@@ -19,8 +19,6 @@
         /// </summary>
         public int modifiedUserId { get; set; }
 
-        public DateTime ModifiedTime { get; set; }
-
         public bool IsDelete { get; set; }
     }
 }

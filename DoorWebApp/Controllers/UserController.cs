@@ -459,6 +459,8 @@ namespace DoorWebApp.Controllers
                         groupIds = x.Permission.PermissionGroups
                         .Select(y => y.Id).ToList(),
                         phone = x.Phone,
+                        address = x.Address,
+                        idcard = x.IDcard,
                         accessTime = x.Permission.DateFrom.ToString() + " " + x.Permission.TimeFrom.ToString() + "~" + x.Permission.DateTo.ToString() + " " + x.Permission.TimeTo.ToString(),
                         accessDays = x.Permission.Days.Replace("1", "周一").Replace("2", "周二").Replace("3", "周三").Replace("4", "周四").Replace("5", "周五").Replace("6", "周六").Replace("7", "周日"),
                         datefrom = x.Permission.DateFrom.ToString(),
@@ -823,6 +825,22 @@ namespace DoorWebApp.Controllers
                     res.msg = "phone_is_required";
                     return Ok(res);
                 }
+                ////地址
+                //if (string.IsNullOrEmpty(UserDTO.address))
+                //{
+                //    log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.address})");
+                //    res.result = APIResultCode.address_is_required;
+                //    res.msg = "address_is_required";
+                //    return Ok(res);
+                //}
+                ////身分證
+                //if (string.IsNullOrEmpty(UserDTO.idcard))
+                //{
+                //    log.LogWarning($"[{Request.Path}] Missing Parameters, ({UserDTO.idcard})");
+                //    res.result = APIResultCode.idcard_is_required;
+                //    res.msg = "idcard_is_required";
+                //    return Ok(res);
+                //}
 
                 // 1-2 重複帳號 //todo 排除已經刪除的
                 TblUser? tblUser = ctx.TblUsers.Where(x => x.IsDelete == false)
@@ -844,6 +862,8 @@ namespace DoorWebApp.Controllers
                 NewUser.Email = UserDTO.email;
                 NewUser.Phone = UserDTO.phone;
                 NewUser.Secret = UserDTO.password;
+                NewUser.Address = UserDTO.address;
+                NewUser.IDcard = UserDTO.idcard;
                 NewUser.AccountType = LoginAccountType.LOCAL;
                 NewUser.Type = UserDTO.type;
                 NewUser.IsDelete = false;
@@ -1049,8 +1069,10 @@ namespace DoorWebApp.Controllers
                 UserEntity.Email = UserDTO.email;
                 UserEntity.Phone = UserDTO.phone;
                 UserEntity.Type = UserDTO.type;
+                UserEntity.Address = UserDTO.address;
+                UserEntity.IDcard = UserDTO.idcard;
 
-                if(!string.IsNullOrEmpty( UserDTO.password) )
+                if (!string.IsNullOrEmpty( UserDTO.password) )
                     UserEntity.Secret = UserDTO.password;
 
                 UserEntity.ModifiedTime = DateTime.Now;
