@@ -25,7 +25,10 @@
     "original_pph_is_required": "PPH(original) is required.",
     "invalid_ufloat_value": "Invalid value",
     "invalid_uint_value": "Invalid value",
-    "coursename_is_required": "coursename is equired"
+    "coursename_is_required": "coursename is equired",
+    "coursetype_is_required": "coursetype is equired",
+    "adress_is_required": "adress is required",
+    "idcard_is_required": "id number is required"
   },
   "hello": "Hello",
   "Remember_me": "Remember me",
@@ -286,6 +289,7 @@
   "Show Account ID Field":"Show Account ID Field",
   "Hide Account ID Field":"Hide Account ID Field",
   "Type": "Status",
-  "Course Name": "Course Name"
+  "Course Name": "Course Name",
+  "Course Type": "Course Type"
 
 }

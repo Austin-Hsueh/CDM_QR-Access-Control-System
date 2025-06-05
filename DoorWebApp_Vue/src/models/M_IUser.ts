@@ -17,6 +17,8 @@ export interface M_IUsers {
   timeto: string;
   days: string;
   type: number;
+  address: string;
+  idcard: string;
 }
 
 export interface M_IUsersContent {

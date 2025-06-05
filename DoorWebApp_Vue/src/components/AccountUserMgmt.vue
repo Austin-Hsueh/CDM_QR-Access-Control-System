@@ -35,6 +35,8 @@
         <el-table-column sortable :label="t('userID')"  prop="userId" v-if="showId"/>
         <el-table-column sortable :label="t('username')"  prop="username"/>
         <el-table-column sortable :label="t('displayName')" prop="displayName" />
+        <el-table-column sortable :label="t('IdNumber')" prop="idcard" />
+        <el-table-column sortable :label="t('Address')" prop="address" />
         <el-table-column sortable :label="t('Email')" prop="email"/>
         <el-table-column sortable :label="t('Phone')" prop="phone"/>
         <el-table-column sortable :label="t('Role')">
@@ -89,6 +91,12 @@
       <el-form-item :label="t('displayName')" prop="displayName" >
         <el-input  style="width:90%" v-model="createFormData.displayName"/>
       </el-form-item>
+      <el-form-item :label="t('IdNumber')" prop="idcard" >
+        <el-input  style="width:90%" v-model="createFormData.idcard"/>
+      </el-form-item>
+      <el-form-item :label="t('Address')" prop="address" >
+        <el-input  style="width:90%" v-model="createFormData.address"/>
+      </el-form-item>
       <el-form-item :label="t('Email')" prop="email" >
         <el-input  style="width:90%" v-model="createFormData.email"/>
       </el-form-item>
@@ -140,6 +148,12 @@
       </el-form-item>
       <el-form-item :label="t('displayName')" prop="displayName" >
         <el-input  style="width:90%" v-model="updateFormData.displayName"/>
+      </el-form-item>
+      <el-form-item :label="t('IdNumber')" prop="idcard" >
+        <el-input  style="width:90%" v-model="updateFormData.idcard"/>
+      </el-form-item>
+      <el-form-item :label="t('Address')" prop="address" >
+        <el-input  style="width:90%" v-model="updateFormData.address"/>
       </el-form-item>
       <el-form-item :label="t('Email')" prop="email" >
         <el-input  style="width:90%" v-model="updateFormData.email"/>
@@ -255,6 +269,7 @@ const Error = (error: string) => {
 //#region UI Events
 const onEdit = (item: M_IUsers) => {
   console.log(item.userId);
+  console.log(item)
   updateRoleForm.value?.resetFields();
   updateFormData.userId = item.userId;
   updateFormData.username = item.username;
@@ -263,6 +278,8 @@ const onEdit = (item: M_IUsers) => {
   updateFormData.phone = item.phone ?? '';
   updateFormData.roleid = item.roleId;
   updateFormData.type = item.type;
+  updateFormData.address = item.address;
+  updateFormData.idcard = item.idcard;
   isShowEditRoleDialog.value = true;
 }
 
@@ -416,7 +433,9 @@ const createFormData = reactive<M_ICreateRuleForm>({
   phone: '',
   password: '',
   roleid: 3,
-  type:1
+  type:1,
+  address:'',
+  idcard:''
 })
 
 // 編輯使用者表單
@@ -429,7 +448,9 @@ const updateFormData = reactive<M_IUpdateRuleForm>({
   phone: '',
   password: '',
   roleid: 0,
-  type:0
+  type:0,
+  address:'',
+  idcard:''
 })
 
 const deleteFormData = reactive<M_IDeleteRuleForm>({
@@ -450,6 +471,8 @@ const rules  = reactive<FormRules>({
   email: [{ required: true, message: () => t("validation_msg.email_is_required"), trigger: "blur" }],
   password: [{ required: true, message: () => t("validation_msg.password_is_required"), trigger: "blur" }],
   phone: [{ required: true, message: () => t("validation_msg.phone_is_required"), trigger: "blur" }],
+  idcard: [{ required: true, message: () => t("validation_msg.idcard_is_required"), trigger: "blur" }],
+  address: [{ required: true, message: () => t("validation_msg.adress_is_required"), trigger: "blur" }],
 });
 
 const editRules  = reactive<FormRules>({

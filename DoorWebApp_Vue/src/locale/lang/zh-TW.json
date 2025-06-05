@@ -26,7 +26,10 @@
     "original_pph_is_required": "請輸入原PPH",
     "invalid_ufloat_value": "請輸入大於0的數值",
     "invalid_uint_value": "請輸入大於0的整數",
-    "coursename_is_required": "請輸入課程名稱"
+    "coursename_is_required": "請輸入課程名稱",
+    "coursetype_is_required": "請輸入分類名稱",
+    "adress_is_required": "請輸入地址",
+    "idcard_is_required": "請輸入身分證字號"
 
   },
   "hello": "哈囉",
@@ -352,6 +355,7 @@
   "AttendanceFourth": "簽到(四)",
   "AbsenceRecord": "缺課紀錄",
   "CourseDeadline": "課程期限",
-  "Course Name": "課程名稱"
+  "Course Name": "課程名稱",
+  "Course Type": "分類名稱"
 
 }
