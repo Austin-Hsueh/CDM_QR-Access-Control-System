@@ -41,9 +41,9 @@
                 <el-select filterable placeholder="請選擇" v-model="settingAccessTimeFormData.teacherId">
                   <el-option
                     v-for="item in teachersOptions"
-                    :key="item.userId"
-                    :label="item.displayName"
-                    :value="item.userId"
+                    :key="item.teacherId"
+                    :label="item.teacherName"
+                    :value="item.teacherId"
                   />
                 </el-select>
               </el-form-item>
@@ -151,6 +151,7 @@ import {M_IUsersOptions} from "@/models/M_IUsersOptions";
 import {M_IsettingAccessRuleForm} from "@/models/M_IsettingAccessRuleForm";
 import CreateStudentPermission from "@/models/M_CreateStudentPermission";
 import {M_ICourseOptions} from "@/models/M_ICourseOptions";
+import {M_ITeachersOptions} from "@/models/M_ITeachersOptions";
 
 
 
@@ -158,7 +159,7 @@ const { t, locale } = useI18n();
 const router = useRouter();
 const userInfoStore = useUserInfoStore();
 const usersOptions = ref<M_IUsersOptions[]>([]);
-const teachersOptions = ref<M_IUsersOptions[]>([]);
+const teachersOptions = ref<M_ITeachersOptions[]>([]);
 const courseList = ref<M_ICourseOptions[]>([]);
 const doors = [1,2,3,4];
 const days = [1,2,3,4,5,6,7];
@@ -258,8 +259,9 @@ async function getUsersOptions() {
     // usersOptions.value = getUsersOptionsResult.data.content;
     usersOptions.value = getUsersOptionsResult.data.content.filter(user => ![52, 54].includes(user.userId));
     
-    const validIds = [64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75];
-    teachersOptions.value = getUsersOptionsResult.data.content.filter(user => validIds.includes(user.userId));
+    const getTeachersOptionsResult = await API.getTeachersOptions();
+    if (getTeachersOptionsResult.data.result != 1) throw new Error(getTeachersOptionsResult.data.msg);
+    teachersOptions.value = getTeachersOptionsResult.data.content;
 
   } catch (error) {
     console.error(error);
@@ -492,30 +494,6 @@ const onFileUploadClicked = async () => {
 };
 //#endregion
 
-// #region 偵測IP
-// import { useRoute } from 'vue-router';
-
-// const route = useRoute();
-// const trueURL = ref<boolean>(false);
-
-// const fullURL = computed(() => {
-//   const { protocol, host } = window.location;
-//   const path = route.fullPath;
-//   return `${protocol}//${host}${path}`;
-// });
-
-// // 使用 watch 侦听 fullURL 的变化
-// watch(fullURL, (newURL) => {
-//   if (newURL === "http://127.0.0.1/accesscontrol") {
-//     trueURL.value = true;
-//     console.log(newURL)
-//   } else {
-//     trueURL.value = false;
-//     console.log(newURL)
-//   }
-// });
-
-//#endregion
 </script>
 
 <style scoped>
@@ -526,10 +504,6 @@ const onFileUploadClicked = async () => {
   height: 100%;
 }
 
-/* .image {
-  width: 100%;
-  display: block;
-} */
 .card-wrap:hover {
   cursor: pointer;
 }
