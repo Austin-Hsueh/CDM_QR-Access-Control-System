@@ -31,7 +31,7 @@
   <!-- /table -->
   
   <!-- 新增課程彈窗 -->
-  <el-dialog class="dialog" top="3vh" v-model="isShowAddRoleDialog" :title="t('create')">
+  <el-dialog class="dialog"  v-model="isShowAddRoleDialog" :title="t('create')">
     <el-form label-width="100px"  ref="createaddRoleForm" :rules="rules" :model="createFormData">
       <el-form-item :label="t('Course Name')" prop="courseName"  >
         <el-input style="width:90%" v-model="createFormData.courseName"/>
@@ -47,7 +47,7 @@
   <!-- /新增彈窗 -->
 
   <!-- 編輯彈窗 -->
-  <el-dialog class="dialog" top="3vh" v-model="isShowEditRoleDialog" :title="t('edit')">
+  <el-dialog class="dialog"  v-model="isShowEditRoleDialog" :title="t('edit')">
     <el-form label-width="100px"  ref="updateRoleForm" :rules="editRules" :model="updateFormData">
       <el-form-item :label="t('Course Name')" prop="courseName"  >
         <el-input style="width:90%" v-model="updateFormData.courseName"/>
@@ -77,7 +77,7 @@
   <!-- /編輯彈窗 -->
 
   <!-- 新增分類彈窗 -->
-  <el-dialog class="dialog" top="3vh" v-model="isShowAddCourseTypeDialog" :title="t('create')">
+  <el-dialog class="dialog"  v-model="isShowAddCourseTypeDialog" :title="t('create')">
     <el-form label-width="100px"  ref="createaddCourseTypeForm" :rules="rules" :model="createCourseTypeFormData">
       <el-form-item :label="t('Course Type')" prop="courseTypeName"  >
         <el-input style="width:90%" v-model="createCourseTypeFormData.courseTypeName"/>
@@ -93,7 +93,7 @@
   <!-- /新增彈窗 -->
 
   <!-- 編輯分類彈窗 -->
-  <el-dialog class="dialog" top="3vh" v-model="isShowEditCourseTypeDialog" :title="t('edit')">
+  <el-dialog class="dialog"  v-model="isShowEditCourseTypeDialog" :title="t('edit')">
     <el-form label-width="100px"  ref="updateCourseTypeForm" :rules="editRules" :model="updateCourseTypeFormData">
       <el-form-item :label="t('Course Name')" prop="courseTypeName"  >
         <el-input style="width:90%" v-model="updateCourseTypeFormData.courseTypeName"/>

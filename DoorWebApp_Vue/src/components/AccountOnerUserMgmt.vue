@@ -23,7 +23,7 @@
   <!-- /table -->
   
   <!-- 編輯彈窗 -->
-  <el-dialog class="dialog" top="3vh" v-model="isShowEditRoleDialog" :title="t('edit')">
+  <el-dialog class="dialog"  v-model="isShowEditRoleDialog" :title="t('edit')">
     <el-form label-width="100px"  ref="updateRoleForm" :rules="editRules" :model="updateFormData">
       <el-form-item :label="t('username')" prop="username"  >
         <el-input style="width:90%" v-model="updateFormData.username"/>

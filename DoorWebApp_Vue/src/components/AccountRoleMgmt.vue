@@ -84,7 +84,7 @@
   <!-- /pagination -->
 
   <!-- 新增彈窗 -->
-  <el-dialog class="dialog" top="3vh" v-model="isShowAddRoleDialog" :title="t('create')">
+  <el-dialog class="dialog"  v-model="isShowAddRoleDialog" :title="t('create')">
     <el-form @submit.prevent v-loading.fullscreen.lock="isAddDialogLoading" ref="addRoleForm" :model="addRoleFormData" :rules="addRoleFormRules">
       <el-form-item :label="t('form.label.role')" prop="name" :label-width="formLabelWidth">
         <el-input v-model.trim="addRoleFormData.name" :autocomplete="'off'" />
@@ -113,7 +113,7 @@
   <!-- /新增彈窗 -->
 
   <!-- 編輯彈窗 -->
-  <el-dialog class="dialog" top="3vh" v-model="isShowModifyRoleDialog" :title="t('modify')">
+  <el-dialog class="dialog"  v-model="isShowModifyRoleDialog" :title="t('modify')">
     <el-form @submit.prevent v-loading.fullscreen.lock="isModifyDialogLoading" ref="modifyRoleForm" :model="modifyRoleFormData" :rules="modifyRoleFormRules">
       <el-form-item :label="t('form.label.role')" prop="name" :label-width="formLabelWidth">
         <el-input v-model.trim="modifyRoleFormData.name" :autocomplete="'off'" />

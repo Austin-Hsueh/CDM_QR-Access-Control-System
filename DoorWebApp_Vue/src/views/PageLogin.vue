@@ -50,7 +50,7 @@
     </el-card>
   </div>
   <!-- 忘記密碼彈窗 -->
-  <el-dialog class="dialog" top="3vh" v-model="isShowPasswordDialog" :title="t('PasswordForget')">
+  <el-dialog class="dialog"  v-model="isShowPasswordDialog" :title="t('PasswordForget')">
     <el-form label-width="100px"  ref="passwordForm" :rules="passwordRules" :model="passwordFormData">
       <el-form-item :label="t('username')" prop="username"  >
         <el-input style="width:90%" v-model="passwordFormData.username"/>
