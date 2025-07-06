@@ -48,31 +48,17 @@
                     {{ teacherMap[scope.row.teacherId] || '未知' }}
                   </template>
                 </el-table-column>
+                <el-table-column width="100px" align="center" label="簽到表">
+                  <template v-slot="{ row }: { row: any }">
+                    <el-button type="warning" size="small" @click="onView(row, row.id)"><el-icon><Document /></el-icon>簽到表</el-button>
+                  </template>
+                </el-table-column>
                 <el-table-column width="170px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
                   <template v-slot="{ row }: { row: any }">
                     <el-button type="primary" size="small" @click="onEdit(row, props.row.userId, props.row.displayName)"><el-icon><EditPen /></el-icon>{{ t('edit') }}</el-button>
                     <el-button type="danger" size="small" @click="onDelet(row, props.row.userId, props.row.displayName)">
                       <el-icon><Delete /></el-icon> {{ t('delete') }}
                     </el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
-            <div class="m-3" style="margin-bottom: 3rem !important;">
-              <h4 style="font-weight: bold;text-decoration: underline;text-align: center;">學生簽到表</h4><br>
-              <el-table name="userInfoTable" style="width: 100%" :data="Info" border="true" :header-cell-style="{ backgroundColor: '#F2F2F2' }">
-                <el-table-column :label="t('Term')" prop="term" />
-                <el-table-column :label="t('PaymentDate')" prop="paymentDate" />
-                <el-table-column :label="t('PaymentStamp')" prop="paymentStamp" />
-                <el-table-column :label="t('AttendanceFirst')" prop="attendanceFirst" />
-                <el-table-column :label="t('AttendanceSecond')" prop="attendanceSecond" />
-                <el-table-column :label="t('AttendanceThird')" prop="attendanceThird" />
-                <el-table-column :label="t('AttendanceFourth')" prop="attendanceFourth" />
-                <el-table-column :label="t('AbsenceRecord')" prop="absenceRecord" />
-                <el-table-column :label="t('CourseDeadline')" prop="courseDeadline" />
-                <el-table-column width="170px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
-                  <template #default="{ row }: { row: any }">
-                    <el-button type="primary" size="small" @click="onEdit(row)"><el-icon><EditPen /></el-icon>{{ t('edit') }}</el-button>
                   </template>
                 </el-table-column>
               </el-table>
@@ -113,7 +99,7 @@
   <!-- /pagination -->
 
   <!-- 編輯彈窗 -->
-  <el-dialog class="dialog" top="3vh" v-model="isShowEditRoleDialog" :title="t('edit')">
+  <el-dialog class="dialog"  v-model="isShowEditRoleDialog" :title="t('edit')">
     <el-form label-width="100px"  ref="updateRoleForm" :rules="rules" :model="updateFormData" label-position="top">
       <el-form-item label="門禁權限" prop="groupIds">
         <el-checkbox-group v-model="updateFormData.groupIds">
@@ -165,21 +151,31 @@
     </template>
   </el-dialog>
   <!-- /編輯彈窗 -->
+
+  <!-- 簽到彈窗 -->
+  <DialogAttendance :key="StudentpermissionId" :visible="isShowAttendanceDialog" :studentpermission-id="StudentpermissionId" @close="handleCloseDialog" />
+  <!-- /簽到彈窗 -->
 </template>
 
 <script setup lang="ts">
 
-import { computed, ref, onMounted, onActivated, reactive, defineProps, defineExpose } from "vue";
+import { ref, onMounted, reactive, defineProps, defineExpose, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import API from '@/apis/TPSAPI';
 import { M_IUsers } from "@/models/M_IUser";
 import {M_IsettingAccessRuleForm} from "@/models/M_IsettingAccessRuleForm";
-import {M_IUserList_MTI, M_IUsersContent_MTI} from "@/models/M_IUserList_MTI";
+import {M_IUsersContent_MTI} from "@/models/M_IUserList_MTI";
 import { ComponentSize, FormInstance, FormRules, ElNotification, NotificationParams, ElMessageBox  } from 'element-plus';
 import {formatDate, formatTime} from "@/plugins/dateUtils";
 import SearchPaginationRequest from "@/models/M_ISearchPaginationRequest";
+import DialogAttendance from "@/components/DialogAttendance.vue";
 
 const isShowEditRoleDialog = ref(false);
+const isShowAttendanceDialog = ref(false);
+
+const handleCloseDialog = () => {
+  isShowAttendanceDialog.value = false;
+};
 
 const { t } = useI18n();
 const userInfo = ref<M_IUsers[]>([]); // Specify the type of the array
@@ -256,7 +252,7 @@ const onFilterInputed = () => {
   }
 }
 
-const onEdit = (item, userId, displayName) => {
+const onEdit = (item: any, userId: number, displayName: string) => {
   isShowEditRoleDialog.value = true;
   console.log(item)
   updateRoleForm.value?.resetFields();
@@ -289,7 +285,7 @@ const onEdit = (item, userId, displayName) => {
   console.log(updateFormData)
 }
 
-const onDelet = async(item, userId, displayName) => {
+const onDelet = async(item: any, userId: number, displayName: string) => {
  
  try {
     await ElMessageBox.confirm("確定刪除?", "提示", {
@@ -332,7 +328,7 @@ const onDelet = async(item, userId, displayName) => {
   console.log(deleteFormData)
 
  try {
-    let notifyParam: NotificationParams = {};
+    let notifyParam: NotificationParams = {}; 
     const settingResponse = await API.patchStudentPermission(deleteFormData);
     
     // 根據需要處理 settingResponse
@@ -363,7 +359,6 @@ const onDelet = async(item, userId, displayName) => {
     console.error('Failed to set permission', error);
   }
 }
-
 
 const submitUpdateForm = async () => {
   console.log('Form submitted', updateFormData);
@@ -437,6 +432,13 @@ const submitUpdateForm = async () => {
   }
 };
 
+const StudentpermissionId = ref<number | null>(null);
+
+const onView = async (item: any, id: number) => {
+  StudentpermissionId.value = id;
+  isShowAttendanceDialog.value = true;
+}
+
 //#endregion
 
 // 將函式傳到父組件
@@ -446,11 +448,7 @@ defineExpose({
 
 
 //#region Hook functions
-// onActivated(() => {
-  
-// });
 onMounted(() => {
-
   console.log(`Received door ID: ${props.doorId}`);
   getStudentPermissions();
 });
@@ -468,6 +466,7 @@ async function getStudentPermissions() {
     
     if (getStudentPermissionsResult.data.result != 1) throw new Error(getStudentPermissionsResult.data.msg);
     userInfoMTI.value = getStudentPermissionsResult.data.content;
+    console.log("拿userInfoMTI")
     console.log(userInfoMTI.value)
 
   } catch (error) {
@@ -519,6 +518,8 @@ const formatCourse = (courseId: number): string => {
 };
 
 const teacherMap: { [key: number]: string } = {
+  64: '小朝',
+  65: 'Car',
   66: '丁喬',
   67: '鄭元',
   68: '學宜',
@@ -531,68 +532,139 @@ const teacherMap: { [key: number]: string } = {
   75: '映伶',
 };
 
-const Info = ref([
-    {
-      id: 1,
-      term: '第一期',
-      paymentDate: '2025-01-15',
-      paymentStamp: '已繳費',
-      attendanceFirst: '出席',
-      attendanceSecond: '出席',
-      attendanceThird: '請假',
-      attendanceFourth: '出席',
-      absenceRecord: '第三堂請假',
-      courseDeadline: '2025-06-30'
-    },
-    {
-      id: 2,
-      term: '第一期',
-      paymentDate: '2025-01-16',
-      paymentStamp: '已繳費',
-      attendanceFirst: '出席',
-      attendanceSecond: '缺席',
-      attendanceThird: '出席',
-      attendanceFourth: '出席',
-      absenceRecord: '第二堂缺席',
-      courseDeadline: '2025-06-30'
-    },
-    {
-      id: 3,
-      term: '第二期',
-      paymentDate: '2025-04-10',
-      paymentStamp: '未繳費',
-      attendanceFirst: '出席',
-      attendanceSecond: '出席',
-      attendanceThird: '出席',
-      attendanceFourth: '缺席',
-      absenceRecord: '第四堂缺席',
-      courseDeadline: '2025-09-15'
-    },
-    {
-      id: 4,
-      term: '第二期',
-      paymentDate: '2025-04-12',
-      paymentStamp: '已繳費',
-      attendanceFirst: '缺席',
-      attendanceSecond: '出席',
-      attendanceThird: '出席',
-      attendanceFourth: '出席',
-      absenceRecord: '第一堂缺席',
-      courseDeadline: '2025-09-15'
-    },
-    {
-      id: 5,
-      term: '第三期',
-      paymentDate: '2025-07-20',
-      paymentStamp: '已繳費',
-      attendanceFirst: '出席',
-      attendanceSecond: '出席',
-      attendanceThird: '出席',
-      attendanceFourth: '出席',
-      absenceRecord: '無',
-      courseDeadline: '2025-12-20'
-    }
-  ]);
+const attendanceTypeMap = {
+  0: '曠課',
+  1: '出席',
+  2: '請假'
+} as const;
+
+// 定義標籤顏色映射
+const attendanceTagTypeMap = {
+  0: 'danger',   // 缺席 - 紅色
+  1: 'success',  // 出席 - 綠色
+  2: 'warning'   // 請假 - 黃色
+} as const;
+
+// 獲取出席類型文字
+const getAttendanceTypeText = (type: number): string => {
+  return attendanceTypeMap[type as keyof typeof attendanceTypeMap] || '未知';
+};
+
+// 獲取標籤類型
+const getAttendanceTagType = (type: number): string => {
+  return attendanceTagTypeMap[type as keyof typeof attendanceTagTypeMap] || 'info';
+};
+
+const Info = ref([]);
+
 </script>
 
-<style scoped></style>
+<style scoped>
+.course-attendance-container {
+  padding: 20px;
+}
+
+.course-summary {
+  margin-bottom: 20px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #409eff;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.label {
+  font-weight: 600;
+  color: #606266;
+  min-width: 80px;
+}
+
+.attendance-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attendance-tag {
+  font-size: 13px;
+}
+
+.trigger-tag {
+  align-self: flex-start;
+  font-size: 11px;
+}
+
+.progress-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.progress-text {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.course-stats {
+  margin-top: 20px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.course-stats h4 {
+  margin: 0 0 12px 0;
+  color: #303133;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-label {
+  font-weight: 500;
+  color: #606266;
+}
+
+.stat-value {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.stat-value.success {
+  color: #67c23a;
+}
+
+.stat-value.warning {
+  color: #e6a23c;
+}
+
+.stat-value.danger {
+  color: #f56c6c;
+}
+
+.operateBtnGroup {
+  display: flex;
+  gap: 8px;
+}
+</style>

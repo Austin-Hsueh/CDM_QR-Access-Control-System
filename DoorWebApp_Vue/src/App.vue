@@ -148,6 +148,10 @@ ion-icon {
   width: 100%;
 }
 
+.dialog .el-checkbox{
+  margin-right: 20px ;
+}
+
 .top-pn-modify-dialog {
   width: 100%;
 }

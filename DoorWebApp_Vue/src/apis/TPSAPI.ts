@@ -54,6 +54,7 @@ import {M_IUserList_MTI, M_IUsersContent_MTI} from "@/models/M_IUserList_MTI";
 import SearchPaginationRequest from "@/models/M_ISearchPaginationRequest";
 import { M_ICourseOptions } from "@/models/M_ICourseOptions";
 import { M_ICourseTypeOptions } from "@/models/M_ICourseTypeOptions";
+import { M_ITeachersOptions } from "@/models/M_ITeachersOptions";
 
 
 class APIService {
@@ -448,6 +449,10 @@ class APIService {
   getNewPassword(data:any){
     return this.axiosInstance.post<IAPIResponse<any>>("v1/User/resetPassword", data);
   }
+
+  getTeachersOptions(){
+    return this.axiosInstance.get<IAPIResponse<M_ITeachersOptions>>("v1/Teachers");
+  }
   //#endregion
 
   //#region Music QRcode相關
@@ -543,7 +548,16 @@ class APIService {
   }
   //#endregion
 
+  //#region Music 簽到表相關
+  /** 取得 {StudentPermissionId} 簽到記錄 */
+  getAttends(StudentPermissionId: number){
+    return this.axiosInstance.get<IAPIResponse<any>>(`v1/Attends/${StudentPermissionId}`);
+  }
 
+  updateAttendance(cmd: any){
+    return this.axiosInstance.patch<IBaseAPIResponse>(`v1/UpdateAttend`, cmd);
+  }
+  //#endregion
 }
 
 const API = new APIService();
