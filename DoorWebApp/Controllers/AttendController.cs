@@ -222,6 +222,7 @@ namespace DoorWebApp.Controllers
                 //更新使用者
                 AttendEntity.AttendanceType = AttendDTO.attendanceType;
                 AttendEntity.ModifiedUserId = AttendDTO.modifiedUserId;
+                AttendEntity.AttendanceDate = AttendDTO.attendanceDate;
                 AttendEntity.ModifiedTime = DateTime.Now;
 
                 // 4. 存檔
