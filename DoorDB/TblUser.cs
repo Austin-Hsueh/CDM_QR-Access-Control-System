@@ -114,6 +114,13 @@ namespace DoorDB
         [Comment("選課狀態 預設0,1在學,2停課,3約課")]
         public int Type { get; set; }
 
+        /// <summary>
+        /// 父帳號ID
+        /// </summary>
+        public int? ParentId { get; set; }
+        [ForeignKey("ParentId")]
+        public TblUser Parent { get; set; }
+        public virtual List<TblUser> Children { get; set; }
 
         public virtual List<TblRole> Roles { set; get; }
         public TblPermission Permission { set; get; }
