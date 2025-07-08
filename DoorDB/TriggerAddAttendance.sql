@@ -3,12 +3,12 @@ CREATE TRIGGER trg_AccessEventLog_Insert_Attendance
 AFTER INSERT ON tblAccessEventLog
 FOR EACH ROW
 BEGIN
+    DECLARE isParent INT DEFAULT 0;
     -- 只針對大門
     IF NEW.DoorNumber = 1 THEN
-        -- 先找出是否為父帳號
-        DECLARE parentId INT;
-        SELECT Id INTO parentId FROM tblUser WHERE Id = NEW.UserAddress AND IsDelete = 0 AND ParentId IS NULL;
-        IF parentId IS NOT NULL THEN
+        -- 判斷是否為父帳號
+        SELECT COUNT(*) INTO isParent FROM tblUser WHERE ParentId = NEW.UserAddress AND IsDelete = 0;
+        IF isParent > 0 THEN
             -- 若是父帳號，找出所有子帳號，並為每個子帳號插入出席紀錄
             INSERT INTO tblAttendance (StudentPermissionId, AttendanceDate, AttendanceType, IsTrigger, ModifiedUserId, CreatedTime, ModifiedTime, IsDelete)
             SELECT 
@@ -16,13 +16,13 @@ BEGIN
                 DATE(NEW.EventTime), 
                 1, 
                 1, 
-                51, 
+                NEW.UserAddress, 
                 NOW(), 
                 NOW(), 
                 0
             FROM tblStudentPermission sp
             JOIN tblUser u ON u.Id = sp.UserId
-            WHERE u.ParentId = parentId
+            WHERE u.ParentId = NEW.UserAddress
               AND sp.IsDelete = 0
               AND DATE(NEW.EventTime) >= STR_TO_DATE(sp.DateFrom, '%Y/%m/%d')
               AND DATE(NEW.EventTime) <= STR_TO_DATE(sp.DateTo, '%Y/%m/%d')
