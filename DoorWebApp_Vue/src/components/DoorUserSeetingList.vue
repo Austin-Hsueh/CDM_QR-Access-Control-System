@@ -1,8 +1,7 @@
 <template>
   <!-- Ipt、Btn Group -->
-  <div class="d-flex mb-2 pl-2">
+  <div class="d-flex mb-2 pl-2 gap-3">
     <el-input
-      class="me-auto"
       style="width: 240px"
       :placeholder="t('NameFilter')"
       clearable
@@ -10,6 +9,18 @@
       :prefix-icon="Filter"
       @input="onFilterInputed"
     />
+    <el-select
+      v-model="selectedRole"
+      placeholder="選擇角色"
+      style="width: 120px"
+      @change="onRoleChange"
+    >
+      <el-option label="全部" :value="0" />
+      <el-option label="管理者" :value="1" />
+      <el-option label="老師" :value="2" />
+      <el-option label="學生" :value="3" />
+      <el-option label="值班人員" :value="4" />
+    </el-select>
   </div>
 
   <!-- table 多時段 樣式1-->
@@ -48,11 +59,6 @@
                     {{ teacherMap[scope.row.teacherId] || '未知' }}
                   </template>
                 </el-table-column>
-                <el-table-column width="100px" align="center" label="簽到表">
-                  <template v-slot="{ row }: { row: any }">
-                    <el-button type="warning" size="small" @click="onView(row, row.id)"><el-icon><Document /></el-icon>簽到表</el-button>
-                  </template>
-                </el-table-column>
                 <el-table-column width="170px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
                   <template v-slot="{ row }: { row: any }">
                     <el-button type="primary" size="small" @click="onEdit(row, props.row.userId, props.row.displayName)"><el-icon><EditPen /></el-icon>{{ t('edit') }}</el-button>
@@ -65,9 +71,19 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column sortable :label="t('username')"  prop="username" />
-        <el-table-column sortable :label="t('displayName')" prop="displayName" />
-        <el-table-column sortable :label="t('Number of Settings')">
+        <el-table-column width="200" sortable :label="t('username')"  prop="username" />
+        <el-table-column width="200" sortable :label="t('displayName')" prop="displayName" />
+        <el-table-column align="left" label="簽到表" :header-align="'left'">
+          <template #default="scope">
+            <div v-if="selectedRole === 3" style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: left;">
+              <el-button v-for="permission in scope.row.studentPermissions" :key="permission.id" type="warning" size="small" @click="onView(permission, permission.id)"><el-icon><Document /></el-icon>{{ formatCourse(permission.courseId) }}</el-button>
+            </div>
+            <div v-else style="display: flex; align-items: center; justify-content: left; height: 100%;">
+              <p style="color: #999999; margin: 0; text-align: center;">僅學生有簽到表</p>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column width="120" sortable :label="t('Number of Settings')">
           <template #default="scope">
             {{ scope.row.studentPermissions.length }}
           </template>
@@ -182,6 +198,7 @@ const userInfo = ref<M_IUsers[]>([]); // Specify the type of the array
 const userInfoMTI = ref<M_IUsersContent_MTI | null>(null); // Specify the type of the array
 const size = ref<ComponentSize>('default')
 const searchText = ref('')
+const selectedRole = ref(3) // 預設選擇學生
 const doors = [1,2,3,4];
 const days = [1,2,3,4,5,6,7];
 
@@ -207,7 +224,8 @@ const handleCurrentChange = async(val: number) => {
 const searchPagination = ref<SearchPaginationRequest>({
   SearchText: "",
   SearchPage: 10,
-  Page: 1
+  Page: 1,
+  Role: 3
 });
 
 const parseTime = (time: string): Date => {
@@ -250,6 +268,12 @@ const onFilterInputed = () => {
       getStudentPermissions();
     }, 500);
   }
+}
+
+const onRoleChange = () => {
+  console.log("Role Changed:", selectedRole.value);
+  searchPagination.value.Role = selectedRole.value;
+  getStudentPermissions();
 }
 
 const onEdit = (item: any, userId: number, displayName: string) => {

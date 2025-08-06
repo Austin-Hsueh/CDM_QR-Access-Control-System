@@ -67,9 +67,12 @@ namespace DoorWebApp.Controllers
             var users = await ctx.TblUsers
             .Include(x => x.StudentPermissions)
             .ThenInclude(x => x.PermissionGroups)
+            .Include(x => x.Roles)
             .Where(x => x.IsDelete == false)
             //查詢 名稱 
             .Where(x => data.SearchText != "" ? x.DisplayName.Contains(data.SearchText) : true)
+            //角色篩選 (0=全部, 1=管理者, 2=老師, 3=學生, 4=值班人員)
+            .Where(x => data.Role == 0 ? true : x.Roles.Any(r => r.Id == data.Role))
             .ToListAsync();
 
             var userList = users.Select(x => new ResGetAllStudentPermissionDTO()
@@ -77,6 +80,7 @@ namespace DoorWebApp.Controllers
                 userId = x.Id,
                 username = x.Username,
                 displayName = x.DisplayName,
+                role = GetUserRole(x.Id),
                 studentPermissions = x.StudentPermissions
                     .Where(sp => sp.IsDelete == false)
                     .Select(sp => new ResStudentPermissionDTO()
@@ -144,6 +148,15 @@ namespace DoorWebApp.Controllers
             return Ok(res);
         }
 
+        private string GetUserRole(int userId)
+        {
+            var user = ctx.TblUsers
+                .Include(u => u.Roles)
+                .FirstOrDefault(u => u.Id == userId);
+
+            var role = user?.Roles.FirstOrDefault();
+            return role?.Description ?? "未知身分";
+        }
 
         /// <summary>
         /// 新增學生門禁時間

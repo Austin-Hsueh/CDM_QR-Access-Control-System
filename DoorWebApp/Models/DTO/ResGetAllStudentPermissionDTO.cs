@@ -17,7 +17,10 @@
         /// </summary>
         public string displayName { get; set; }
 
-
+        /// <summary>
+        /// 身分 (老師/管理者/學生/值班人員)
+        /// </summary>
+        public string role { get; set; }
 
         public List<ResStudentPermissionDTO> studentPermissions { set; get; }
 
