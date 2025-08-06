@@ -93,6 +93,13 @@ namespace DoorDB
         [Required]
         public int PermissionLevel { get; set; }
 
+        /// <summary>
+        /// 用途類型 1=上課 2=租借教室
+        /// </summary>
+        [Comment("用途類型 1=上課 2=租借教室")]
+        [Required]
+        public int Type { get; set; }
+
         public List<TblPermissionGroup> PermissionGroups { set; get; }
         public TblUser User { set; get; }
 

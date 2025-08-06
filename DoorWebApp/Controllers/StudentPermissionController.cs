@@ -92,6 +92,7 @@ namespace DoorWebApp.Controllers
                         dateto = sp.DateTo,
                         timefrom = sp.TimeFrom,
                         timeto = sp.TimeTo,
+                        type = sp.Type,
                         days = sp.Days.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                                       .Select(int.Parse)  // Convert each day string to integer
                                       .ToList(),  // Convert to List<int>
@@ -194,6 +195,7 @@ namespace DoorWebApp.Controllers
                 TblStudentPermission AssignPermissionEntity = new TblStudentPermission();
                 AssignPermissionEntity.CourseId = PermissionDTO.courseId;
                 AssignPermissionEntity.TeacherId = PermissionDTO.teacherId;
+                AssignPermissionEntity.Type = PermissionDTO.type;
                 AssignPermissionEntity.DateFrom = PermissionDTO.datefrom.Replace("-", "/");
                 AssignPermissionEntity.DateTo = PermissionDTO.dateto.Replace("-", "/");
                 AssignPermissionEntity.TimeFrom = PermissionDTO.timefrom;
@@ -285,6 +287,7 @@ namespace DoorWebApp.Controllers
                 AssignPermissionEntity.TimeTo = PermissionDTO.timeto;
                 AssignPermissionEntity.CourseId = PermissionDTO.courseId;
                 AssignPermissionEntity.TeacherId = PermissionDTO.teacherId;
+                AssignPermissionEntity.Type = PermissionDTO.type;
                 AssignPermissionEntity.Days = string.Join(",", PermissionDTO.days);
 
                 AssignPermissionEntity.PermissionGroups.Clear();

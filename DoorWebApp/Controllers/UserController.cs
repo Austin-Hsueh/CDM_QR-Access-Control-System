@@ -1858,6 +1858,8 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
+               
+
                 if (targetUserEntity.Email == null)
                 {
                     log.LogWarning($"[{Request.Path}] User (帳號:{forgetPassword.username}) Email is null");
@@ -2147,6 +2149,67 @@ namespace DoorWebApp.Controllers
                 log.LogError(err, $"[{Request.Path}] Error : {err}");
                 res.result = APIResultCode.unknow_error;
                 res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
+        /// <summary>
+        /// 新增子帳號到家長
+        /// </summary>
+        [HttpPost("v1/User/AddChild")]
+        public IActionResult AddChild([FromBody] ReqUserParentChildDTO dto)
+        {
+            var res = new APIResponse<object>();
+            try
+            {
+                var child = ctx.TblUsers.FirstOrDefault(x => x.Id == dto.childId && x.IsDelete == false);
+                var parent = ctx.TblUsers.FirstOrDefault(x => x.Id == dto.parentId && x.IsDelete == false);
+                if (child == null || parent == null)
+                {
+                    res.result = APIResultCode.user_not_found;
+                    res.msg = "家長或子帳號不存在";
+                    return Ok(res);
+                }
+                child.ParentId = parent.Id;
+                ctx.SaveChanges();
+                res.result = APIResultCode.success;
+                res.msg = "新增子帳號成功";
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                res.result = APIResultCode.unknow_error;
+                res.msg = ex.Message;
+                return Ok(res);
+            }
+        }
+
+        /// <summary>
+        /// 移除子帳號與家長關聯
+        /// </summary>
+        [HttpPost("v1/User/RemoveChild")]
+        public IActionResult RemoveChild([FromBody] ReqUserParentChildDTO dto)
+        {
+            var res = new APIResponse<object>();
+            try
+            {
+                var child = ctx.TblUsers.FirstOrDefault(x => x.Id == dto.childId && x.IsDelete == false);
+                if (child == null)
+                {
+                    res.result = APIResultCode.user_not_found;
+                    res.msg = "子帳號不存在";
+                    return Ok(res);
+                }
+                child.ParentId = null;
+                ctx.SaveChanges();
+                res.result = APIResultCode.success;
+                res.msg = "移除子帳號成功";
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                res.result = APIResultCode.unknow_error;
+                res.msg = ex.Message;
                 return Ok(res);
             }
         }

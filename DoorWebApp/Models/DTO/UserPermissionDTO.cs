@@ -9,6 +9,7 @@
         public string dateto { get; set; } // 權限日期訖
         public string timefrom { get; set; } // 權限時間起
         public string timeto { get; set; } // 權限時間訖
+        public int type { get; set; }  // 1=上課 2=租借教室
         public List<int> days { get; set; } // 權限一周哪幾天
         public List<int> groupIds { set; get; }
     }
