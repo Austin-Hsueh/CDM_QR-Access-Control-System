@@ -27,7 +27,13 @@
                   />
                 </el-select>
               </el-form-item>
-              <el-form-item label="課程類別" prop="courseId">
+              <el-form-item label="門禁種類" prop="type">
+                <el-select filterable placeholder="請選擇" v-model="settingAccessTimeFormData.type">
+                  <el-option label="上課" value="1"></el-option>
+                  <el-option label="租借教室" value="2"></el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item label="課程類別" prop="courseId" v-show="settingAccessTimeFormData.type === '1'">
                 <el-select filterable placeholder="請選擇" v-model="settingAccessTimeFormData.courseId">
                   <el-option 
                     v-for="item in courseList" 
@@ -37,7 +43,7 @@
                   </el-option>
                 </el-select>
               </el-form-item>
-              <el-form-item label="老師姓名" prop="teacherId">
+              <el-form-item label="老師姓名" prop="teacherId" v-show="settingAccessTimeFormData.type === '1'">
                 <el-select filterable placeholder="請選擇" v-model="settingAccessTimeFormData.teacherId">
                   <el-option
                     v-for="item in teachersOptions"
@@ -288,13 +294,14 @@ const settingAccessTimeFormData = reactive<M_IsettingAccessRuleForm>({
   datepicker: '',
   timepicker: '',
   days: [],
-  groupIds: [],
+  groupIds: [1],
   datefrom: '',
   dateto: '',
   timefrom:'',
   timeto: '',
   courseId: '',
   teacherId: '',
+  type:'1',
 })
 const ssetStudentPermission = reactive<M_IsettingAccessRuleForm>({
   userId: '',

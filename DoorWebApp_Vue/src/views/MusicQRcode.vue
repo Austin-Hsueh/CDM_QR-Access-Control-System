@@ -6,7 +6,8 @@
     </div>
 
     <el-tabs type="border-card">
-      <el-tab-pane :label="t('Access QR Code')" >
+      <!-- <el-tab-pane :label="t('Access QR Code')" style="display: flex;flex-direction: row;gap: 10px;" ></el-tab-pane> -->
+        <el-tab-pane :label="t('Access QR Code')">
         <el-card style="max-width: 300px">
           <span v-if="ifCodeError">QRcode將於上課前2分鐘顯示</span>
           <div v-if="ifCodeLoad">
@@ -19,6 +20,37 @@
           <el-divider style="margin: 15px 0;"/>
           <span>※ 無法使用時重新整理網頁</span>
         </el-card>
+        <!-- <el-card style="width: 350px;">
+          <el-form class="col-4" :inline="true" label-width="100px"  ref="settingAccessTimeForm" label-position="top" style="width:100%;">
+              <el-form-item label="課程區間" prop="datepicker"  style="width: 100%;">
+                <el-date-picker
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="開始日期"
+                  end-placeholder="結束日期"
+                />
+              </el-form-item>
+              <el-form-item style="margin-top: auto;">
+                <el-button type="primary" @click="settingForm()">搜尋</el-button>
+              </el-form-item>
+            </el-form>
+            <h4 style="font-weight: bold;padding-bottom: 8px;text-decoration: underline;">簽到表</h4><br>
+            <el-table name="userInfoTable" style="width: 100%" :data="transposeTable(Info)">
+              <el-table-column :label="t('Term')" prop="term" />
+              <el-table-column :label="t('PaymentDate')" prop="paymentDate" />
+              <el-table-column :label="t('PaymentStamp')" prop="paymentStamp" />
+              <el-table-column :label="t('AttendanceFirst')" prop="attendanceFirst" />
+              <el-table-column :label="t('AttendanceSecond')" prop="attendanceSecond" />
+              <el-table-column :label="t('AttendanceThird')" prop="attendanceThird" />
+              <el-table-column :label="t('AttendanceFourth')" prop="attendanceFourth" />
+              <el-table-column :label="t('AbsenceRecord')" prop="absenceRecord" />
+              <el-table-column :label="t('CourseDeadline')" prop="courseDeadline" />
+              <el-table-column prop="property" label="" width="50px;"></el-table-column>
+              <el-table-column prop="value0" label="第一期"></el-table-column>
+              <el-table-column prop="value1" label="第二期"></el-table-column>
+              <el-table-column prop="value2" label="第三期"></el-table-column>
+            </el-table>
+        </el-card> -->
       </el-tab-pane>
     </el-tabs>
   </div>
@@ -124,6 +156,109 @@ const dayNames = computed(() => {
 });
 
 //#endregion
+
+// const Info = ref([
+//     // {
+//     //   id: 1,
+//     //   term: '第一期',
+//     //   paymentDate: '2025-01-15',
+//     //   paymentStamp: '已繳費',
+//     //   attendanceFirst: '出席',
+//     //   attendanceSecond: '出席',
+//     //   attendanceThird: '請假',
+//     //   attendanceFourth: '出席',
+//     //   absenceRecord: '第三堂請假',
+//     //   courseDeadline: '2025-06-30'
+//     // },
+//     // {
+//     //   id: 2,
+//     //   term: '第一期',
+//     //   paymentDate: '2025-01-16',
+//     //   paymentStamp: '已繳費',
+//     //   attendanceFirst: '出席',
+//     //   attendanceSecond: '缺席',
+//     //   attendanceThird: '出席',
+//     //   attendanceFourth: '出席',
+//     //   absenceRecord: '第二堂缺席',
+//     //   courseDeadline: '2025-06-30'
+//     // },
+//     // {
+//     //   id: 3,
+//     //   term: '第二期',
+//     //   paymentDate: '2025-04-10',
+//     //   paymentStamp: '未繳費',
+//     //   attendanceFirst: '出席',
+//     //   attendanceSecond: '出席',
+//     //   attendanceThird: '出席',
+//     //   attendanceFourth: '缺席',
+//     //   absenceRecord: '第四堂缺席',
+//     //   courseDeadline: '2025-09-15'
+//     // },
+//     // {
+//     //   id: 4,
+//     //   term: '第二期',
+//     //   paymentDate: '2025-04-12',
+//     //   paymentStamp: '已繳費',
+//     //   attendanceFirst: '缺席',
+//     //   attendanceSecond: '出席',
+//     //   attendanceThird: '出席',
+//     //   attendanceFourth: '出席',
+//     //   absenceRecord: '第一堂缺席',
+//     //   courseDeadline: '2025-09-15'
+//     // },
+//     // {
+//     //   id: 5,
+//     //   term: '第三期',
+//     //   paymentDate: '2025-07-20',
+//     //   paymentStamp: '已繳費',
+//     //   attendanceFirst: '出席',
+//     //   attendanceSecond: '出席',
+//     //   attendanceThird: '出席',
+//     //   attendanceFourth: '出席',
+//     //   absenceRecord: '無',
+//     //   courseDeadline: '2025-12-20'
+//     // },
+//     {
+//       T1: '04/01',
+//       T2: '04/08',
+//       T3: '04/15',
+//       T4: '04/22'
+//     },
+//     {
+//       T1: '04/01',
+//       T2: '04/08',
+//       T3: '04/15',
+//       T4: '04/22'
+//     },
+//     {
+//       T1: '04/01',
+//       T2: '04/08',
+//       T3: '04/15',
+//       T4: '04/22'
+//     },
+//     {
+//       T1: '04/01',
+//       T2: '04/08',
+//       T3: '04/15',
+//       T4: '04/22'
+//     },
+//   ]);
+
+// // 可以通過以下函數轉換為直式數據
+// const transposeTable = (data) => {
+//   const keys = Object.keys(data[0]);
+//   const transposed = [];
+  
+//   keys.forEach(key => {
+//     const row = { property: key };
+//     data.forEach((item, index) => {
+//       row[`value${index}`] = item[key];
+//     });
+//     transposed.push(row);
+//   });
+  
+//   return transposed;
+// }
 </script>
 
 
