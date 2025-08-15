@@ -83,6 +83,8 @@ namespace DoorWebApp.Controllers
                 role = GetUserRole(x.Id),
                 studentPermissions = x.StudentPermissions
                     .Where(sp => sp.IsDelete == false)
+                    //type篩選 (0=全部, 1=上課, 2=租借教室)
+                    .Where(sp => data.type == 0 ? true : sp.Type == data.type)
                     .Select(sp => new ResStudentPermissionDTO()
                     {
                         Id = sp.Id,
@@ -102,6 +104,7 @@ namespace DoorWebApp.Controllers
                     })
                     .ToList()
             })
+            .Where(x => x.studentPermissions.Any()) // 只回傳有studentPermissions的用戶
             .AsQueryable();
             log.LogInformation($"[{Request.Path}] themes.Count():[{userList.Count()}]");
 
