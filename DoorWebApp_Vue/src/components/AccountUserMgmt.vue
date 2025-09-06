@@ -35,8 +35,8 @@
         <el-table-column sortable :label="t('userID')"  prop="userId" v-if="showId"/>
         <el-table-column sortable :label="t('username')"  prop="username"/>
         <el-table-column sortable :label="t('displayName')" prop="displayName" />
-        <el-table-column sortable :label="t('IdNumber')" prop="idcard" />
-        <el-table-column sortable :label="t('Address')" prop="address" />
+        <!-- <el-table-column sortable :label="t('IdNumber')" prop="idcard" /> -->
+        <!-- <el-table-column sortable :label="t('Address')" prop="address" /> -->
         <el-table-column sortable :label="t('Email')" prop="email"/>
         <el-table-column sortable :label="t('Phone')" prop="phone"/>
         <el-table-column sortable :label="t('Role')">
@@ -49,12 +49,18 @@
             {{ typeMap[scope.row.type as keyof typeof typeMap] }}
           </template>
         </el-table-column>
-        <el-table-column width="170px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
+        <el-table-column sortable label="母帳號(id)">
+          <template #default="scope">
+            {{ scope.row.parentUsername ? `${scope.row.parentUsername} (${scope.row.parentId})` : '' }}
+          </template>
+        </el-table-column>
+        <el-table-column width="250px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
           <template #default="{ row }: { row: any }">
             <el-button type="primary" size="small" @click="onEdit(row)"><el-icon><EditPen /></el-icon>{{ t('edit') }}</el-button>
             <el-button type="danger" size="small" @click="onDelet(row)" v-if="(row.userId != 51)">
               <el-icon><Delete /></el-icon>{{ t('delete') }}
             </el-button>
+            <el-button type="primary" size="small" @click="onAddChild(row)"><el-icon><EditPen /></el-icon>子帳號</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -198,6 +204,29 @@
   </el-dialog>
   <!-- /編輯彈窗 -->
 
+  <!-- 子帳號彈窗 -->
+  <el-dialog class="dialog"  v-model="isShowAddChildDialog" :title="`設定子帳號: ${addChildFormData.username}(${addChildFormData.parentId})`">
+    <el-form label-width="100px"  ref="addChildForm" :rules="editRules" :model="addChildFormData">
+      <el-form-item label="子帳號" >
+        <el-select style="width:90%" filterable placeholder="請選擇要綁定的子帳號" v-model="addChildFormData.childId">
+          <el-option
+            v-for="item in usersOptions"
+            :key="item.userId"
+            :label="item.displayName"
+            :value="item.userId"
+          />
+        </el-select>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="isShowAddChildDialog = false">{{ t("Cancel") }}</el-button>
+        <el-button type="primary"  @click="submitaddChildForm()">{{ t("Confirm") }}</el-button>
+      </span>
+    </template>
+  </el-dialog>
+  <!-- /子帳號彈窗 -->
+
 </template>
 
 <script setup lang="ts">
@@ -207,13 +236,15 @@ import { useI18n } from "vue-i18n";
 import API from '@/apis/TPSAPI';
 import { EditPen, Delete } from '@element-plus/icons-vue';
 import { M_IUsers, M_IUsersContent } from "@/models/M_IUser";
-import { M_ICreateRuleForm, M_IUpdateRuleForm, M_IDeleteRuleForm } from '@/models/M_IRuleForm';
+import { M_ICreateRuleForm, M_IUpdateRuleForm, M_IDeleteRuleForm, M_IAddChildRuleForm } from '@/models/M_IRuleForm';
 import { ComponentSize, FormInstance, FormRules, ElNotification, NotificationParams, ElMessageBox  } from 'element-plus';
 import SearchPaginationRequest from "@/models/M_ISearchPaginationRequest";
 import { useUserInfoStore } from "@/stores/UserInfoStore";
+import { M_IUsersOptions } from "@/models/M_IUsersOptions";
 
 const isShowAddRoleDialog = ref(false);
 const isShowEditRoleDialog = ref(false);
+const isShowAddChildDialog = ref(false);
 const { t } = useI18n();
 const userInfo = ref<M_IUsersContent | null>(null);  // Specify the type of the array
 // const userInfo = ref<M_IUsers[]>([]);
@@ -223,6 +254,7 @@ const searchText = ref('')
 const searchType = ref(0)
 const userInfoStore = useUserInfoStore();
 const showId = ref(false);
+const usersOptions = ref<M_IUsersOptions[]>([]);
 
 const handleSizeChange = async(val: number) => {
   console.log(`${val} items per page`)
@@ -326,6 +358,14 @@ const onDelet = async(item: M_IUsers) => {
   }
 }
 
+const onAddChild = (item: M_IUsers) => {
+  console.log(item.userId);
+  console.log(item)
+  addChildFormData.parentId = item.userId;
+  addChildFormData.username = item.username;
+  isShowAddChildDialog.value = true;
+}
+
 const onCreateRoleClicked = () => {
   createaddRoleForm.value?.resetFields();
   isShowAddRoleDialog.value = true;
@@ -378,7 +418,7 @@ const submitUpdateForm = async () => {
         notifyParam = {
           title: "失敗",
           type: "error",
-          message: `帳號：${updateFormData.username} 新增失敗`,
+          message: `帳號：${updateFormData.username} 更新失敗`,
           duration: 2000,
         };
       } else {
@@ -392,6 +432,40 @@ const submitUpdateForm = async () => {
 
       ElNotification(notifyParam);
       isShowEditRoleDialog.value = false;
+      onFilterInputed();
+    } else {
+      console.log('error submit!');
+    }
+  });
+};
+
+const submitaddChildForm = async () => {
+  let notifyParam: NotificationParams = {};
+
+  addChildForm.value?.validate(async (valid: boolean) => {
+    if (valid) {
+      console.log(addChildFormData);
+      const addChildResponse = await API.addChild(addChildFormData);
+      console.log(addChildResponse.data.msg);
+
+      if (addChildResponse.data.result != 1) {
+        notifyParam = {
+          title: "失敗",
+          type: "error",
+          message: `帳號：${addChildFormData.username} 新增子帳號`,
+          duration: 2000,
+        };
+      } else {
+        notifyParam = {
+          title: "成功",
+          type: "success",
+          message: `帳號：${addChildFormData.username} 已成功新增子帳號`,
+          duration: 2000,
+        };
+      }
+
+      ElNotification(notifyParam);
+      isShowAddChildDialog.value = false;
       onFilterInputed();
     } else {
       console.log('error submit!');
@@ -464,6 +538,13 @@ const deleteFormData = reactive<M_IDeleteRuleForm>({
   IsDelete: true
 })
 
+const addChildForm = ref<FormInstance>()
+const addChildFormData = reactive<M_IAddChildRuleForm>({
+  parentId:0,
+  childId:null,
+  username:''
+})
+
 // 新增表單, 編輯表單共用規則
 const rules  = reactive<FormRules>({
   username: [{ required: true, message: () => t("validation_msg.username_is_required"), trigger: "blur" }],
@@ -491,6 +572,7 @@ const editRules  = reactive<FormRules>({
 // });
 onMounted(() => {
   getUsers();
+  getUsersOptions();
 });
 
 //#endregion
@@ -507,6 +589,18 @@ async function getUsers() {
     userInfo.value = getUsersResult.data.content;
     console.log(getUsersResult.data.content)
     console.log(userInfo.value)
+
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function getUsersOptions() {
+  try {
+    const getUsersOptionsResult = await API.getUsersOptions();
+    if (getUsersOptionsResult.data.result != 1) throw new Error(getUsersOptionsResult.data.msg);
+    // usersOptions.value = getUsersOptionsResult.data.content;
+    usersOptions.value = getUsersOptionsResult.data.content.filter(user => ![52, 54].includes(user.userId));
 
   } catch (error) {
     console.error(error);

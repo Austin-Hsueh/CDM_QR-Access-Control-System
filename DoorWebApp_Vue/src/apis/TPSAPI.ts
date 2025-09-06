@@ -44,7 +44,7 @@ import { useUserInfoStore } from "@/stores/UserInfoStore";
 
 import {M_IUsers, M_IUsersContent} from "@/models/M_IUser";
 import M_IUserinfo from "@/models/M_IUseinfo";
-import {M_ICreateRuleForm, M_IUpdateRuleForm} from "@/models/M_IRuleForm";
+import {M_IAddChildRuleForm, M_ICreateRuleForm, M_IUpdateRuleForm} from "@/models/M_IRuleForm";
 import M_ITempQRcode from "@/models/M_ITempQRcode";
 import {M_IUsersOptions} from "@/models/M_IUsersOptions";
 import {M_IsettingAccessRuleForm} from "@/models/M_IsettingAccessRuleForm";
@@ -452,6 +452,10 @@ class APIService {
 
   getTeachersOptions(){
     return this.axiosInstance.get<IAPIResponse<M_ITeachersOptions>>("v1/Teachers");
+  }
+
+  addChild(data: M_IAddChildRuleForm){
+    return this.axiosInstance.post<IAPIResponse<number>>("v1/User/AddChild", data);
   }
   //#endregion
 

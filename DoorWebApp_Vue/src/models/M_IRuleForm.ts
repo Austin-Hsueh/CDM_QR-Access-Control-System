@@ -34,3 +34,9 @@ export interface M_IDeleteRuleForm {
   roleid: number;
   IsDelete: boolean;
 }
+
+export interface M_IAddChildRuleForm {
+  parentId: number;
+  childId: number;
+  username: string;
+}

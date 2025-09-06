@@ -72,5 +72,15 @@
         /// </summary>
         public string idcard { set; get; }
 
+        /// <summary>
+        /// 父帳號ID
+        /// </summary>
+        public int? parentId { set; get; }
+
+        /// <summary>
+        /// 父帳號使用者名稱
+        /// </summary>
+        public string? parentUsername { set; get; }
+
     }
 }

@@ -441,6 +441,7 @@ namespace DoorWebApp.Controllers
                     .Include(x => x.Roles)
                     .Include(x => x.Permission)
                     .ThenInclude(x => x.PermissionGroups)
+                    .Include(x => x.Parent)
                     .Where(x => x.IsDelete == false)
                     // .Where(x => x.Permission.PermissionGroups.Select(x => x.Id).Count() > 0)
                     //查詢 名稱 
@@ -468,7 +469,9 @@ namespace DoorWebApp.Controllers
                         timefrom = x.Permission.TimeFrom.ToString(),
                         timeto = x.Permission.TimeTo.ToString(),
                         days = x.Permission.Days,
-                        type = x.Type
+                        type = x.Type,
+                        parentId = x.ParentId,
+                        parentUsername = x.Parent != null ? x.Parent.Username : null
                     })
                     .AsQueryable();
 

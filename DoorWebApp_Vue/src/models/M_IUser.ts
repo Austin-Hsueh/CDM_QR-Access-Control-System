@@ -19,6 +19,8 @@ export interface M_IUsers {
   type: number;
   address: string;
   idcard: string;
+  parentId?: number | null;
+  parentUsername?: string| null;;
 }
 
 export interface M_IUsersContent {
