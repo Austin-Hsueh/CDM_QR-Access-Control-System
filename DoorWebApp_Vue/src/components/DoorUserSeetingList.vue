@@ -21,6 +21,16 @@
       <el-option label="學生" :value="3" />
       <el-option label="值班人員" :value="4" />
     </el-select>
+    <el-select
+      v-model="selectedType"
+      placeholder="選擇門禁種類"
+      style="width: 120px"
+      @change="onTypeChange"
+    >
+      <el-option label="全部" :value="0" />
+      <el-option label="上課" :value="1" />
+      <el-option label="租借教室" :value="2" />
+    </el-select>
   </div>
 
   <!-- table 多時段 樣式1-->
@@ -199,6 +209,7 @@ const userInfoMTI = ref<M_IUsersContent_MTI | null>(null); // Specify the type o
 const size = ref<ComponentSize>('default')
 const searchText = ref('')
 const selectedRole = ref(3) // 預設選擇學生
+const selectedType = ref(0) // 預設選擇全部
 const doors = [1,2,3,4];
 const days = [1,2,3,4,5,6,7];
 
@@ -225,7 +236,8 @@ const searchPagination = ref<SearchPaginationRequest>({
   SearchText: "",
   SearchPage: 10,
   Page: 1,
-  Role: 3
+  Role: 3,
+  type:0
 });
 
 const parseTime = (time: string): Date => {
@@ -273,6 +285,12 @@ const onFilterInputed = () => {
 const onRoleChange = () => {
   console.log("Role Changed:", selectedRole.value);
   searchPagination.value.Role = selectedRole.value;
+  getStudentPermissions();
+}
+
+const onTypeChange = () => {
+  console.log("Type Changed:", selectedType.value);
+  searchPagination.value.type = selectedType.value;
   getStudentPermissions();
 }
 

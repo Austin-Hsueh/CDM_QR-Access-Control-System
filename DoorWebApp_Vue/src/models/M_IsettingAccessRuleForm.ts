@@ -13,4 +13,5 @@ export interface M_IsettingAccessRuleForm {
   displayName?: string;
   courseId?: number;
   teacherId?: number;
+  type?: number;
 }
