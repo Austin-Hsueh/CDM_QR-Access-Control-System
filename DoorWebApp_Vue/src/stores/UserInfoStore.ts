@@ -68,7 +68,6 @@ export const useUserInfoStore = defineStore('userInfo', {
     setQRcode(QRcode:string){
       this.qrcode = QRcode;
       localStorage.setItem('QRcode', QRcode);
-      
     }
   }
 })

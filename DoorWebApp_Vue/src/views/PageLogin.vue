@@ -164,6 +164,7 @@ export default defineComponent({
           userInfoStore.displayName = signinResult.displayName;
 
           userInfoStore.setQRcode(signinResult.qrcode);
+          console.log(userInfoStore.userId)
 
           //轉至主畫面
           router.replace({ path: "/" });

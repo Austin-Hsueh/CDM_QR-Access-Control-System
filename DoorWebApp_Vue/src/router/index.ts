@@ -189,6 +189,10 @@ router.beforeEach(async (to, from) => {
   console.log(`router beforeEach:   to:${to.fullPath}, from:${from.fullPath}`);
   console.log(`user : ${userInfoStore.username}`);
   console.log(`permission : ${userInfoStore.permissions}`);
+
+  if (to.path === '/temporaryqrcode' && userInfoStore.userId != 51) {
+    return '/Login'
+  }
   
   let IsGrant = true;
   switch (to.path) {
