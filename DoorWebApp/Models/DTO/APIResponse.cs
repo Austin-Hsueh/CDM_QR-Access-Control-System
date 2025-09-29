@@ -74,6 +74,10 @@
         courseTypeName_is_required = 1101,
         duplicate_CourseTypename = 1102,
         CourseType_not_found = 1103,
+
+        classroom_not_found = 1201,
+        classroom_name_is_required = 1202,
+        duplicate_classroom_name = 1203,
     }
 
 
