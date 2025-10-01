@@ -46,5 +46,8 @@ namespace DoorDB
         /// </summary>
         [Required]
         public DateTime CreatedTime { get; set; }
+
+        // Navigation Properties
+        public virtual List<TblSchedule> Schedules { get; set; } = new List<TblSchedule>();
     }
 }

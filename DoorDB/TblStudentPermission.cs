@@ -110,5 +110,6 @@ namespace DoorDB
 
         public virtual List<TblAttendance> Attendances { set; get; }
         public virtual List<TblPayment> Payments { set; get; }
+        public virtual List<TblSchedule> Schedules { set; get; } = new List<TblSchedule>();
     }
 }

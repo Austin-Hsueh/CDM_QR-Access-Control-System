@@ -78,6 +78,14 @@
         classroom_not_found = 1201,
         classroom_name_is_required = 1202,
         duplicate_classroom_name = 1203,
+
+        // 課表相關錯誤代碼
+        schedule_not_found = 1301,
+        schedule_time_conflict = 1302,
+        invalid_schedule_mode = 1303,
+        invalid_course_mode = 1304,
+        parameter_error = 1305,
+        data_not_found = 1306,
     }
 
 

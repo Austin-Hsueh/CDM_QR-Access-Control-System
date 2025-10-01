@@ -30,6 +30,7 @@ namespace DoorDB
         public virtual DbSet<TblPayment> TblPayment { get; set; } = null!;
         public virtual DbSet<TblCourseType> TblCourseType { get; set; } = null!;
         public virtual DbSet<TblClassroom> TblClassroom { get; set; } = null!;
+        public virtual DbSet<TblSchedule> TblSchedule { get; set; } = null!;
 
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -275,6 +276,19 @@ namespace DoorDB
                 .HasMany(c => c.Courses)
                 .WithOne(a => a.CourseType)
                 .HasForeignKey(a => a.CourseTypeId);
+
+            // 設置 TblStudentPermission 與 TblSchedule (StudentPermissionId) 一對多關聯
+            modelBuilder.Entity<TblStudentPermission>()
+                .HasMany(sp => sp.Schedules)
+                .WithOne(s => s.StudentPermission)
+                .HasForeignKey(s => s.StudentPermissionId);
+
+            // 設置 TblClassroom 與 TblSchedule (ClassroomId) 一對多關聯
+            modelBuilder.Entity<TblClassroom>()
+                .HasMany(c => c.Schedules)
+                .WithOne(s => s.Classroom)
+                .HasForeignKey(s => s.ClassroomId);
+
             #endregion
         }
     }
