@@ -163,10 +163,9 @@ namespace DoorWebApp.Controllers
         }
 
         /// <summary>
-        /// 新增學生門禁時間
+        /// 新增學生門禁時間 (包含課表產生)
         /// </summary>
-        /// <param name="UserId"></param>
-        /// <param name=""></param>
+        /// <param name="PermissionDTO"></param>
         /// <returns></returns>
         [Authorize]
         [HttpPost("v1/StudentPermission")]
@@ -191,7 +190,24 @@ namespace DoorWebApp.Controllers
 
                 log.LogInformation($"[{Request.Path}] Target user found! UserId:{PermissionDTO.userId}, Username:{UserEntity.Username}");
 
-
+                // 1.1 驗證教室 (如果有提供教室ID)
+                TblClassroom? classroomEntity = null;
+                if (PermissionDTO.classroomId.HasValue && PermissionDTO.classroomId.Value > 0)
+                {
+                    classroomEntity = ctx.TblClassroom
+                        .Where(x => x.Id == PermissionDTO.classroomId.Value && x.IsDelete == false && x.IsEnable == true)
+                        .FirstOrDefault();
+                    
+                    if (classroomEntity == null)
+                    {
+                        log.LogWarning($"[{Request.Path}] Classroom (Id:{PermissionDTO.classroomId}) not found or disabled");
+                        res.result = APIResultCode.unknow_error;
+                        res.msg = "查無教室或教室已停用";
+                        return Ok(res);
+                    }
+                    
+                    log.LogInformation($"[{Request.Path}] Classroom found! ClassroomId:{PermissionDTO.classroomId}, Name:{classroomEntity.Name}");
+                }
 
                 // 2. 更新資料
                 //更新門禁設定
@@ -209,13 +225,20 @@ namespace DoorWebApp.Controllers
                 AssignPermissionEntity.PermissionGroups = permissionGroups;
                 UserEntity.StudentPermissions.Add(AssignPermissionEntity);
 
-                // 3. 存檔
-                log.LogInformation($"[{Request.Path}] Save changes");
+                // 3. 存檔 (先儲存門禁設定以取得StudentPermissionId)
+                log.LogInformation($"[{Request.Path}] Save StudentPermission changes");
                 int EffectRow = ctx.SaveChanges();
-                log.LogInformation($"[{Request.Path}] Update success. (EffectRow:{EffectRow})");
+                log.LogInformation($"[{Request.Path}] StudentPermission save success. (EffectRow:{EffectRow})");
+
+                // 3.1 產生課表 (如果有選擇教室)
+                if (classroomEntity != null)
+                {
+                    var scheduleCount = await GenerateSchedulesAsync(AssignPermissionEntity.Id, PermissionDTO, classroomEntity.Id);
+                    log.LogInformation($"[{Request.Path}] Generated {scheduleCount} schedule records");
+                }
 
                 // 4. 寫入稽核紀錄
-                auditLog.WriteAuditLog(AuditActType.Modify, $"Add Student  Permission:{string.Join(",", PermissionDTO.groupIds)}, EffectRow:{EffectRow}", OperatorUsername);
+                auditLog.WriteAuditLog(AuditActType.Modify, $"Add Student Permission:{string.Join(",", PermissionDTO.groupIds)}, ClassroomId:{PermissionDTO.classroomId}, EffectRow:{EffectRow}", OperatorUsername);
 
                 res.result = APIResultCode.success;
                 res.msg = "success";
@@ -369,6 +392,174 @@ namespace DoorWebApp.Controllers
             res.content = userList;
 
             return Ok(res);
+        }
+
+        /// <summary>
+        /// 根據門禁權限產生課表
+        /// </summary>
+        /// <param name="studentPermissionId">學生權限ID</param>
+        /// <param name="permissionDTO">門禁權限資料</param>
+        /// <param name="classroomId">教室ID</param>
+        /// <returns>產生的課表數量</returns>
+        private async Task<int> GenerateSchedulesAsync(int studentPermissionId, UserPermissionDTO permissionDTO, int classroomId)
+        {
+            try
+            {
+                var schedules = new List<TblSchedule>();
+                
+                // 解析日期範圍
+                DateTime startDate = DateTime.ParseExact(permissionDTO.datefrom.Replace("-", "/"), "yyyy/MM/dd", null);
+                DateTime endDate = DateTime.ParseExact(permissionDTO.dateto.Replace("-", "/"), "yyyy/MM/dd", null);
+                
+                // 根據排課模式產生課表
+                switch (permissionDTO.scheduleMode)
+                {
+                    case 1: // 每週固定
+                        schedules = GenerateWeeklySchedules(studentPermissionId, classroomId, permissionDTO, startDate, endDate);
+                        break;
+                    case 2: // 每兩週固定
+                        schedules = GenerateBiWeeklySchedules(studentPermissionId, classroomId, permissionDTO, startDate, endDate);
+                        break;
+                    case 3: // 單次課程
+                        schedules = GenerateOneTimeSchedules(studentPermissionId, classroomId, permissionDTO, startDate, endDate);
+                        break;
+                    default:
+                        log.LogWarning($"Unsupported schedule mode: {permissionDTO.scheduleMode}");
+                        return 0;
+                }
+                
+                // 批次新增課表
+                if (schedules.Any())
+                {
+                    ctx.TblSchedule.AddRange(schedules);
+                    await ctx.SaveChangesAsync();
+                    log.LogInformation($"Generated {schedules.Count} schedules for StudentPermissionId: {studentPermissionId}");
+                }
+                
+                return schedules.Count;
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, $"Error generating schedules for StudentPermissionId: {studentPermissionId}");
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// 產生每週固定課表
+        /// </summary>
+        private List<TblSchedule> GenerateWeeklySchedules(int studentPermissionId, int classroomId, UserPermissionDTO permissionDTO, DateTime startDate, DateTime endDate)
+        {
+            var schedules = new List<TblSchedule>();
+            var currentDate = startDate;
+            
+            while (currentDate <= endDate)
+            {
+                // 檢查是否為指定的上課日
+                int dayOfWeek = (int)currentDate.DayOfWeek;
+                if (dayOfWeek == 0) dayOfWeek = 7; // 調整星期日為7
+                
+                if (permissionDTO.days.Contains(dayOfWeek))
+                {
+                    var schedule = CreateScheduleEntity(studentPermissionId, classroomId, permissionDTO, currentDate);
+                    schedules.Add(schedule);
+                }
+                
+                currentDate = currentDate.AddDays(1);
+            }
+            
+            return schedules;
+        }
+
+        /// <summary>
+        /// 產生每兩週固定課表
+        /// </summary>
+        private List<TblSchedule> GenerateBiWeeklySchedules(int studentPermissionId, int classroomId, UserPermissionDTO permissionDTO, DateTime startDate, DateTime endDate)
+        {
+            var schedules = new List<TblSchedule>();
+            var currentDate = startDate;
+            int weekCount = 0;
+            
+            while (currentDate <= endDate)
+            {
+                // 每兩週的第一週才排課
+                if (weekCount % 2 == 0)
+                {
+                    // 找到這週的上課日
+                    var weekStart = currentDate.AddDays(-(int)currentDate.DayOfWeek);
+                    if (currentDate.DayOfWeek == 0) weekStart = weekStart.AddDays(-7); // 調整星期日
+                    
+                    for (int i = 0; i < 7; i++)
+                    {
+                        var checkDate = weekStart.AddDays(i);
+                        if (checkDate < startDate || checkDate > endDate) continue;
+                        
+                        int dayOfWeek = (int)checkDate.DayOfWeek;
+                        if (dayOfWeek == 0) dayOfWeek = 7;
+                        
+                        if (permissionDTO.days.Contains(dayOfWeek))
+                        {
+                            var schedule = CreateScheduleEntity(studentPermissionId, classroomId, permissionDTO, checkDate);
+                            schedules.Add(schedule);
+                        }
+                    }
+                }
+                
+                currentDate = currentDate.AddDays(7);
+                weekCount++;
+            }
+            
+            return schedules;
+        }
+
+        /// <summary>
+        /// 產生單次課程課表
+        /// </summary>
+        private List<TblSchedule> GenerateOneTimeSchedules(int studentPermissionId, int classroomId, UserPermissionDTO permissionDTO, DateTime startDate, DateTime endDate)
+        {
+            var schedules = new List<TblSchedule>();
+            
+            // 單次課程只在指定的日期範圍內，找到第一個符合的上課日
+            var currentDate = startDate;
+            while (currentDate <= endDate)
+            {
+                int dayOfWeek = (int)currentDate.DayOfWeek;
+                if (dayOfWeek == 0) dayOfWeek = 7;
+                
+                if (permissionDTO.days.Contains(dayOfWeek))
+                {
+                    var schedule = CreateScheduleEntity(studentPermissionId, classroomId, permissionDTO, currentDate);
+                    schedules.Add(schedule);
+                    break; // 單次課程只產生一筆
+                }
+                
+                currentDate = currentDate.AddDays(1);
+            }
+            
+            return schedules;
+        }
+
+        /// <summary>
+        /// 建立課表實體
+        /// </summary>
+        private TblSchedule CreateScheduleEntity(int studentPermissionId, int classroomId, UserPermissionDTO permissionDTO, DateTime scheduleDate)
+        {
+            return new TblSchedule
+            {
+                StudentPermissionId = studentPermissionId,
+                ClassroomId = classroomId,
+                ScheduleDate = scheduleDate.ToString("yyyy/MM/dd"),
+                StartTime = permissionDTO.timefrom,
+                EndTime = permissionDTO.timeto,
+                CourseMode = permissionDTO.courseMode,
+                ScheduleMode = permissionDTO.scheduleMode,
+                Status = 1, // 正常
+                Remark = permissionDTO.remark,
+                IsEnable = true,
+                IsDelete = false,
+                CreatedTime = DateTime.Now,
+                ModifiedTime = DateTime.Now
+            };
         }
 
     }

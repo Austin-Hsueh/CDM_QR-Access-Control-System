@@ -127,22 +127,7 @@ namespace DoorWebApp.Controllers
                     QRCodeContent = x.QRCodeContent,
                     Status = x.Status,
                     StatusName = GetStatusName(x.Status),
-                    Remark = x.Remark,
-                    Attendances = x.ScheduleAttendances
-                        .Where(a => a.IsDelete == false)
-                        .Select(a => new ResScheduleAttendanceDTO()
-                        {
-                            AttendanceId = a.Id,
-                            StudentId = a.StudentId,
-                            StudentName = a.Student.DisplayName,
-                            AttendanceStatus = a.AttendanceStatus,
-                            AttendanceStatusName = GetAttendanceStatusName(a.AttendanceStatus),
-                            CheckInTime = a.CheckInTime,
-                            CheckOutTime = a.CheckOutTime,
-                            ManualOperation = a.ManualOperation,
-                            ManualOperationName = GetManualOperationName(a.ManualOperation),
-                            Remark = a.Remark
-                        }).ToList()
+                    Remark = x.Remark
                 }).ToList();
 
                 // 4. 回傳結果
@@ -213,22 +198,7 @@ namespace DoorWebApp.Controllers
                     QRCodeContent = schedule.QRCodeContent,
                     Status = schedule.Status,
                     StatusName = GetStatusName(schedule.Status),
-                    Remark = schedule.Remark,
-                    Attendances = schedule.ScheduleAttendances
-                        .Where(a => a.IsDelete == false)
-                        .Select(a => new ResScheduleAttendanceDTO()
-                        {
-                            AttendanceId = a.Id,
-                            StudentId = a.StudentId,
-                            StudentName = a.Student.DisplayName,
-                            AttendanceStatus = a.AttendanceStatus,
-                            AttendanceStatusName = GetAttendanceStatusName(a.AttendanceStatus),
-                            CheckInTime = a.CheckInTime,
-                            CheckOutTime = a.CheckOutTime,
-                            ManualOperation = a.ManualOperation,
-                            ManualOperationName = GetManualOperationName(a.ManualOperation),
-                            Remark = a.Remark
-                        }).ToList()
+                    Remark = schedule.Remark
                 };
 
                 res.result = APIResultCode.success;
