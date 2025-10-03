@@ -187,11 +187,21 @@ const settingForm = async () => {
       ssetStudentPermission.timefrom = formatTime(new Date(settingAccessTimeFormData.timepicker[0]));
       ssetStudentPermission.timeto = formatTime(new Date(settingAccessTimeFormData.timepicker[1]));
 
-      ssetStudentPermission.userId = settingAccessTimeFormData.userId;
+      ssetStudentPermission.userId = Number(settingAccessTimeFormData.userId);
       ssetStudentPermission.days = settingAccessTimeFormData.days;
       ssetStudentPermission.groupIds = settingAccessTimeFormData.groupIds;
-      ssetStudentPermission.courseId = settingAccessTimeFormData.courseId;
-      ssetStudentPermission.teacherId = settingAccessTimeFormData.teacherId;
+      
+      // 如果是租借教室(type=2)，不設定 courseId 和 teacherId
+      if (settingAccessTimeFormData.type === '1') {
+        ssetStudentPermission.courseId = Number(settingAccessTimeFormData.courseId);
+        ssetStudentPermission.teacherId = Number(settingAccessTimeFormData.teacherId);
+      } else {
+        // 租借教室時，設為 undefined 讓後端忽略這些欄位
+        ssetStudentPermission.courseId = undefined;
+        ssetStudentPermission.teacherId = undefined;
+      }
+      
+      ssetStudentPermission.type = Number(settingAccessTimeFormData.type);
 
       console.log(ssetStudentPermission);
 
@@ -304,13 +314,16 @@ const settingAccessTimeFormData = reactive<M_IsettingAccessRuleForm>({
   type:'1',
 })
 const ssetStudentPermission = reactive<M_IsettingAccessRuleForm>({
-  userId: '',
+  userId: 0,
   days: [],
   groupIds: [],
   datefrom: '',
   dateto: '',
   timefrom:'',
   timeto: '',
+  courseId: 0,
+  teacherId: 0,
+  type: 1,
 })
 const rules  = reactive<FormRules>({
   userId: [{ required: true, message: () => t("validation_msg.username_is_required"), trigger: "blur" }],

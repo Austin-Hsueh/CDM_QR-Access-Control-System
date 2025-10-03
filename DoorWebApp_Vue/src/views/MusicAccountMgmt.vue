@@ -12,6 +12,10 @@
       <el-tab-pane :label="t('Courses Settings')" >
         <CoursesMgmt v-if="userInfoStore.userId == 51"/>
       </el-tab-pane>
+      <el-tab-pane label="教室設定" >
+        <ClassRoomMgmt v-if="userInfoStore.userId == 51"/>
+      </el-tab-pane>
+
 
     </el-tabs>
   </div>
@@ -23,6 +27,7 @@ import { useI18n } from "vue-i18n";
 import AccountUserMgmtVue from "@/components/AccountUserMgmt.vue";
 import AccountOnerUserMgmt from "@/components/AccountOnerUserMgmt.vue";
 import CoursesMgmt from "@/components/CoursesMgmt.vue";
+import ClassRoomMgmt from "@/components/ClassRoomMgmt.vue";
 import { useUserInfoStore } from "@/stores/UserInfoStore";
 
 const userInfoStore = useUserInfoStore();

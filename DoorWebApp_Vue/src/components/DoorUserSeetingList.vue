@@ -191,6 +191,7 @@ import API from '@/apis/TPSAPI';
 import { M_IUsers } from "@/models/M_IUser";
 import {M_IsettingAccessRuleForm} from "@/models/M_IsettingAccessRuleForm";
 import {M_IUsersContent_MTI} from "@/models/M_IUserList_MTI";
+import { M_ICourseOptions } from "@/models/M_ICourseOptions";
 import { ComponentSize, FormInstance, FormRules, ElNotification, NotificationParams, ElMessageBox  } from 'element-plus';
 import {formatDate, formatTime} from "@/plugins/dateUtils";
 import SearchPaginationRequest from "@/models/M_ISearchPaginationRequest";
@@ -206,6 +207,7 @@ const handleCloseDialog = () => {
 const { t } = useI18n();
 const userInfo = ref<M_IUsers[]>([]); // Specify the type of the array
 const userInfoMTI = ref<M_IUsersContent_MTI | null>(null); // Specify the type of the array
+const courseList = ref<M_ICourseOptions[]>([]);
 const size = ref<ComponentSize>('default')
 const searchText = ref('')
 const selectedRole = ref(3) // 預設選擇學生
@@ -493,6 +495,7 @@ defineExpose({
 onMounted(() => {
   console.log(`Received door ID: ${props.doorId}`);
   getStudentPermissions();
+  getCourseOptions();
 });
 
 //#endregion
@@ -542,21 +545,10 @@ const formatDoors = (groupIds: number[]) => {
   return groupIds.map(door => doorMap[door]).join(', ');
 };
 
-const courseMap = {
-  1: '鋼琴',
-  2: '歌唱',
-  3: '吉他',
-  4: '貝斯',
-  5: '烏克麗麗',
-  6: '創作',
-  7: '管樂',
-  8: '爵士鼓'
-};
 
 const formatCourse = (courseId: number): string => {
-  // 這裡告訴 TypeScript，courseId 將會是 courseMap 的一個鍵。
-  // (keyof typeof courseMap) 會推斷出 '1' | '2' | ... '8' 的聯合字串字面量型別
-  return courseMap[courseId as keyof typeof courseMap] || '未知課程';
+  const course = courseList.value.find(course => course.courseId === courseId);
+  return course ? course.courseName : '未知課程';
 };
 
 const teacherMap: { [key: number]: string } = {
@@ -596,6 +588,16 @@ const getAttendanceTypeText = (type: number): string => {
 const getAttendanceTagType = (type: number): string => {
   return attendanceTagTypeMap[type as keyof typeof attendanceTagTypeMap] || 'info';
 };
+
+async function getCourseOptions() {
+  try {
+    const response = await API.getCourse();
+    courseList.value = response.data.content;
+    console.log(courseList.value);
+  } catch (error) {
+    console.error('載入課程資料失敗:', error);
+  }
+}
 
 const Info = ref([]);
 
