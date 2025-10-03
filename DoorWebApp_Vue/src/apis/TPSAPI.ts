@@ -55,6 +55,7 @@ import SearchPaginationRequest from "@/models/M_ISearchPaginationRequest";
 import { M_ICourseOptions } from "@/models/M_ICourseOptions";
 import { M_ICourseTypeOptions } from "@/models/M_ICourseTypeOptions";
 import { M_ITeachersOptions } from "@/models/M_ITeachersOptions";
+import { M_IClassRoomOptions } from "@/models/M_IClassRoomOptions";
 
 
 class APIService {
@@ -561,6 +562,25 @@ class APIService {
   updateAttendance(cmd: any){
     return this.axiosInstance.patch<IBaseAPIResponse>(`v1/UpdateAttend`, cmd);
   }
+  //#endregion
+
+  //#region Music 教室相關
+  /** 取得所有教室 */
+  getClassrooms(){
+    return this.axiosInstance.get<IAPIResponse<any>>(`v1/Classrooms`);
+  }
+
+  /** 新增教室 */
+  addClassroom(cmd: M_IClassRoomOptions){
+    return this.axiosInstance.post<IBaseAPIResponse>(`v1/Classroom`, cmd);
+  }
+
+  /** 更新教室 */
+  updateClassroom(cmd: M_IClassRoomOptions){
+    return this.axiosInstance.patch<IBaseAPIResponse>(`v1/UpdateClassroom`, cmd);
+  }
+  
+
   //#endregion
 }
 
