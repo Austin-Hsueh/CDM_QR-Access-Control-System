@@ -20,7 +20,7 @@ export interface M_IUsers {
   address: string;
   idcard: string;
   parentId?: number | null;
-  parentUsername?: string| null;;
+  parentUsername?: string| null;
 }
 
 export interface M_IUsersContent {
