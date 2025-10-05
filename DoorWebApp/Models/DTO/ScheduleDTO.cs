@@ -201,6 +201,16 @@ namespace DoorWebApp.Models.DTO
         public string? Remark { get; set; }
 
         /// <summary>
+        /// 學生姓名
+        /// </summary>
+        public string? StudentName { get; set; }
+
+        /// <summary>
+        /// 課程名稱
+        /// </summary>
+        public string? CourseName { get; set; }
+
+        /// <summary>
         /// 出席記錄
         /// </summary>
         public List<ResScheduleAttendanceDTO> Attendances { get; set; } = new List<ResScheduleAttendanceDTO>();

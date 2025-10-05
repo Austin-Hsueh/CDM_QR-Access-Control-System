@@ -155,6 +155,234 @@ namespace DoorWebApp.Controllers
         }
 
         /// <summary>
+        /// 取得當前學生課表
+        /// </summary>
+        /// <returns></returns>
+        [Authorize]
+        [HttpPost("v1/MySchedules")]
+        public async Task<IActionResult> GetMySchedules(ReqScheduleQueryDTO queryDTO)
+        {
+            APIResponse<PagingDTO<ResScheduleDTO>> res = new APIResponse<PagingDTO<ResScheduleDTO>>();
+
+            try
+            {
+                // 取得當前登入使用者ID
+                int currentUserId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+                string currentUsername = User.Identity?.Name ?? "N/A";
+
+                log.LogInformation($"[{Request.Path}] Get my schedules. UserId:{currentUserId}, Username:{currentUsername}");
+
+                if (currentUserId <= 0)
+                {
+                    res.result = APIResultCode.parameter_error;
+                    res.msg = "無法取得使用者資訊";
+                    return Ok(res);
+                }
+
+                // 1. 建立查詢 - 只查詢當前使用者的課表
+                var query = ctx.TblSchedule
+                    .Include(x => x.Classroom)
+                    .Include(x => x.StudentPermission)
+                    .ThenInclude(x => x.Course)
+                    .Include(x => x.StudentPermission)
+                    .ThenInclude(x => x.User)
+                    .Where(x => x.IsDelete == false)
+                    .Where(x => x.StudentPermission.User.Id == currentUserId); // 只查詢當前使用者的課表
+
+                // 教室篩選
+                if (queryDTO.ClassroomId.HasValue && queryDTO.ClassroomId > 0)
+                {
+                    query = query.Where(x => x.ClassroomId == queryDTO.ClassroomId);
+                }
+
+                // 課程模式篩選
+                if (queryDTO.CourseMode > 0)
+                {
+                    query = query.Where(x => x.CourseMode == queryDTO.CourseMode);
+                }
+
+                // 課程狀態篩選
+                if (queryDTO.Status > 0)
+                {
+                    query = query.Where(x => x.Status == queryDTO.Status);
+                }
+
+                // 日期篩選
+                if (!string.IsNullOrEmpty(queryDTO.DateFrom))
+                {
+                    query = query.Where(x => string.Compare(x.ScheduleDate, queryDTO.DateFrom.Replace("-", "/")) >= 0);
+                }
+                if (!string.IsNullOrEmpty(queryDTO.DateTo))
+                {
+                    query = query.Where(x => string.Compare(x.ScheduleDate, queryDTO.DateTo.Replace("-", "/")) <= 0);
+                }
+
+                // 關鍵字搜尋 (課程名稱或教室名稱)
+                if (!string.IsNullOrEmpty(queryDTO.SearchText))
+                {
+                    query = query.Where(x => x.StudentPermission.Course.Name.Contains(queryDTO.SearchText) ||
+                                           x.Classroom.Name.Contains(queryDTO.SearchText));
+                }
+
+                // 排序 - 依日期和時間排序
+                query = query.OrderBy(x => x.ScheduleDate).ThenBy(x => x.StartTime);
+
+                // 2. 分頁處理
+                int totalRecords = await query.CountAsync();
+                int onePage = queryDTO.SearchPage;
+                int allPages = (int)Math.Ceiling((double)totalRecords / onePage);
+
+                if (totalRecords == 0)
+                {
+                    res.result = APIResultCode.success;
+                    res.msg = "success 但是無資料";
+                    res.content = new PagingDTO<ResScheduleDTO>()
+                    {
+                        pageItems = new List<ResScheduleDTO>()
+                    };
+                    return Ok(res);
+                }
+
+                if (allPages < queryDTO.Page)
+                {
+                    queryDTO.Page = allPages;
+                }
+
+                var schedules = await query
+                    .Skip(onePage * (queryDTO.Page - 1))
+                    .Take(onePage)
+                    .ToListAsync();
+
+                // 3. 轉換為 DTO
+                var scheduleList = schedules.Select(x => new ResScheduleDTO()
+                {
+                    ScheduleId = x.Id,
+                    StudentPermissionId = x.StudentPermissionId,
+                    ClassroomId = x.ClassroomId,
+                    ClassroomName = x.Classroom.Name,
+                    ScheduleDate = x.ScheduleDate,
+                    StartTime = x.StartTime,
+                    EndTime = x.EndTime,
+                    CourseMode = x.CourseMode,
+                    CourseModeName = GetCourseModeName(x.CourseMode),
+                    ScheduleMode = x.ScheduleMode,
+                    ScheduleModeName = GetScheduleModeName(x.ScheduleMode),
+                    QRCodeContent = x.QRCodeContent,
+                    Status = x.Status,
+                    StatusName = GetStatusName(x.Status),
+                    Remark = x.Remark,
+                    // 新增學生相關資訊
+                    StudentName = x.StudentPermission.User.DisplayName,
+                    CourseName = x.StudentPermission.Course?.Name ?? "未指定課程"
+                }).ToList();
+
+                // 4. 回傳結果
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                res.content = new PagingDTO<ResScheduleDTO>()
+                {
+                    totalItems = totalRecords,
+                    totalPages = allPages,
+                    pageSize = onePage,
+                    pageItems = scheduleList
+                };
+
+                log.LogInformation($"[{Request.Path}] My schedule list query success! UserId:{currentUserId}, Total:{totalRecords}");
+
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
+        /// <summary>
+        /// 取得當前學生今日課表
+        /// </summary>
+        /// <returns></returns>
+        [Authorize]
+        [HttpGet("v1/MyTodaySchedules")]
+        public async Task<IActionResult> GetMyTodaySchedules()
+        {
+            APIResponse<List<ResScheduleDTO>> res = new APIResponse<List<ResScheduleDTO>>();
+
+            try
+            {
+                // 取得當前登入使用者ID
+                int currentUserId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+                string currentUsername = User.Identity?.Name ?? "N/A";
+
+                log.LogInformation($"[{Request.Path}] Get my today schedules. UserId:{currentUserId}, Username:{currentUsername}");
+
+                if (currentUserId <= 0)
+                {
+                    res.result = APIResultCode.parameter_error;
+                    res.msg = "無法取得使用者資訊";
+                    return Ok(res);
+                }
+
+                // 取得今日日期
+                string today = DateTime.Now.ToString("yyyy/MM/dd");
+
+                // 1. 查詢今日課表
+                var schedules = await ctx.TblSchedule
+                    .Include(x => x.Classroom)
+                    .Include(x => x.StudentPermission)
+                    .ThenInclude(x => x.Course)
+                    .Include(x => x.StudentPermission)
+                    .ThenInclude(x => x.User)
+                    .Where(x => x.IsDelete == false)
+                    .Where(x => x.StudentPermission.User.Id == currentUserId)
+                    .Where(x => x.ScheduleDate == today)
+                    .Where(x => x.Status == (int)ScheduleStatusType.Normal) // 只顯示正常狀態的課程
+                    .OrderBy(x => x.StartTime)
+                    .ToListAsync();
+
+                // 2. 轉換為 DTO
+                var scheduleList = schedules.Select(x => new ResScheduleDTO()
+                {
+                    ScheduleId = x.Id,
+                    StudentPermissionId = x.StudentPermissionId,
+                    ClassroomId = x.ClassroomId,
+                    ClassroomName = x.Classroom.Name,
+                    ScheduleDate = x.ScheduleDate,
+                    StartTime = x.StartTime,
+                    EndTime = x.EndTime,
+                    CourseMode = x.CourseMode,
+                    CourseModeName = GetCourseModeName(x.CourseMode),
+                    ScheduleMode = x.ScheduleMode,
+                    ScheduleModeName = GetScheduleModeName(x.ScheduleMode),
+                    QRCodeContent = x.QRCodeContent,
+                    Status = x.Status,
+                    StatusName = GetStatusName(x.Status),
+                    Remark = x.Remark,
+                    StudentName = x.StudentPermission.User.DisplayName,
+                    CourseName = x.StudentPermission.Course?.Name ?? "未指定課程"
+                }).ToList();
+
+                // 3. 回傳結果
+                res.result = APIResultCode.success;
+                res.msg = scheduleList.Any() ? "success" : "今日無課程安排";
+                res.content = scheduleList;
+
+                log.LogInformation($"[{Request.Path}] My today schedule query success! UserId:{currentUserId}, Count:{scheduleList.Count}");
+
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
+        /// <summary>
         /// 取得單一課表詳細資訊
         /// </summary>
         /// <param name="scheduleId">課表ID</param>
@@ -348,9 +576,24 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
-                // 3. 更新資料
+                // 3. 驗證必填欄位
                 if (scheduleDTO.ClassroomId > 0)
+                {
+                    // 驗證教室是否存在
+                    var classroom = await ctx.TblClassroom
+                        .Where(x => x.Id == scheduleDTO.ClassroomId && x.IsDelete == false && x.IsEnable == true)
+                        .FirstOrDefaultAsync();
+                    
+                    if (classroom == null)
+                    {
+                        log.LogWarning($"[{Request.Path}] Classroom (Id:{scheduleDTO.ClassroomId}) not found or disabled");
+                        res.result = APIResultCode.unknow_error;
+                        res.msg = "查無教室或教室已停用";
+                        return Ok(res);
+                    }
+                    
                     scheduleEntity.ClassroomId = scheduleDTO.ClassroomId;
+                }
                 
                 if (!string.IsNullOrEmpty(scheduleDTO.ScheduleDate))
                     scheduleEntity.ScheduleDate = scheduleDTO.ScheduleDate.Replace("-", "/");
@@ -360,19 +603,28 @@ namespace DoorWebApp.Controllers
                 
                 if (!string.IsNullOrEmpty(scheduleDTO.EndTime))
                     scheduleEntity.EndTime = scheduleDTO.EndTime;
-                
+
+                // 更新課程模式 (必填欄位)
                 if (scheduleDTO.CourseMode > 0)
                 {
                     scheduleEntity.CourseMode = scheduleDTO.CourseMode;
                     
                     // 重新產生 QR Code
-                    if (scheduleDTO.CourseMode == (int)CourseModeType.OnSite)
+                    if (scheduleDTO.CourseMode == 1) // 現場課程
                     {
                         scheduleEntity.QRCodeContent = GenerateQRCodeContent(scheduleEntity);
                     }
                     else
                     {
                         scheduleEntity.QRCodeContent = null;
+                    }
+                }
+                else
+                {
+                    // 如果沒有提供 CourseMode，保持原有的 QR Code 邏輯
+                    if (scheduleEntity.CourseMode == 1)
+                    {
+                        scheduleEntity.QRCodeContent = GenerateQRCodeContent(scheduleEntity);
                     }
                 }
                 
