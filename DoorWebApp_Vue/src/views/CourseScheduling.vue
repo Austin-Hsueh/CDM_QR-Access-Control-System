@@ -170,7 +170,7 @@ import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import { FormInstance, FormRules } from 'element-plus';
+import { FormInstance, FormRules, ElMessage } from 'element-plus';
 
 import API from '@/apis/TPSAPI';
 
@@ -384,31 +384,178 @@ const submitAddCourse = async () => {
   });
 };
 
-const handleEventClick = (clickInfo: any) => {
+const handleEventClick = async (clickInfo: any) => {
   const event = clickInfo.event;
+  const scheduleId = event.extendedProps.scheduleId;
+  const studentName = event.extendedProps.studentName || '';
   const courseName = event.extendedProps.courseName || '';
   const teacherName = event.extendedProps.teacherName || '';
-  const startTime = event.startStr;
-  const endTime = event.endStr;
+  const startTime = event.start;
+  const endTime = event.end;
   const resourceTitle = event.getResources()[0]?.title || '';
+
+  // 格式化時間顯示
+  const formatDateTime = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  };
 
   // 顯示完整課程資訊
   const message = `
+學生: ${studentName}
 課程名稱: ${courseName}
 老師: ${teacherName}
 教室: ${resourceTitle}
-時間: ${startTime} ~ ${endTime}
+時間: ${formatDateTime(startTime)} ~ ${formatDateTime(endTime)}
 
 確定要刪除此課程嗎？
   `;
 
   if (confirm(message)) {
-    event.remove();
+    try {
+      // 驗證 scheduleId
+      if (!scheduleId) {
+        ElMessage.error('找不到課程 ID，無法刪除');
+        return;
+      }
+
+      // 準備 API 請求資料 (patch 方法直接傳遞資料物件)
+      const cmd = {
+        scheduleId: scheduleId,
+        isDelete: true
+      };
+
+      console.log('刪除課程排程:', cmd);
+
+      // 呼叫 API 刪除 (使用 patch 方法)
+      const response = await API.deleteCourseSchedule(cmd);
+
+      if (response.data.result === 1) {
+        // 從日曆中移除事件
+        event.remove();
+        ElMessage.success('課程已刪除');
+      } else {
+        ElMessage.error(response.data.msg || '刪除課程失敗');
+      }
+    } catch (error) {
+      console.error('刪除課程排程失敗:', error);
+      ElMessage.error('刪除課程失敗，請稍後再試');
+    }
   }
 };
 
 const handleEvents = (events: any) => {
   console.log('Events updated:', events);
+};
+
+// 處理事件拖曳
+const handleEventDrop = async (dropInfo: any) => {
+  const event = dropInfo.event;
+  const newResource = event.getResources()[0];
+
+  try {
+    // 從事件中取得 scheduleId 和其他必要資訊
+    const scheduleId = event.extendedProps.scheduleId;
+    if (!scheduleId) {
+      ElMessage.error('找不到課程 ID，無法更新');
+      dropInfo.revert(); // 還原拖曳
+      return;
+    }
+
+    // 格式化日期和時間
+    const startDate = new Date(event.start);
+    const endDate = new Date(event.end);
+
+    const scheduleDate = startDate.toISOString().split('T')[0]; // "2024-02-15"
+    const startTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`; // "15:00"
+    const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`; // "17:00"
+
+    // 準備 API 請求資料
+    const cmd = {
+      scheduleId: scheduleId,
+      classroomId: Number(newResource.id),
+      scheduleDate: scheduleDate,
+      startTime: startTime,
+      endTime: endTime,
+      courseMode: event.extendedProps.courseMode || 1,
+      status: event.extendedProps.status || 1,
+      remark: event.extendedProps.remark || '',
+      isDelete: false
+    };
+
+    console.log('更新課程排程:', cmd);
+
+    // 呼叫 API 更新
+    const response = await API.updateCourseSchedule(cmd);
+
+    if (response.data.result === 1) {
+      ElMessage.success(`課程已移動至 ${newResource.title} ${scheduleDate} ${startTime}-${endTime}`);
+    } else {
+      ElMessage.error(response.data.msg || '更新課程失敗');
+      dropInfo.revert(); // 還原拖曳
+    }
+  } catch (error) {
+    console.error('更新課程排程失敗:', error);
+    ElMessage.error('更新課程失敗，請稍後再試');
+    dropInfo.revert(); // 還原拖曳
+  }
+};
+
+// 處理事件調整大小
+const handleEventResize = async (resizeInfo: any) => {
+  const event = resizeInfo.event;
+
+  try {
+    // 從事件中取得 scheduleId 和其他必要資訊
+    const scheduleId = event.extendedProps.scheduleId;
+    if (!scheduleId) {
+      ElMessage.error('找不到課程 ID，無法更新');
+      resizeInfo.revert(); // 還原調整
+      return;
+    }
+
+    // 格式化日期和時間
+    const startDate = new Date(event.start);
+    const endDate = new Date(event.end);
+    const resource = event.getResources()[0];
+
+    const scheduleDate = startDate.toISOString().split('T')[0]; // "2024-02-15"
+    const startTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`; // "15:00"
+    const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`; // "17:00"
+
+    // 準備 API 請求資料
+    const cmd = {
+      scheduleId: scheduleId,
+      classroomId: Number(resource.id),
+      scheduleDate: scheduleDate,
+      startTime: startTime,
+      endTime: endTime,
+      courseMode: event.extendedProps.courseMode || 1,
+      status: event.extendedProps.status || 1,
+      remark: event.extendedProps.remark || '',
+      isDelete: false
+    };
+
+    console.log('更新課程時間:', cmd);
+
+    // 呼叫 API 更新
+    const response = await API.updateCourseSchedule(cmd);
+
+    if (response.data.result === 1) {
+      ElMessage.success(`課程時間已調整為 ${startTime}-${endTime}`);
+    } else {
+      ElMessage.error(response.data.msg || '更新課程失敗');
+      resizeInfo.revert(); // 還原調整
+    }
+  } catch (error) {
+    console.error('更新課程時間失敗:', error);
+    ElMessage.error('更新課程失敗，請稍後再試');
+    resizeInfo.revert(); // 還原調整
+  }
 };
 
 // 自訂事件顯示內容
@@ -521,10 +668,10 @@ const calendarOptions: CalendarOptions = reactive({
   resources: (_fetchInfo, successCallback) => {
     successCallback(resources.value);
   },
-  editable: false,
+  editable: true,
   selectable: true,
-  selectMirror: false,
-  droppable:false,
+  selectMirror: true,
+  droppable:true,
   dayMaxEvents: true,
   weekends: true,
   locale: 'zh-tw',
@@ -536,7 +683,9 @@ const calendarOptions: CalendarOptions = reactive({
   select: handleDateSelect,
   eventClick: handleEventClick,
   eventsSet: handleEvents,
-  eventContent: eventContent,
+  eventContent: eventContent, //自訂事件顯示內容
+  eventDrop: handleEventDrop, //拖曳事件處理
+  eventResize: handleEventResize, //調整事件大小處理
 
 });
 

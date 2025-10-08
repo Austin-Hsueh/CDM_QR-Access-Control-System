@@ -592,12 +592,12 @@ class APIService {
 
   /** 更新課程排程 */
   updateCourseSchedule(cmd: any){
-    return this.axiosInstance.patch<IBaseAPIResponse>(`v1/CourseSchedule`, cmd);
+    return this.axiosInstance.patch<IBaseAPIResponse>(`v1/Schedule`, cmd);
   }
 
   /** 刪除課程排程 */
-  deleteCourseSchedule(courseId: number){
-    return this.axiosInstance.delete<IBaseAPIResponse>(`v1/CourseSchedule/${courseId}`);
+  deleteCourseSchedule(cmd: any){
+    return this.axiosInstance.patch<IBaseAPIResponse>(`v1/Schedule`, cmd);
   }
 
   //#endregion
