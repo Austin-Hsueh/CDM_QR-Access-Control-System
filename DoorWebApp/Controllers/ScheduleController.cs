@@ -599,13 +599,41 @@ namespace DoorWebApp.Controllers
                     
                     scheduleEntity.ClassroomId = scheduleDTO.ClassroomId;
                 }
-                
+
+                // 3.1 保存原始時間和日期（用於計算週期性課程的時間差）
+                string originalStartTime = scheduleEntity.StartTime;
+                string originalEndTime = scheduleEntity.EndTime;
+                string originalScheduleDate = scheduleEntity.ScheduleDate;
+
+                // 3.2 判斷是否需要更新週期性課程
+                bool isPeriodicSchedule = (scheduleEntity.ScheduleMode == 1 || scheduleEntity.ScheduleMode == 2);
+                bool shouldUpdateRelated = isPeriodicSchedule &&
+                    (!string.IsNullOrEmpty(scheduleDTO.StartTime) ||
+                     !string.IsNullOrEmpty(scheduleDTO.EndTime) ||
+                     scheduleDTO.ClassroomId > 0 ||
+                     scheduleDTO.CourseMode > 0 ||
+                     scheduleDTO.Status > 0);
+
+                // 3.3 如果需要更新週期課程，先查詢所有相關課表（在修改當前課表之前）
+                List<TblSchedule> relatedSchedules = new List<TblSchedule>();
+                if (shouldUpdateRelated)
+                {
+                    relatedSchedules = await ctx.TblSchedule
+                        .Where(x => x.StudentPermissionId == scheduleEntity.StudentPermissionId &&
+                                    x.IsDelete == false &&
+                                    x.Id != scheduleEntity.Id)
+                        .ToListAsync();
+
+                    log.LogInformation($"[{Request.Path}] Found {relatedSchedules.Count} related schedules for StudentPermissionId: {scheduleEntity.StudentPermissionId}");
+                }
+
+                // 3.4 更新當前課表
                 if (!string.IsNullOrEmpty(scheduleDTO.ScheduleDate))
                     scheduleEntity.ScheduleDate = scheduleDTO.ScheduleDate.Replace("-", "/");
-                
+
                 if (!string.IsNullOrEmpty(scheduleDTO.StartTime))
                     scheduleEntity.StartTime = scheduleDTO.StartTime;
-                
+
                 if (!string.IsNullOrEmpty(scheduleDTO.EndTime))
                     scheduleEntity.EndTime = scheduleDTO.EndTime;
 
@@ -613,7 +641,7 @@ namespace DoorWebApp.Controllers
                 if (scheduleDTO.CourseMode > 0)
                 {
                     scheduleEntity.CourseMode = scheduleDTO.CourseMode;
-                    
+
                     // 重新產生 QR Code
                     if (scheduleDTO.CourseMode == 1) // 現場課程
                     {
@@ -632,18 +660,94 @@ namespace DoorWebApp.Controllers
                         scheduleEntity.QRCodeContent = GenerateQRCodeContent(scheduleEntity);
                     }
                 }
-                
+
                 if (scheduleDTO.Status > 0)
                     scheduleEntity.Status = scheduleDTO.Status;
-                
+
                 scheduleEntity.Remark = scheduleDTO.Remark;
                 scheduleEntity.ModifiedTime = DateTime.Now;
 
-                // 4. 存檔
+                // 4. 如果是週期性課程，更新所有相關課表
+                if (shouldUpdateRelated && relatedSchedules.Count > 0)
+                {
+                    // 計算時間差異
+                    TimeSpan? startTimeDiff = null;
+                    TimeSpan? endTimeDiff = null;
+
+                    if (!string.IsNullOrEmpty(scheduleDTO.StartTime))
+                    {
+                        var originalStart = TimeSpan.Parse(originalStartTime);
+                        var newStart = TimeSpan.Parse(scheduleDTO.StartTime);
+                        startTimeDiff = newStart - originalStart;
+                        log.LogInformation($"[{Request.Path}] Start time difference: {startTimeDiff.Value.TotalMinutes} minutes (Original: {originalStartTime}, New: {scheduleDTO.StartTime})");
+                    }
+
+                    if (!string.IsNullOrEmpty(scheduleDTO.EndTime))
+                    {
+                        var originalEnd = TimeSpan.Parse(originalEndTime);
+                        var newEnd = TimeSpan.Parse(scheduleDTO.EndTime);
+                        endTimeDiff = newEnd - originalEnd;
+                        log.LogInformation($"[{Request.Path}] End time difference: {endTimeDiff.Value.TotalMinutes} minutes (Original: {originalEndTime}, New: {scheduleDTO.EndTime})");
+                    }
+
+                    foreach (var schedule in relatedSchedules)
+                    {
+                        // 更新教室（如果有提供）
+                        if (scheduleDTO.ClassroomId > 0)
+                        {
+                            schedule.ClassroomId = scheduleDTO.ClassroomId;
+                        }
+
+                        // 更新開始時間（如果有提供）
+                        if (startTimeDiff.HasValue)
+                        {
+                            var scheduleStart = TimeSpan.Parse(schedule.StartTime);
+                            var newScheduleStart = scheduleStart + startTimeDiff.Value;
+                            schedule.StartTime = newScheduleStart.ToString(@"hh\:mm");
+                            log.LogInformation($"[{Request.Path}] Schedule {schedule.Id} StartTime: {scheduleStart} -> {schedule.StartTime}");
+                        }
+
+                        // 更新結束時間（如果有提供）
+                        if (endTimeDiff.HasValue)
+                        {
+                            var scheduleEnd = TimeSpan.Parse(schedule.EndTime);
+                            var newScheduleEnd = scheduleEnd + endTimeDiff.Value;
+                            schedule.EndTime = newScheduleEnd.ToString(@"hh\:mm");
+                            log.LogInformation($"[{Request.Path}] Schedule {schedule.Id} EndTime: {scheduleEnd} -> {schedule.EndTime}");
+                        }
+
+                        // 更新課程模式（如果有提供）
+                        if (scheduleDTO.CourseMode > 0)
+                        {
+                            schedule.CourseMode = scheduleDTO.CourseMode;
+
+                            // 重新產生 QR Code
+                            if (scheduleDTO.CourseMode == 1) // 現場課程
+                            {
+                                schedule.QRCodeContent = GenerateQRCodeContent(schedule);
+                            }
+                            else
+                            {
+                                schedule.QRCodeContent = null;
+                            }
+                        }
+
+                        // 更新狀態和備註（如果有提供）
+                        if (scheduleDTO.Status > 0)
+                            schedule.Status = scheduleDTO.Status;
+
+                        if (!string.IsNullOrEmpty(scheduleDTO.Remark))
+                            schedule.Remark = scheduleDTO.Remark;
+
+                        schedule.ModifiedTime = DateTime.Now;
+                    }
+                }
+
+                // 5. 存檔
                 int effectRow = await ctx.SaveChangesAsync();
                 log.LogInformation($"[{Request.Path}] Update success. (EffectRow:{effectRow})");
 
-                // 5. 寫入稽核紀錄
+                // 6. 寫入稽核紀錄
                 auditLog.WriteAuditLog(AuditActType.Modify, $"更新課表資訊. id: {scheduleEntity.Id}", operatorUsername);
 
                 res.result = APIResultCode.success;

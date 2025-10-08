@@ -452,6 +452,93 @@ const handleEvents = (events: any) => {
   console.log('Events updated:', events);
 };
 
+// 處理日期範圍變更（當點擊 prev/next/today 或切換視圖時觸發）
+const handleDatesSet = async (dateInfo: any) => {
+  console.log('日期範圍變更:', {
+    start: dateInfo.startStr,
+    end: dateInfo.endStr,
+    view: dateInfo.view.type
+  });
+
+  try {
+    // 取得當前視圖的日期範圍
+    const startDate = new Date(dateInfo.start);
+    const endDate = new Date(dateInfo.end);
+
+    // 格式化日期為 "2025-10-08"
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    // 準備 API 請求參數
+    const cmd = {
+      page: 1,
+      searchPage: 250, // 增加數量以涵蓋週視圖
+      dateFrom: formatDate(startDate),
+      dateTo: formatDate(endDate),
+      status: 1
+    };
+
+    console.log('載入課程範圍:', cmd);
+
+    const response = await API.getCoursesByDate(cmd);
+
+    if (response.data.content?.pageItems && Array.isArray(response.data.content.pageItems)) {
+      const calendarApi = fullCalendar.value?.getApi();
+      if (!calendarApi) return;
+
+      // 清除現有事件
+      calendarApi.removeAllEvents();
+
+      // 將每個課程加入 Calendar
+      response.data.content.pageItems.forEach((schedule: any) => {
+        // 組合日期和時間
+        const scheduleDate = schedule.scheduleDate.replace(/\//g, '-'); // "2025/10/08" -> "2025-10-08"
+        const startDateTime = `${scheduleDate}T${schedule.startTime}:00`;
+        const endDateTime = `${scheduleDate}T${schedule.endTime}:00`;
+
+        // 組合標題
+        const titleParts = [];
+        if (schedule.studentName) titleParts.push(`學生：${schedule.studentName}`);
+        if (schedule.courseName) titleParts.push(`課程：${schedule.courseName}`);
+        if (schedule.teacherName) titleParts.push(`老師：${schedule.teacherName}`);
+        const title = titleParts.length > 0 ? titleParts.join(' ') : '課程';
+
+        calendarApi.addEvent({
+          id: schedule.scheduleId?.toString(),
+          title: title,
+          start: startDateTime,
+          end: endDateTime,
+          resourceId: schedule.classroomId.toString(),
+          extendedProps: {
+            scheduleId: schedule.scheduleId,
+            studentPermissionId: schedule.studentPermissionId,
+            courseName: schedule.courseName,
+            studentName: schedule.studentName,
+            classroomName: schedule.classroomName,
+            courseMode: schedule.courseMode,
+            courseModeName: schedule.courseModeName,
+            scheduleMode: schedule.scheduleMode,
+            scheduleModeName: schedule.scheduleModeName,
+            status: schedule.status,
+            statusName: schedule.statusName,
+            remark: schedule.remark,
+            teacherName: schedule.teacherName
+          }
+        });
+      });
+
+      console.log('載入的課程數量:', response.data.content.pageItems.length);
+    }
+  } catch (error) {
+    console.error('載入課程資料失敗:', error);
+    ElMessage.error('載入課程失敗');
+  }
+};
+
 // 處理事件拖曳
 const handleEventDrop = async (dropInfo: any) => {
   const event = dropInfo.event;
@@ -686,13 +773,14 @@ const calendarOptions: CalendarOptions = reactive({
   eventContent: eventContent, //自訂事件顯示內容
   eventDrop: handleEventDrop, //拖曳事件處理
   eventResize: handleEventResize, //調整事件大小處理
+  datesSet: handleDatesSet, //日期範圍變更處理（prev/next/today）
 
 });
 
 //#region Hook functions
 onMounted(() => {
   getClassRoomsOptions();
-  loadTodayCourses();
+  // loadTodayCourses(); // 已改用 handleDatesSet 自動載入
   getUsersOptions();
   getCourseOptions();
 });
