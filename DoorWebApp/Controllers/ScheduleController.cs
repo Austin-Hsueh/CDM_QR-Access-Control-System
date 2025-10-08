@@ -567,13 +567,41 @@ namespace DoorWebApp.Controllers
                 // 2. 處理刪除請求
                 if (scheduleDTO.IsDelete)
                 {
-                    scheduleEntity.IsDelete = true;
-                    scheduleEntity.ModifiedTime = DateTime.Now;
-                    
-                    int effectRowDelete = await ctx.SaveChangesAsync();
-                    log.LogInformation($"[{Request.Path}] Delete schedule success. (EffectRow:{effectRowDelete})");
+                    // 2.1 判斷是否為週期性課程
+                    bool isPeriodicScheduleForDelete = (scheduleEntity.ScheduleMode == 1 || scheduleEntity.ScheduleMode == 2);
 
-                    auditLog.WriteAuditLog(AuditActType.Modify, $"刪除課表. id: {scheduleEntity.Id}", operatorUsername);
+                    if (isPeriodicScheduleForDelete)
+                    {
+                        // 刪除所有相關的週期性課程
+                        var schedulesToDelete = await ctx.TblSchedule
+                            .Where(x => x.StudentPermissionId == scheduleEntity.StudentPermissionId &&
+                                        x.IsDelete == false)
+                            .ToListAsync();
+
+                        log.LogInformation($"[{Request.Path}] Deleting {schedulesToDelete.Count} related schedules for StudentPermissionId: {scheduleEntity.StudentPermissionId}");
+
+                        foreach (var schedule in schedulesToDelete)
+                        {
+                            schedule.IsDelete = true;
+                            schedule.ModifiedTime = DateTime.Now;
+                        }
+
+                        int effectRowDelete = await ctx.SaveChangesAsync();
+                        log.LogInformation($"[{Request.Path}] Delete periodic schedules success. (EffectRow:{effectRowDelete})");
+
+                        auditLog.WriteAuditLog(AuditActType.Modify, $"刪除週期性課表. StudentPermissionId: {scheduleEntity.StudentPermissionId}, 共 {schedulesToDelete.Count} 筆", operatorUsername);
+                    }
+                    else
+                    {
+                        // 單次課程只刪除自己
+                        scheduleEntity.IsDelete = true;
+                        scheduleEntity.ModifiedTime = DateTime.Now;
+
+                        int effectRowDelete = await ctx.SaveChangesAsync();
+                        log.LogInformation($"[{Request.Path}] Delete single schedule success. (EffectRow:{effectRowDelete})");
+
+                        auditLog.WriteAuditLog(AuditActType.Modify, $"刪除課表. id: {scheduleEntity.Id}", operatorUsername);
+                    }
 
                     res.result = APIResultCode.success;
                     res.msg = "success";
@@ -606,8 +634,8 @@ namespace DoorWebApp.Controllers
                 string originalScheduleDate = scheduleEntity.ScheduleDate;
 
                 // 3.2 判斷是否需要更新週期性課程
-                bool isPeriodicSchedule = (scheduleEntity.ScheduleMode == 1 || scheduleEntity.ScheduleMode == 2);
-                bool shouldUpdateRelated = isPeriodicSchedule &&
+                bool isPeriodicScheduleForUpdate = (scheduleEntity.ScheduleMode == 1 || scheduleEntity.ScheduleMode == 2);
+                bool shouldUpdateRelated = isPeriodicScheduleForUpdate &&
                     (!string.IsNullOrEmpty(scheduleDTO.StartTime) ||
                      !string.IsNullOrEmpty(scheduleDTO.EndTime) ||
                      scheduleDTO.ClassroomId > 0 ||
