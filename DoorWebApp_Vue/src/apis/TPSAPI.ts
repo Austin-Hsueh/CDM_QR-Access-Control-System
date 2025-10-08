@@ -440,7 +440,7 @@ class APIService {
   }
 
   getUsersOptions(){
-    return this.axiosInstance.get<IAPIResponse<M_IUsersOptions>>("v1/UsersOptions");
+    return this.axiosInstance.get<IAPIResponse<M_IUsersOptions[]>>("v1/UsersOptions");
   }
 
   getUsersDoor(doorid: number){
@@ -452,7 +452,7 @@ class APIService {
   }
 
   getTeachersOptions(){
-    return this.axiosInstance.get<IAPIResponse<M_ITeachersOptions>>("v1/Teachers");
+    return this.axiosInstance.get<IAPIResponse<M_ITeachersOptions[]>>("v1/Teachers");
   }
 
   addChild(data: M_IAddChildRuleForm){
@@ -579,7 +579,26 @@ class APIService {
   updateClassroom(cmd: M_IClassRoomOptions){
     return this.axiosInstance.patch<IBaseAPIResponse>(`v1/UpdateClassroom`, cmd);
   }
-  
+
+  /** 取得指定日期的所有課程 */
+  getCoursesByDate(cmd: any){
+    return this.axiosInstance.post<IAPIResponse<any>>(`v1/Schedules`, cmd);
+  }
+
+  /** 新增課程排程 */
+  createCourseSchedule(cmd: any){
+    return this.axiosInstance.post<IBaseAPIResponse>(`v1/StudentPermission`, cmd);
+  }
+
+  /** 更新課程排程 */
+  updateCourseSchedule(cmd: any){
+    return this.axiosInstance.patch<IBaseAPIResponse>(`v1/CourseSchedule`, cmd);
+  }
+
+  /** 刪除課程排程 */
+  deleteCourseSchedule(courseId: number){
+    return this.axiosInstance.delete<IBaseAPIResponse>(`v1/CourseSchedule/${courseId}`);
+  }
 
   //#endregion
 }

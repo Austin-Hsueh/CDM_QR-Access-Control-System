@@ -12,6 +12,10 @@
     text-color="#fff"
     active-text-color="#526E60"
   >
+    <el-menu-item index="/courseScheduling">
+        <el-icon><Calendar /></el-icon>
+        <span> 排課管理 </span>
+    </el-menu-item>
     <el-menu-item index="/accesscontrol" v-if="isShowMenu">
         <el-icon><Calendar /></el-icon>
         <span>{{ t("Access Control") }}</span>

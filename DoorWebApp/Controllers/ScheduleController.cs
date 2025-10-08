@@ -41,9 +41,11 @@ namespace DoorWebApp.Controllers
                 var query = ctx.TblSchedule
                     .Include(x => x.Classroom)
                     .Include(x => x.StudentPermission)
-                    .ThenInclude(x => x.Course)
+                        .ThenInclude(x => x.Course)
                     .Include(x => x.StudentPermission)
-                    .ThenInclude(x => x.User)
+                        .ThenInclude(x => x.User)
+                    .Include(x => x.StudentPermission)
+                        .ThenInclude(x => x.Teacher)
                     .Where(x => x.IsDelete == false);
 
                 // 教室篩選
@@ -127,7 +129,10 @@ namespace DoorWebApp.Controllers
                     QRCodeContent = x.QRCodeContent,
                     Status = x.Status,
                     StatusName = GetStatusName(x.Status),
-                    Remark = x.Remark
+                    Remark = x.Remark,
+                    StudentName = x.StudentPermission?.User?.DisplayName,
+                    CourseName = x.StudentPermission?.Course?.Name,
+                    TeacherName = x.StudentPermission?.Teacher?.DisplayName
                 }).ToList();
 
                 // 4. 回傳結果

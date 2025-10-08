@@ -5,7 +5,7 @@
       <el-button type="primary" @click="onCreateClassRoomClicked">新增教室</el-button>
       <el-table name="userInfoTable" style="width: 100%"  :data="classRoomList">
         <el-table-column sortable label="教室名稱"  prop="classroomName"/>
-        <el-table-column sortable label="備註"  prop="description"/>
+        <el-table-column sortable label="顯示顏色"  prop="description"/>
         <el-table-column width="170px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
           <template #default="{ row }: { row: any }">
             <el-button type="primary" size="small" @click="onEditClassRoom(row)"><el-icon><EditPen /></el-icon>{{ t('edit') }}</el-button>
@@ -18,12 +18,12 @@
 
   <!-- 新增教室彈窗 -->
   <el-dialog class="dialog"  v-model="isShowAddClassRoomDialog" :title="t('create')">
-    <el-form label-width="100px"  ref="createaddClassRoomForm" :rules="rules" :model="createClassRoomFormData">
+    <el-form label-width="100px"  ref="createaddClassRoomForm" :rules="rules" :model="createClassRoomFormData" @keyup.enter="submitClassRoomForm()">
       <el-form-item label="教室" prop="classroomName"  >
         <el-input style="width:90%" v-model="createClassRoomFormData.classroomName"/>
       </el-form-item>
-      <el-form-item label="備註" prop="description"  >
-        <el-input style="width:90%" v-model="createClassRoomFormData.description"/>
+      <el-form-item label="選擇事件顏色" prop="description"  >
+        <el-color-picker v-model="createClassRoomFormData.description" />
       </el-form-item>
     </el-form>
     <template #footer>
@@ -37,12 +37,12 @@
 
   <!-- 編輯教室彈窗 -->
   <el-dialog class="dialog"  v-model="isShowEditClassRoomDialog" :title="t('edit')">
-    <el-form label-width="100px"  ref="updateClassRoomForm" :rules="editRules" :model="updateClassRoomFormData">
+    <el-form label-width="100px"  ref="updateClassRoomForm" :rules="editRules" :model="updateClassRoomFormData" @keyup.enter="submitClassRoomUpdateForm()">
       <el-form-item label="教室" prop="classroomName"  >
         <el-input style="width:90%" v-model="updateClassRoomFormData.classroomName"/>
       </el-form-item>
-      <el-form-item label="備註" prop="description"  >
-        <el-input style="width:90%" v-model="updateClassRoomFormData.description"/>
+      <el-form-item label="選擇事件顏色" prop="description"  >
+        <el-color-picker v-model="updateClassRoomFormData.description" />
       </el-form-item>
     </el-form>
     <template #footer>
@@ -114,17 +114,17 @@ const submitClassRoomForm = async () => {
       const addClassRoom = await API.addClassroom(createClassRoomFormData);
       if (addClassRoom.data.result != 1) {
         notifyParam = {
-          title: "失敗",
+          title: "新增失敗",
           type: "error",
-          message: `課程：${createClassRoomFormData.classroomName} 新增失敗`,
+          message: `${addClassRoom.data.msg}`,
           duration: 2000,
           dangerouslyUseHTMLString: true
         };
       }else{
         notifyParam = {
-          title: "成功",
+          title: "新增成功",
           type: "success",
-          message: `課程：${createClassRoomFormData.classroomName} 已成功新增`,
+          message: `教室：${createClassRoomFormData.classroomName} 已成功新增`,
           duration: 3000,
           dangerouslyUseHTMLString: true // 啟用 HTML 字符串，message 中使用<br>。
         };
@@ -151,14 +151,14 @@ const submitClassRoomUpdateForm = async () => {
 
       if (updateResponse.data.result != 1) {
         notifyParam = {
-          title: "失敗",
+          title: "編輯失敗",
           type: "error",
-          message: `課程：${updateClassRoomFormData.classroomName} 更新失敗`,
-          duration: 2000,
+          message: `${updateResponse.data.msg} `,
+          duration: 3000,
         };
       } else {
         notifyParam = {
-          title: "成功",
+          title: "編輯成功",
           type: "success",
           message: `帳號：${updateClassRoomFormData.classroomName} 已成功更新`,
           duration: 2000,
