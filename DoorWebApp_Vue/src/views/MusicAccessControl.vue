@@ -43,6 +43,12 @@
                   </el-option>
                 </el-select>
               </el-form-item>
+              <el-form-item label="課程模式" prop="courseMode">
+                <el-select filterable placeholder="請選擇" v-model="settingAccessTimeFormData.courseMode" style="width: 100%">
+                  <el-option label="現場" value="1"></el-option>
+                  <el-option label="視訊" value="2"></el-option>
+                </el-select>
+              </el-form-item>
               <el-form-item label="老師姓名" prop="teacherId" v-show="settingAccessTimeFormData.type === '1'">
                 <el-select filterable placeholder="請選擇" v-model="settingAccessTimeFormData.teacherId">
                   <el-option
@@ -50,6 +56,16 @@
                     :key="item.teacherId"
                     :label="item.teacherName"
                     :value="item.teacherId"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="教室" prop="classroomId">
+                <el-select filterable placeholder="請選擇" v-model="settingAccessTimeFormData.classroomId" style="width: 100%">
+                  <el-option
+                    v-for="item in classRoomList"
+                    :key="item.classroomId"
+                    :label="item.classroomName"
+                    :value="item.classroomId?.toString()"
                   />
                 </el-select>
               </el-form-item>
@@ -62,6 +78,13 @@
                     <template v-else-if="item === 4">儲藏室</template>
                   </el-checkbox>
                 </el-checkbox-group>
+              </el-form-item>
+              <el-form-item label="週期模式" prop="scheduleMode">
+                <el-select filterable placeholder="請選擇" v-model="settingAccessTimeFormData.scheduleMode" style="width: 100%">
+                  <el-option label="每週" value="1"></el-option>
+                  <el-option label="每兩週" value="2"></el-option>
+                  <el-option label="單次" value="3"></el-option>
+                </el-select>
               </el-form-item>
               <el-form-item label="通行日期" prop="datepicker"  >
                 <el-date-picker
@@ -104,7 +127,7 @@
         </div>
       </el-tab-pane>
       <el-tab-pane :label="t('User Access Data')" name="doorUser">
-        <DoorUserSettingList ref="doorUserSettingListRef" />
+        <DoorUserSettingList ref="doorUserSettingListRef" :doorId="1" />
       </el-tab-pane>
       <el-tab-pane label="大門" v-if="false">
         <DoorUserList :doorId="1"/>
@@ -169,6 +192,7 @@ const teachersOptions = ref<M_ITeachersOptions[]>([]);
 const courseList = ref<M_ICourseOptions[]>([]);
 const doors = [1,2,3,4];
 const days = [1,2,3,4,5,6,7];
+const classRoomList = ref<M_IClassRoomOptions[]>([]);
 
 const doorUserSettingListRef = ref(null);
 const isShowUploadDialog = ref(false);
@@ -202,6 +226,9 @@ const settingForm = async () => {
       }
       
       ssetStudentPermission.type = Number(settingAccessTimeFormData.type);
+      ssetStudentPermission.classroomId = settingAccessTimeFormData.classroomId
+      ssetStudentPermission.courseMode = settingAccessTimeFormData.courseMode
+      ssetStudentPermission.scheduleMode =settingAccessTimeFormData.scheduleMode
 
       console.log(ssetStudentPermission);
 
@@ -264,6 +291,8 @@ onMounted(() => {
   console.log('Component is mounted');
   getUsersOptions();
   getCourseOptions();
+  getClassRoomsOptions();
+
 });
 //#endregion
 
@@ -294,6 +323,16 @@ async function getCourseOptions () {
       // 可以在這裡加入錯誤處理，例如顯示提示訊息
     }
 }
+
+async function getClassRoomsOptions() {
+  try {
+    const response = await API.getClassrooms();
+    classRoomList.value = response.data.content;
+
+  } catch (error) {
+    console.error('載入教室資料失敗:', error);
+  }
+}
 //#endregion
 
 //#region 建立表單ref與Validator
@@ -312,6 +351,9 @@ const settingAccessTimeFormData = reactive<M_IsettingAccessRuleForm>({
   courseId: '',
   teacherId: '',
   type:'1',
+  classroomId:'',
+  courseMode:'',
+  scheduleMode:''
 })
 const ssetStudentPermission = reactive<M_IsettingAccessRuleForm>({
   userId: 0,
@@ -324,6 +366,9 @@ const ssetStudentPermission = reactive<M_IsettingAccessRuleForm>({
   courseId: 0,
   teacherId: 0,
   type: 1,
+  classroomId:'',
+  courseMode:'',
+  scheduleMode:''
 })
 const rules  = reactive<FormRules>({
   userId: [{ required: true, message: () => t("validation_msg.username_is_required"), trigger: "blur" }],
@@ -337,6 +382,7 @@ const rules  = reactive<FormRules>({
 //#endregion
 
 import axios from "axios";
+import { M_IClassRoomOptions } from "@/models/M_IClassRoomOptions";
 const callApi = () => {
   const requestOptions = {
       method: "POST",

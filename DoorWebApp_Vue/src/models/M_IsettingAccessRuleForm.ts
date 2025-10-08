@@ -14,4 +14,7 @@ export interface M_IsettingAccessRuleForm {
   courseId?: number;
   teacherId?: number;
   type?: number;
+  classroomId:number;
+  courseMode:number;
+  scheduleMode:number;
 }

@@ -136,7 +136,7 @@
             <template v-else-if="item === 4">儲藏室</template>
           </el-checkbox>
         </el-checkbox-group>
-      </el-form-item>
+      </el-form-item>      
       <el-form-item label="通行日期" prop="datepicker"  >
         <el-date-picker
           type="daterange"
