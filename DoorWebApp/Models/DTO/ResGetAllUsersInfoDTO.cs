@@ -73,6 +73,21 @@
         public string idcard { set; get; }
 
         /// <summary>
+        /// 聯絡人
+        /// </summary>
+        public string contactPerson { get; set; }
+
+        /// <summary>
+        /// 聯絡電話
+        /// </summary>
+        public string contactPhone { get; set; }
+
+        /// <summary>
+        /// 關係稱謂
+        /// </summary>
+        public string relationshipTitle { get; set; }
+
+        /// <summary>
         /// 父帳號ID
         /// </summary>
         public int? parentId { set; get; }

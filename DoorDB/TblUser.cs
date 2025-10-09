@@ -62,6 +62,22 @@ namespace DoorDB
 
 
         /// <summary>
+        /// 聯絡人
+        /// </summary>
+        public string ContactPerson { get; set; } = "";
+
+        /// <summary>
+        /// 聯絡電話
+        /// </summary>
+        public string ContactPhone { get; set; } = "";
+
+        /// <summary>
+        /// 關係稱謂
+        /// </summary>
+        public string RelationshipTitle { get; set; } = "";
+
+
+        /// <summary>
         /// 使用語言
         /// </summary>
         public LocaleType locale { get; set; } = LocaleType.en_us;

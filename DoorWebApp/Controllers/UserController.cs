@@ -569,7 +569,14 @@ namespace DoorWebApp.Controllers
                         dateto = x.Permission.DateTo.ToString(),
                         timefrom = x.Permission.TimeFrom.ToString(),
                         timeto = x.Permission.TimeTo.ToString(),
-                        days = x.Permission.Days
+                        days = x.Permission.Days,
+                        type = x.Type,
+                        address = x.Address,
+                        idcard = x.IDcard,
+                        contactPerson = x.ContactPerson,
+                        contactPhone = x.ContactPhone,
+                        relationshipTitle = x.RelationshipTitle,
+                        parentId = x.ParentId,
                     })
                     .FirstOrDefault();
 
@@ -867,6 +874,9 @@ namespace DoorWebApp.Controllers
                 NewUser.Secret = UserDTO.password;
                 NewUser.Address = UserDTO.address;
                 NewUser.IDcard = UserDTO.idcard;
+                NewUser.ContactPerson = UserDTO.contactPerson;
+                NewUser.ContactPhone = UserDTO.contactPhone;
+                NewUser.RelationshipTitle = UserDTO.relationshipTitle;
                 NewUser.AccountType = LoginAccountType.LOCAL;
                 NewUser.Type = UserDTO.type;
                 NewUser.IsDelete = false;
@@ -1074,6 +1084,9 @@ namespace DoorWebApp.Controllers
                 UserEntity.Type = UserDTO.type;
                 UserEntity.Address = UserDTO.address;
                 UserEntity.IDcard = UserDTO.idcard;
+                UserEntity.ContactPerson = UserDTO.contactPerson;
+                UserEntity.ContactPhone = UserDTO.contactPhone;
+                UserEntity.RelationshipTitle = UserDTO.relationshipTitle;
 
                 if (!string.IsNullOrEmpty( UserDTO.password) )
                     UserEntity.Secret = UserDTO.password;
@@ -2056,7 +2069,13 @@ namespace DoorWebApp.Controllers
                     NewUser.Email = UserDTO.email;
                     NewUser.Phone = UserDTO.phone;
                     NewUser.Secret = UserDTO.password;
+                    NewUser.Address = UserDTO.address;
+                    NewUser.IDcard = UserDTO.idcard;
+                    NewUser.ContactPerson = UserDTO.contactPerson;
+                    NewUser.ContactPhone = UserDTO.contactPhone;
+                    NewUser.RelationshipTitle = UserDTO.relationshipTitle;
                     NewUser.AccountType = LoginAccountType.LOCAL;
+                    NewUser.Type = UserDTO.type;
                     NewUser.IsDelete = false;
                     NewUser.IsEnable = true;
                     NewUser.locale = LocaleType.zh_tw;
@@ -2067,7 +2086,7 @@ namespace DoorWebApp.Controllers
 
                     //3-1. 新增角色關聯,再加到使用者
                     List<TblRole> Roles = ctx.TblRoles.Where(x => x.IsDelete == false)
-                                                .Where(x => x.Id == UserDTO.roleid).ToList();
+                                            .Where(x => x.Id == UserDTO.roleid).ToList();
                     NewUser.Roles = Roles;
                     ctx.TblUsers.Add(NewUser);
                     ctx.SaveChanges(); // Save user to generate UserId
