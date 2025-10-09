@@ -110,5 +110,6 @@ namespace DoorDB
         // Navigation Properties
         public virtual TblStudentPermission StudentPermission { get; set; }
         public virtual TblClassroom Classroom { get; set; }
+        public virtual List<TblTeacherSalaryDetail> SalaryDetails { get; set; }
     }
 }
