@@ -775,7 +775,11 @@ namespace DoorWebApp.Controllers
                 int effectRow = await ctx.SaveChangesAsync();
                 log.LogInformation($"[{Request.Path}] Update success. (EffectRow:{effectRow})");
 
-                // 6. 寫入稽核紀錄
+                // 6. 同步更新門禁權限時間範圍
+                await UpdateStudentPermissionTimeRangeAsync(scheduleEntity.StudentPermissionId, log);
+                log.LogInformation($"[{Request.Path}] Updated StudentPermission time range for StudentPermissionId: {scheduleEntity.StudentPermissionId}");
+
+                // 7. 寫入稽核紀錄
                 auditLog.WriteAuditLog(AuditActType.Modify, $"更新課表資訊. id: {scheduleEntity.Id}", operatorUsername);
 
                 res.result = APIResultCode.success;
@@ -960,6 +964,76 @@ namespace DoorWebApp.Controllers
                 (int)ManualOperationType.ManualCheckIn => "手動簽到",
                 _ => "未知"
             };
+        }
+
+        /// <summary>
+        /// 同步更新門禁權限的時間範圍
+        /// </summary>
+        private async Task UpdateStudentPermissionTimeRangeAsync(int studentPermissionId, ILogger log)
+        {
+            try
+            {
+                // 1. 取得門禁權限實體
+                var studentPermission = await ctx.TblStudentPermission
+                    .Where(x => x.Id == studentPermissionId && x.IsDelete == false)
+                    .FirstOrDefaultAsync();
+
+                if (studentPermission == null)
+                {
+                    log.LogWarning($"StudentPermission (Id:{studentPermissionId}) not found");
+                    return;
+                }
+
+                // 2. 取得所有相關的課表
+                var relatedSchedules = await ctx.TblSchedule
+                    .Where(x => x.StudentPermissionId == studentPermissionId && x.IsDelete == false)
+                    .OrderBy(x => x.ScheduleDate)
+                    .ThenBy(x => x.StartTime)
+                    .ToListAsync();
+
+                if (!relatedSchedules.Any())
+                {
+                    log.LogWarning($"No active schedules found for StudentPermissionId: {studentPermissionId}");
+                    return;
+                }
+
+                // 3. 計算時間範圍
+                var dates = relatedSchedules.Select(x => DateTime.ParseExact(x.ScheduleDate, "yyyy/MM/dd", null)).ToList();
+                var startTimes = relatedSchedules.Select(x => TimeSpan.Parse(x.StartTime)).ToList();
+                var endTimes = relatedSchedules.Select(x => TimeSpan.Parse(x.EndTime)).ToList();
+
+                DateTime minDate = dates.Min();
+                DateTime maxDate = dates.Max();
+                TimeSpan minStartTime = startTimes.Min();
+                TimeSpan maxEndTime = endTimes.Max();
+
+                // 4. 計算涉及的星期幾
+                var daysOfWeek = relatedSchedules
+                    .Select(x => 
+                    {
+                        var date = DateTime.ParseExact(x.ScheduleDate, "yyyy/MM/dd", null);
+                        int day = (int)date.DayOfWeek;
+                        return day == 0 ? 7 : day; // 星期日調整為7
+                    })
+                    .Distinct()
+                    .OrderBy(x => x)
+                    .ToList();
+
+                // 5. 更新門禁權限
+                studentPermission.DateFrom = minDate.ToString("yyyy/MM/dd");
+                studentPermission.DateTo = maxDate.ToString("yyyy/MM/dd");
+                studentPermission.TimeFrom = minStartTime.ToString(@"hh\:mm");
+                studentPermission.TimeTo = maxEndTime.ToString(@"hh\:mm");
+                studentPermission.Days = string.Join(",", daysOfWeek);
+
+                // 6. 存檔
+                await ctx.SaveChangesAsync();
+                log.LogInformation($"Updated StudentPermission time range: DateFrom={studentPermission.DateFrom}, DateTo={studentPermission.DateTo}, TimeFrom={studentPermission.TimeFrom}, TimeTo={studentPermission.TimeTo}, Days={studentPermission.Days}");
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, $"Error updating StudentPermission time range for StudentPermissionId: {studentPermissionId}");
+            }
         }
 
         #endregion
