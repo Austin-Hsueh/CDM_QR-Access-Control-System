@@ -603,6 +603,17 @@ namespace DoorWebApp.Controllers
                         auditLog.WriteAuditLog(AuditActType.Modify, $"刪除課表. id: {scheduleEntity.Id}", operatorUsername);
                     }
 
+                    await UpdateStudentPermissionTimeRangeAsync(scheduleEntity.StudentPermissionId, log);
+                    var studentPermission = await ctx.TblStudentPermission
+                       .Where(x => x.Id == scheduleEntity.StudentPermissionId)
+                       .FirstOrDefaultAsync();
+                    if (studentPermission != null)
+                    {
+                        studentPermission.IsDelete = true;
+                        await ctx.SaveChangesAsync();
+                        log.LogInformation($"Updated StudentPermission isDelete: id={scheduleEntity.StudentPermissionId}");
+                    }
+
                     res.result = APIResultCode.success;
                     res.msg = "success";
 
