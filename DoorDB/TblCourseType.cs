@@ -44,6 +44,5 @@ namespace DoorDB
         public DateTime CreatedTime { get; set; }
 
         public virtual List<TblCourse> Courses { set; get; }
-        public virtual List<TblCourseFee> CourseFees { set; get; }
     }
 }

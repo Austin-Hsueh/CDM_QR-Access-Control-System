@@ -31,8 +31,6 @@ namespace DoorDB
         public virtual DbSet<TblCourseType> TblCourseType { get; set; } = null!;
         public virtual DbSet<TblClassroom> TblClassroom { get; set; } = null!;
         public virtual DbSet<TblSchedule> TblSchedule { get; set; } = null!;
-        public virtual DbSet<TblCourseFee> TblCourseFee { get; set; } = null!;
-        public virtual DbSet<TblTeacherSalaryDetail> TblTeacherSalaryDetail { get; set; } = null!;
 
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -290,38 +288,6 @@ namespace DoorDB
                 .HasMany(c => c.Schedules)
                 .WithOne(s => s.Classroom)
                 .HasForeignKey(s => s.ClassroomId);
-
-            // 設置 TblCourseType 與 TblCourseFee (CourseTypeId) 一對多關聯
-            modelBuilder.Entity<TblCourseType>()
-                .HasMany(ct => ct.CourseFees)
-                .WithOne(cf => cf.CourseType)
-                .HasForeignKey(cf => cf.CourseTypeId);
-
-            // 設置 TblCourseFee 與 TblTeacherSalaryDetail (CourseFeeId) 一對多關聯
-            modelBuilder.Entity<TblCourseFee>()
-                .HasMany(cf => cf.SalaryDetails)
-                .WithOne(tsd => tsd.CourseFee)
-                .HasForeignKey(tsd => tsd.CourseFeeId);
-
-            // 設置 TblSchedule 與 TblTeacherSalaryDetail (ScheduleId) 一對多關聯
-            modelBuilder.Entity<TblSchedule>()
-                .HasMany(s => s.SalaryDetails)
-                .WithOne(tsd => tsd.Schedule)
-                .HasForeignKey(tsd => tsd.ScheduleId);
-
-            // 設置 TblUser(Teacher) 與 TblTeacherSalaryDetail (TeacherId) 一對多關聯
-            modelBuilder.Entity<TblUser>()
-                .HasMany(u => u.TeacherSalaryDetails)
-                .WithOne(tsd => tsd.Teacher)
-                .HasForeignKey(tsd => tsd.TeacherId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // 設置 TblUser(Student) 與 TblTeacherSalaryDetail (StudentId) 一對多關聯
-            modelBuilder.Entity<TblUser>()
-                .HasMany(u => u.StudentSalaryDetails)
-                .WithOne(tsd => tsd.Student)
-                .HasForeignKey(tsd => tsd.StudentId)
-                .OnDelete(DeleteBehavior.Restrict);
 
             #endregion
         }

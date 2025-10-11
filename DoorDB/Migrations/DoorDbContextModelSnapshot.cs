@@ -185,56 +185,6 @@ namespace DoorWebDB.Migrations
                     b.ToTable("tblCourse");
                 });
 
-            modelBuilder.Entity("DoorDB.TblCourseFee", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<int>("CourseTypeId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedTime")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("FeeAmount")
-                        .HasColumnType("int");
-
-                    b.Property<string>("FeeName")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<bool>("IsArchived")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("IsCountTransaction")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("IsStudentAbsenceNotDeduct")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<int>("LessonCount")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("ModifiedTime")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("Sequence")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("SplitRatio")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CourseTypeId");
-
-                    b.ToTable("tblCourseFee");
-                });
-
             modelBuilder.Entity("DoorDB.TblCourseType", b =>
                 {
                     b.Property<int>("Id")
@@ -483,48 +433,48 @@ namespace DoorWebDB.Migrations
                         {
                             Id = 1,
                             CanDelete = false,
-                            CreatedTime = new DateTime(2025, 10, 9, 22, 44, 50, 369, DateTimeKind.Local).AddTicks(3551),
+                            CreatedTime = new DateTime(2025, 10, 9, 21, 39, 43, 546, DateTimeKind.Local).AddTicks(2440),
                             CreatorUserId = 1,
                             Description = "管理者",
                             IsDelete = false,
                             IsEnable = true,
-                            ModifiedTime = new DateTime(2025, 10, 9, 22, 44, 50, 369, DateTimeKind.Local).AddTicks(3551),
+                            ModifiedTime = new DateTime(2025, 10, 9, 21, 39, 43, 546, DateTimeKind.Local).AddTicks(2442),
                             Name = "Admin"
                         },
                         new
                         {
                             Id = 2,
                             CanDelete = false,
-                            CreatedTime = new DateTime(2025, 10, 9, 22, 44, 50, 369, DateTimeKind.Local).AddTicks(3553),
+                            CreatedTime = new DateTime(2025, 10, 9, 21, 39, 43, 546, DateTimeKind.Local).AddTicks(2444),
                             CreatorUserId = 1,
                             Description = "老師",
                             IsDelete = false,
                             IsEnable = true,
-                            ModifiedTime = new DateTime(2025, 10, 9, 22, 44, 50, 369, DateTimeKind.Local).AddTicks(3554),
+                            ModifiedTime = new DateTime(2025, 10, 9, 21, 39, 43, 546, DateTimeKind.Local).AddTicks(2444),
                             Name = "User"
                         },
                         new
                         {
                             Id = 3,
                             CanDelete = false,
-                            CreatedTime = new DateTime(2025, 10, 9, 22, 44, 50, 369, DateTimeKind.Local).AddTicks(3555),
+                            CreatedTime = new DateTime(2025, 10, 9, 21, 39, 43, 546, DateTimeKind.Local).AddTicks(2445),
                             CreatorUserId = 1,
                             Description = "學生",
                             IsDelete = false,
                             IsEnable = true,
-                            ModifiedTime = new DateTime(2025, 10, 9, 22, 44, 50, 369, DateTimeKind.Local).AddTicks(3555),
+                            ModifiedTime = new DateTime(2025, 10, 9, 21, 39, 43, 546, DateTimeKind.Local).AddTicks(2446),
                             Name = "User"
                         },
                         new
                         {
                             Id = 4,
                             CanDelete = false,
-                            CreatedTime = new DateTime(2025, 10, 9, 22, 44, 50, 369, DateTimeKind.Local).AddTicks(3556),
+                            CreatedTime = new DateTime(2025, 10, 9, 21, 39, 43, 546, DateTimeKind.Local).AddTicks(2448),
                             CreatorUserId = 1,
                             Description = "值班人員",
                             IsDelete = false,
                             IsEnable = true,
-                            ModifiedTime = new DateTime(2025, 10, 9, 22, 44, 50, 369, DateTimeKind.Local).AddTicks(3556),
+                            ModifiedTime = new DateTime(2025, 10, 9, 21, 39, 43, 546, DateTimeKind.Local).AddTicks(2449),
                             Name = "User"
                         });
                 });
@@ -664,78 +614,6 @@ namespace DoorWebDB.Migrations
                     b.ToTable("tblStudentPermission");
                 });
 
-            modelBuilder.Entity("DoorDB.TblTeacherSalaryDetail", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("ActualAmount")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<decimal>("BaseSplitAmount")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<decimal>("Bonus")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<int>("CourseFeeId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedTime")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<decimal>("Deduction")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<string>("Discount")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("FlexiblePoints")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("FlexibleSplitAmount")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<DateTime>("ModifiedTime")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("Points")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ScheduleId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("StudentId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TeacherId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CourseFeeId");
-
-                    b.HasIndex("ScheduleId");
-
-                    b.HasIndex("StudentId");
-
-                    b.HasIndex("TeacherId");
-
-                    b.ToTable("tblTeacherSalaryDetail");
-                });
-
             modelBuilder.Entity("DoorDB.TblUser", b =>
                 {
                     b.Property<int>("Id")
@@ -828,14 +706,14 @@ namespace DoorWebDB.Migrations
                             Address = "",
                             ContactPerson = "",
                             ContactPhone = "",
-                            CreateTime = new DateTime(2025, 10, 9, 22, 44, 50, 369, DateTimeKind.Local).AddTicks(3533),
+                            CreateTime = new DateTime(2025, 10, 9, 21, 39, 43, 546, DateTimeKind.Local).AddTicks(2422),
                             DisplayName = "Administrator",
                             Email = "",
                             IDcard = "",
                             IsDelete = false,
                             IsEnable = true,
                             LastLoginIP = "",
-                            ModifiedTime = new DateTime(2025, 10, 9, 22, 44, 50, 369, DateTimeKind.Local).AddTicks(3544),
+                            ModifiedTime = new DateTime(2025, 10, 9, 21, 39, 43, 546, DateTimeKind.Local).AddTicks(2434),
                             Phone = "0",
                             RelationshipTitle = "",
                             Secret = "1qaz2wsx",
@@ -850,14 +728,14 @@ namespace DoorWebDB.Migrations
                             Address = "",
                             ContactPerson = "",
                             ContactPhone = "",
-                            CreateTime = new DateTime(2025, 10, 9, 22, 44, 50, 369, DateTimeKind.Local).AddTicks(3547),
+                            CreateTime = new DateTime(2025, 10, 9, 21, 39, 43, 546, DateTimeKind.Local).AddTicks(2437),
                             DisplayName = "臨時大門",
                             Email = "",
                             IDcard = "",
                             IsDelete = false,
                             IsEnable = true,
                             LastLoginIP = "",
-                            ModifiedTime = new DateTime(2025, 10, 9, 22, 44, 50, 369, DateTimeKind.Local).AddTicks(3547),
+                            ModifiedTime = new DateTime(2025, 10, 9, 21, 39, 43, 546, DateTimeKind.Local).AddTicks(2438),
                             Phone = "0",
                             RelationshipTitle = "",
                             Secret = "1qaz2wsx",
@@ -996,17 +874,6 @@ namespace DoorWebDB.Migrations
                     b.Navigation("CourseType");
                 });
 
-            modelBuilder.Entity("DoorDB.TblCourseFee", b =>
-                {
-                    b.HasOne("DoorDB.TblCourseType", "CourseType")
-                        .WithMany("CourseFees")
-                        .HasForeignKey("CourseTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CourseType");
-                });
-
             modelBuilder.Entity("DoorDB.TblPayment", b =>
                 {
                     b.HasOne("DoorDB.TblUser", "ModifiedUser")
@@ -1081,41 +948,6 @@ namespace DoorWebDB.Migrations
                     b.Navigation("Teacher");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("DoorDB.TblTeacherSalaryDetail", b =>
-                {
-                    b.HasOne("DoorDB.TblCourseFee", "CourseFee")
-                        .WithMany("SalaryDetails")
-                        .HasForeignKey("CourseFeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DoorDB.TblSchedule", "Schedule")
-                        .WithMany("SalaryDetails")
-                        .HasForeignKey("ScheduleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DoorDB.TblUser", "Student")
-                        .WithMany("StudentSalaryDetails")
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("DoorDB.TblUser", "Teacher")
-                        .WithMany("TeacherSalaryDetails")
-                        .HasForeignKey("TeacherId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CourseFee");
-
-                    b.Navigation("Schedule");
-
-                    b.Navigation("Student");
-
-                    b.Navigation("Teacher");
                 });
 
             modelBuilder.Entity("DoorDB.TblUser", b =>
@@ -1197,21 +1029,9 @@ namespace DoorWebDB.Migrations
                     b.Navigation("CourseStudentPermissions");
                 });
 
-            modelBuilder.Entity("DoorDB.TblCourseFee", b =>
-                {
-                    b.Navigation("SalaryDetails");
-                });
-
             modelBuilder.Entity("DoorDB.TblCourseType", b =>
                 {
-                    b.Navigation("CourseFees");
-
                     b.Navigation("Courses");
-                });
-
-            modelBuilder.Entity("DoorDB.TblSchedule", b =>
-                {
-                    b.Navigation("SalaryDetails");
                 });
 
             modelBuilder.Entity("DoorDB.TblStudentPermission", b =>
@@ -1231,10 +1051,6 @@ namespace DoorWebDB.Migrations
                         .IsRequired();
 
                     b.Navigation("StudentPermissions");
-
-                    b.Navigation("StudentSalaryDetails");
-
-                    b.Navigation("TeacherSalaryDetails");
 
                     b.Navigation("TeacherStudentPermissions");
                 });

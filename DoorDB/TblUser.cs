@@ -145,7 +145,5 @@ namespace DoorDB
         public virtual List<TblStudentPermission> StudentPermissions { set; get; }
 
         public virtual List<TblStudentPermission> TeacherStudentPermissions { set; get; }
-        public virtual List<TblTeacherSalaryDetail> TeacherSalaryDetails { set; get; }
-        public virtual List<TblTeacherSalaryDetail> StudentSalaryDetails { set; get; }
     }
 }
