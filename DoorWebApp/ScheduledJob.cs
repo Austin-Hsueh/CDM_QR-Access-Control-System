@@ -36,10 +36,11 @@ public class ScheduledJob : IJob
             log.LogInformation($"更新 QRCode 分鐘時效開始");
             DateTime now = DateTime.Now;
             string nowDate = now.ToString("yyyy/MM/dd");
-            string time = now.AddSeconds(15).ToString("HH:mm");
-            string Endtime = now.AddMinutes(10).AddSeconds(15).ToString("HH:mm"); //每9分鐘45秒跑一次
+            string time = now.AddSeconds(15).AddMinutes(10).ToString("HH:mm");
+            string Endtime = now.AddMinutes(20).AddSeconds(15).ToString("HH:mm"); //每9分鐘45秒跑一次
             //09:09:45 跑的排程
-            //開始時間在09:10:00～09:20:00 之間都會被撈到
+            //提早10分鐘跑 9:20  的 09:09:45 要跑  
+            //開始時間在09:20:00～09:30:00 之間都會被撈到
             //09:11:00 09:15:00 09:19:00 09:20:00
             //起訖有包含09:10:00的
             int day = (int) now.DayOfWeek;
