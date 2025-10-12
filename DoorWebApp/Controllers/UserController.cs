@@ -1543,6 +1543,7 @@ namespace DoorWebApp.Controllers
                 {
                     var permissions = ctx.TblPermission
                                         .Where(x => x.UserId == UserId)
+                                        .Where( x => x.IsDelete == false)
                                         .Where(p =>
                                             (
                                                 (string.Compare(p.DateFrom, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) >= 0 &&
@@ -1580,6 +1581,7 @@ namespace DoorWebApp.Controllers
 
                     var studentpermissions = ctx.TblStudentPermission
                                                 .Where(x => x.UserId == UserId)
+                                                .Where(x => x.IsDelete == false)
                                                 .Where(p =>
                                                     (
                                                         (string.Compare(p.TimeFrom, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0 &&
