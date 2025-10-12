@@ -90,7 +90,7 @@ public class ScheduledJob : IJob
                                                              userAddr = (ushort)g.UserId,
                                                              isGrant = true,
                                                              doorList = g.PermissionGroups.Select(pg => pg.Id).ToList(),
-                                                             beginTime = nowDate.Replace("/", "-").ToString() + "T" + g.TimeFrom + ":00",
+                                                             beginTime = nowDate.Replace("/", "-").ToString() + "T" + TimeSpan.Parse(g.TimeFrom).Add(TimeSpan.FromMinutes(-10)).ToString(@"hh\:mm") + ":00",
                                                              endTime = nowDate.Replace("/", "-").ToString() + "T" + g.TimeTo + ":00"
                                                         })
                                                         .ToList();
