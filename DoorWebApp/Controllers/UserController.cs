@@ -1527,7 +1527,7 @@ namespace DoorWebApp.Controllers
                 var QRCodeData = ctx.TbQRCodeStorages.FromSqlRaw(@"SELECT q.* 
                                                             FROM tblqrcodestorage q
                                                             LEFT JOIN tblqrcodestoragetbluser qu ON qu.QRCodesId = q.Id 
-                                                            WHERE UsersId = @UsersId",
+                                                            WHERE UsersId = @UsersId AND q.ModifiedTime >= CONCAT(CURDATE(), ' 00:00:00') ",
                                                             new MySqlConnector.MySqlParameter("@UsersId", UserId))
                                                      .Select(x => new
                                                      {
