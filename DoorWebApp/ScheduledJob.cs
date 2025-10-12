@@ -37,7 +37,7 @@ public class ScheduledJob : IJob
             DateTime now = DateTime.Now;
             string nowDate = now.ToString("yyyy/MM/dd");
             string time = now.AddSeconds(15).ToString("HH:mm");
-            string Endtime = now.AddMinutes(20).AddSeconds(15).ToString("HH:mm"); //每9分鐘45秒跑一次
+            string Endtime = now.AddMinutes(10).AddSeconds(15).ToString("HH:mm"); //每9分鐘45秒跑一次
             //09:09:45 跑的排程
             //提早10分鐘跑 9:20  的 09:09:45 要跑  
             //開始時間在09:10:00～09:30:00 之間都會被撈到
