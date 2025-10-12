@@ -751,6 +751,15 @@ const calendarOptions: CalendarOptions = reactive({
     center: 'title',
     end: 'resourceTimeGridDay,resourceTimeGridWeek'
   },
+  titleFormat: (date) => {
+    const year = date.date.year;
+    const month = String(date.date.month + 1).padStart(2, '0'); // month 是 0-based，要加 1
+    const day = String(date.date.day).padStart(2, '0');
+    const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+    // 直接用 marker 建立 Date 物件來取得正確的星期
+    const weekday = weekdays[new Date(date.date.marker).getDay()];
+    return `${year}/${month}/${day} ${weekday}`;
+  },
   initialView: 'resourceTimeGridDay',
   resources: (_fetchInfo, successCallback) => {
     successCallback(resources.value);
