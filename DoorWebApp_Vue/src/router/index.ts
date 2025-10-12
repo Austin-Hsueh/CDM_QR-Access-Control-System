@@ -199,6 +199,10 @@ router.beforeEach(async (to, from) => {
   if (to.path === '/temporaryqrcode' && userInfoStore.userId != 51) {
     return '/Login'
   }
+
+  if (to.path === '/courseScheduling' && userInfoStore.userId != 51) {
+    return '/Login'
+  }
   
   let IsGrant = true;
   switch (to.path) {
