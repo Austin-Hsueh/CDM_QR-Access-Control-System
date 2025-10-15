@@ -237,6 +237,12 @@ namespace DoorWebApp.Controllers
                     log.LogInformation($"[{Request.Path}] Generated {scheduleCount} schedule records");
                 }
 
+                // 3.2 為老師設定門禁權限 (如果有指定老師且為上課類型)
+                if (PermissionDTO.teacherId > 0 && PermissionDTO.type == 1)
+                {
+                    await CreateOrUpdateTeacherPermissionAsync(PermissionDTO, OperatorUsername);
+                }
+
                 // 4. 寫入稽核紀錄
                 auditLog.WriteAuditLog(AuditActType.Modify, $"Add Student Permission:{string.Join(",", PermissionDTO.groupIds)}, ClassroomId:{PermissionDTO.classroomId}, EffectRow:{EffectRow}", OperatorUsername);
 
@@ -560,6 +566,95 @@ namespace DoorWebApp.Controllers
                 CreatedTime = DateTime.Now,
                 ModifiedTime = DateTime.Now
             };
+        }
+
+        /// <summary>
+        /// 為老師建立或更新門禁權限
+        /// </summary>
+        private async Task CreateOrUpdateTeacherPermissionAsync(UserPermissionDTO permissionDTO, string operatorUsername)
+        {
+            try
+            {
+                // 1. 檢查老師是否存在
+                var teacher = await ctx.TblUsers
+                    .Include(x => x.StudentPermissions)
+                    .ThenInclude(x => x.PermissionGroups)
+                    .Where(x => x.Id == permissionDTO.teacherId && x.IsDelete == false)
+                    .FirstOrDefaultAsync();
+
+                if (teacher == null)
+                {
+                    log.LogWarning($"Teacher (Id:{permissionDTO.teacherId}) not found");
+                    return;
+                }
+
+                // 2. 檢查是否已有相同時段的門禁權限（避免重複建立）
+                var existingPermission = teacher.StudentPermissions
+                    .Where(x => x.IsDelete == false)
+                    .Where(x => x.Type == permissionDTO.type)
+                    .Where(x => x.CourseId == (permissionDTO.courseId > 0 ? permissionDTO.courseId : 0))
+                    .Where(x => x.DateFrom == permissionDTO.datefrom.Replace("-", "/"))
+                    .Where(x => x.DateTo == permissionDTO.dateto.Replace("-", "/"))
+                    .Where(x => x.TimeFrom == permissionDTO.timefrom)
+                    .Where(x => x.TimeTo == permissionDTO.timeto)
+                    .Where(x => x.Days == string.Join(",", permissionDTO.days))
+                    .FirstOrDefault();
+
+                if (existingPermission != null)
+                {
+                    // 3. 如果已存在，更新門禁群組（確保包含新的教室門禁）
+                    var permissionGroups = ctx.TblPermissionGroup.Where(x => permissionDTO.groupIds.Contains(x.Id)).ToList();
+
+                    // 合併現有的和新的門禁群組（避免重複）
+                    foreach (var group in permissionGroups)
+                    {
+                        if (!existingPermission.PermissionGroups.Any(pg => pg.Id == group.Id))
+                        {
+                            existingPermission.PermissionGroups.Add(group);
+                        }
+                    }
+
+                    await ctx.SaveChangesAsync();
+                    log.LogInformation($"Updated teacher permission for TeacherId:{permissionDTO.teacherId}, PermissionId:{existingPermission.Id}");
+                }
+                else
+                {
+                    // 4. 如果不存在，建立新的門禁權限
+                    TblStudentPermission teacherPermission = new TblStudentPermission();
+                    teacherPermission.CourseId = permissionDTO.courseId > 0 ? permissionDTO.courseId : 0;
+                    teacherPermission.TeacherId = 0; // 老師自己的權限不需要 TeacherId
+                    teacherPermission.Type = permissionDTO.type;
+                    teacherPermission.DateFrom = permissionDTO.datefrom.Replace("-", "/");
+                    teacherPermission.DateTo = permissionDTO.dateto.Replace("-", "/");
+                    teacherPermission.TimeFrom = permissionDTO.timefrom;
+                    teacherPermission.TimeTo = permissionDTO.timeto;
+                    teacherPermission.Days = string.Join(",", permissionDTO.days);
+                    teacherPermission.PermissionLevel = 1;
+                    teacherPermission.IsEnable = true;
+                    teacherPermission.IsDelete = false;
+
+                    var permissionGroups = ctx.TblPermissionGroup.Where(x => permissionDTO.groupIds.Contains(x.Id)).ToList();
+                    teacherPermission.PermissionGroups = permissionGroups;
+
+                    teacher.StudentPermissions.Add(teacherPermission);
+                    await ctx.SaveChangesAsync();
+
+                    log.LogInformation($"Created teacher permission for TeacherId:{permissionDTO.teacherId}, PermissionId:{teacherPermission.Id}");
+
+                    // 5. 為老師也產生課表（如果有教室）
+                    if (permissionDTO.classroomId.HasValue && permissionDTO.classroomId.Value > 0)
+                    {
+                        var scheduleCount = await GenerateSchedulesAsync(teacherPermission.Id, permissionDTO, permissionDTO.classroomId.Value);
+                        log.LogInformation($"Generated {scheduleCount} schedule records for teacher");
+                    }
+                }
+
+                auditLog.WriteAuditLog(AuditActType.Modify, $"Create/Update teacher permission for TeacherId:{permissionDTO.teacherId}", operatorUsername);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, $"Error creating/updating teacher permission for TeacherId:{permissionDTO.teacherId}");
+            }
         }
 
     }

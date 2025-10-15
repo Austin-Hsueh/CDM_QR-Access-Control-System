@@ -612,6 +612,12 @@ namespace DoorWebApp.Controllers
                         studentPermission.IsDelete = true;
                         await ctx.SaveChangesAsync();
                         log.LogInformation($"Updated StudentPermission isDelete: id={scheduleEntity.StudentPermissionId}");
+
+                        // 刪除老師的相關門禁權限
+                        if (studentPermission.TeacherId > 0)
+                        {
+                            await DeleteTeacherPermissionAsync(studentPermission, operatorUsername);
+                        }
                     }
 
                     res.result = APIResultCode.success;
@@ -1044,6 +1050,79 @@ namespace DoorWebApp.Controllers
             catch (Exception ex)
             {
                 log.LogError(ex, $"Error updating StudentPermission time range for StudentPermissionId: {studentPermissionId}");
+            }
+        }
+
+        /// <summary>
+        /// 刪除老師的相關門禁權限和課表
+        /// </summary>
+        private async Task DeleteTeacherPermissionAsync(TblStudentPermission studentPermission, string operatorUsername)
+        {
+            try
+            {
+                // 1. 查詢老師的所有門禁權限
+                var teacherPermissions = await ctx.TblStudentPermission
+                    .Include(x => x.Schedules)
+                    .Where(x => x.UserId == studentPermission.TeacherId)
+                    .Where(x => x.IsDelete == false)
+                    .Where(x => x.Type == studentPermission.Type)
+                    .Where(x => x.CourseId == studentPermission.CourseId)
+                    .Where(x => x.DateFrom == studentPermission.DateFrom)
+                    .Where(x => x.DateTo == studentPermission.DateTo)
+                    .Where(x => x.TimeFrom == studentPermission.TimeFrom)
+                    .Where(x => x.TimeTo == studentPermission.TimeTo)
+                    .Where(x => x.Days == studentPermission.Days)
+                    .ToListAsync();
+
+                if (!teacherPermissions.Any())
+                {
+                    log.LogInformation($"No matching teacher permissions found for TeacherId:{studentPermission.TeacherId}");
+                    return;
+                }
+
+                // 2. 檢查是否還有其他學生使用相同時段的課程（同一老師、同一課程、同一時段）
+                var otherStudentsWithSameSchedule = await ctx.TblStudentPermission
+                    .Where(x => x.TeacherId == studentPermission.TeacherId)
+                    .Where(x => x.IsDelete == false)
+                    .Where(x => x.Id != studentPermission.Id) // 排除當前被刪除的學生
+                    .Where(x => x.Type == studentPermission.Type)
+                    .Where(x => x.CourseId == studentPermission.CourseId)
+                    .Where(x => x.DateFrom == studentPermission.DateFrom)
+                    .Where(x => x.DateTo == studentPermission.DateTo)
+                    .Where(x => x.TimeFrom == studentPermission.TimeFrom)
+                    .Where(x => x.TimeTo == studentPermission.TimeTo)
+                    .Where(x => x.Days == studentPermission.Days)
+                    .AnyAsync();
+
+                // 3. 如果還有其他學生，不刪除老師的門禁
+                if (otherStudentsWithSameSchedule)
+                {
+                    log.LogInformation($"Other students still have the same schedule, keeping teacher permission for TeacherId:{studentPermission.TeacherId}");
+                    return;
+                }
+
+                // 4. 如果沒有其他學生了，刪除老師的門禁權限和課表
+                foreach (var teacherPermission in teacherPermissions)
+                {
+                    // 刪除老師的課表
+                    foreach (var schedule in teacherPermission.Schedules.Where(s => !s.IsDelete))
+                    {
+                        schedule.IsDelete = true;
+                        schedule.ModifiedTime = DateTime.Now;
+                    }
+
+                    // 刪除老師的門禁權限
+                    teacherPermission.IsDelete = true;
+
+                    log.LogInformation($"Deleted teacher permission and schedules for TeacherId:{studentPermission.TeacherId}, PermissionId:{teacherPermission.Id}");
+                }
+
+                await ctx.SaveChangesAsync();
+                auditLog.WriteAuditLog(AuditActType.Modify, $"Delete teacher permission for TeacherId:{studentPermission.TeacherId}", operatorUsername);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, $"Error deleting teacher permission for TeacherId:{studentPermission.TeacherId}");
             }
         }
 
