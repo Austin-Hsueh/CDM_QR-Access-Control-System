@@ -133,7 +133,7 @@ namespace DoorWebApp.Controllers
                     StudentName = x.StudentPermission?.User?.DisplayName,
                     CourseName = x.StudentPermission?.Course?.Name,
                     TeacherName = x.StudentPermission?.Teacher?.DisplayName,
-                    Type = x.StudentPermission?.Type ?? 1
+                    Type = (int)(x.StudentPermission?.Type)
                 }).ToList();
 
                 // 4. 回傳結果
