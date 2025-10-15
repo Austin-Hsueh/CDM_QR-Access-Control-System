@@ -251,13 +251,15 @@ namespace DoorDB
             modelBuilder.Entity<TblUser>()
                .HasMany(p => p.TeacherStudentPermissions)
                .WithOne(pg => pg.Teacher)
-               .HasForeignKey(p => p.TeacherId);
+               .HasForeignKey(p => p.TeacherId)
+               .IsRequired(false);
 
             // 設置TblCourse 與 TblStudentPermissions 一對多關係
             modelBuilder.Entity<TblCourse>()
                .HasMany(p => p.CourseStudentPermissions)
                .WithOne(pg => pg.Course)
-               .HasForeignKey(p => p.CourseId);
+               .HasForeignKey(p => p.CourseId)
+               .IsRequired(false);
 
             // 設置 TblStudentPermission 與 TblAttendance (StudentPermissionId) 一對多關聯
             modelBuilder.Entity<TblStudentPermission>()

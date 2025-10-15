@@ -79,8 +79,11 @@ namespace DoorWebApp.Controllers
                 // 關鍵字搜尋 (課程名稱或教室名稱)
                 if (!string.IsNullOrEmpty(queryDTO.SearchText))
                 {
-                    query = query.Where(x => x.StudentPermission.Course.Name.Contains(queryDTO.SearchText) ||
-                                           x.Classroom.Name.Contains(queryDTO.SearchText));
+                    var keyword = queryDTO.SearchText;
+                    query = query.Where(x =>
+                        (x.StudentPermission.Course != null && x.StudentPermission.Course.Name.Contains(keyword)) ||
+                        (x.Classroom != null && x.Classroom.Name.Contains(keyword))
+                    );
                 }
 
                 // 排序

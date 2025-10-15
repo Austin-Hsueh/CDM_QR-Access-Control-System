@@ -33,13 +33,13 @@ namespace DoorDB
         /// 權限項目所屬課程([tblCourse].[Id])
         /// </summary>
         [Comment("權限項目所屬使用者([tblCourse].[Id])")]
-        public int CourseId { get; set; }
+        public int? CourseId { get; set; }
 
         /// <summary>
         /// 權限項目所屬老師([tblUser].[Id])
         /// </summary>
         [Comment("權限項目所屬老師([tblUser].[Id])")]
-        public int TeacherId { get; set; }
+        public int? TeacherId { get; set; }
 
 
         /// <summary>
@@ -103,10 +103,10 @@ namespace DoorDB
         public List<TblPermissionGroup> PermissionGroups { set; get; }
         public TblUser User { set; get; }
 
-        public TblUser Teacher { set; get; }
+        public TblUser? Teacher { set; get; }
 
 
-        public TblCourse Course { set; get; }
+        public TblCourse? Course { set; get; }
 
         public virtual List<TblAttendance> Attendances { set; get; }
         public virtual List<TblPayment> Payments { set; get; }
