@@ -132,7 +132,8 @@ namespace DoorWebApp.Controllers
                     Remark = x.Remark,
                     StudentName = x.StudentPermission?.User?.DisplayName,
                     CourseName = x.StudentPermission?.Course?.Name,
-                    TeacherName = x.StudentPermission?.Teacher?.DisplayName
+                    TeacherName = x.StudentPermission?.Teacher?.DisplayName,
+                    Type = x.StudentPermission?.Type ?? 1
                 }).ToList();
 
                 // 4. 回傳結果
@@ -278,7 +279,8 @@ namespace DoorWebApp.Controllers
                     Remark = x.Remark,
                     // 新增學生相關資訊
                     StudentName = x.StudentPermission.User.DisplayName,
-                    CourseName = x.StudentPermission.Course?.Name ?? "未指定課程"
+                    CourseName = x.StudentPermission.Course?.Name ?? "未指定課程",
+                    Type = x.StudentPermission?.Type ?? 1
                 }).ToList();
 
                 // 4. 回傳結果
@@ -366,7 +368,8 @@ namespace DoorWebApp.Controllers
                     StatusName = GetStatusName(x.Status),
                     Remark = x.Remark,
                     StudentName = x.StudentPermission.User.DisplayName,
-                    CourseName = x.StudentPermission.Course?.Name ?? "未指定課程"
+                    CourseName = x.StudentPermission.Course?.Name ?? "未指定課程",
+                    Type = x.StudentPermission?.Type ?? 1
                 }).ToList();
 
                 // 3. 回傳結果
@@ -431,7 +434,8 @@ namespace DoorWebApp.Controllers
                     QRCodeContent = schedule.QRCodeContent,
                     Status = schedule.Status,
                     StatusName = GetStatusName(schedule.Status),
-                    Remark = schedule.Remark
+                    Remark = schedule.Remark,
+                    Type = schedule.StudentPermission?.Type ?? 1
                 };
 
                 res.result = APIResultCode.success;

@@ -216,6 +216,11 @@ namespace DoorWebApp.Models.DTO
         public string? TeacherName { get; set; }
 
         /// <summary>
+        /// 用途類型 1=上課 2=租借教室
+        /// </summary>
+        public int Type { get; set; }
+
+        /// <summary>
         /// 出席記錄
         /// </summary>
         public List<ResScheduleAttendanceDTO> Attendances { get; set; } = new List<ResScheduleAttendanceDTO>();

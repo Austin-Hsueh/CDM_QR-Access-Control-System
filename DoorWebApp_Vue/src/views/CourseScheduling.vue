@@ -536,7 +536,8 @@ const handleDatesSet = async (dateInfo: any) => {
             status: schedule.status,
             statusName: schedule.statusName,
             remark: schedule.remark,
-            teacherName: schedule.teacherName
+            teacherName: schedule.teacherName,
+            type: schedule.type
           }
         });
       });
@@ -660,6 +661,8 @@ const eventContent = (arg: any) => {
   const studentName = arg.event.extendedProps.studentName || '';
   const courseName = arg.event.extendedProps.courseName || '';
   const teacherName = arg.event.extendedProps.teacherName || '';
+  const type = arg.event.extendedProps.type || 1;
+  const scheduleMode = arg.event.extendedProps.scheduleMode || 1;
 
   // 建立容器（使用 flexbox 兩欄佈局）
   const container = document.createElement('div');
@@ -667,22 +670,16 @@ const eventContent = (arg: any) => {
   container.style.height = '100%';
   container.style.overflow = 'hidden';
 
-  // 取得事件的原始背景色
-  const eventBgColor = arg.backgroundColor || arg.event.backgroundColor || '#3788d8';
-
-  // 計算對比色（互補色）
-  const getComplementaryColor = (hex: string) => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-
-    // 計算互補色（255 - RGB 值）
-    const compR = (255 - r).toString(16).padStart(2, '0');
-    const compG = (255 - g).toString(16).padStart(2, '0');
-    const compB = (255 - b).toString(16).padStart(2, '0');
-
-    return `#${compR}${compG}${compB}`;
+  // 根據 type 和 scheduleMode 決定背景色
+  const getEventColor = (type: number, scheduleMode: number) => {
+    if (type === 1 && scheduleMode === 1) return '#b1c5af'; // 上課 & 每週固定
+    if (type === 1 && scheduleMode === 2) return '#d4bfe2'; // 上課 & 每兩週固定
+    if (type === 1 && scheduleMode === 3) return '#e8bbbb'; // 上課 & 單次課程
+    if (type === 2 && scheduleMode === 3) return '#ccb9aa'; // 租借教室 & 單次課程
+    return '#3788d8'; // 預設顏色
   };
+
+  const eventBgColor = getEventColor(type, scheduleMode);
 
   // 第一欄：學生名稱和課程名稱（使用原始色碼）
   const column1 = document.createElement('div');
@@ -722,12 +719,13 @@ const eventContent = (arg: any) => {
 
   container.appendChild(column1);
 
-  // 第二欄：課程名稱和老師名稱（使用對比色）
+  // 第二欄：課程名稱和老師名稱（使用 #2c3e50）
   const column2 = document.createElement('div');
   column2.style.fontWeight = 'bold';
   column2.style.flex = '1';
   column2.style.padding = '4px';
-  column2.style.backgroundColor = getComplementaryColor(eventBgColor);
+  column2.style.backgroundColor = '#2c3e50';
+  column2.style.color = '#ffffff';
   column2.style.display = 'flex';
   column2.style.alignItems = 'center';
   column2.style.justifyContent = 'center';
@@ -815,8 +813,8 @@ async function getClassRoomsOptions() {
     // 轉換為 FullCalendar resources 格式
     resources.value = response.data.content.map((room: M_IClassRoomOptions) => ({
       id: room.classroomId?.toString() || '',
-      title: room.classroomName || '',
-      eventColor: room.description || '#409eff'
+      title: room.classroomName || ''
+      // 移除 eventColor，讓事件使用自訂顏色而非教室顏色
     }));
 
     console.log('載入的教室資源:', resources.value);
