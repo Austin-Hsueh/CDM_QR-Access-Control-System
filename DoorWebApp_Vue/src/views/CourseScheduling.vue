@@ -359,9 +359,6 @@ const submitAddCourse = async () => {
         const response = await API.createCourseSchedule(courseData);
 
         if (response.data.result === 1) {
-          // 成功後重新載入課程
-          await loadTodayCourses();
-
           // 清除選擇並關閉 Dialog
           const calendarApi = addCourseFormData.selectInfo?.view.calendar;
           if (calendarApi) {
@@ -370,11 +367,24 @@ const submitAddCourse = async () => {
           isShowAddCourseDialog.value = false;
           addCourseFormRef.value?.resetFields();
 
+          // 重新載入當前視圖的課程（觸發 handleDatesSet）
+          const fullCalendarApi = fullCalendar.value?.getApi();
+          if (fullCalendarApi) {
+            const currentView = fullCalendarApi.view;
+            await handleDatesSet({
+              start: currentView.activeStart,
+              end: currentView.activeEnd,
+              startStr: currentView.activeStart.toISOString(),
+              endStr: currentView.activeEnd.toISOString(),
+              view: currentView
+            });
+          }
+
           // 顯示成功訊息
-          console.log('課程新增成功');
+          ElMessage.success('課程新增成功');
         } else {
           console.error('課程新增失敗:', response.data.msg);
-          alert(`課程新增失敗: ${response.data.msg}`);
+          ElMessage.error(`課程新增失敗: ${response.data.msg}`);
         }
       } catch (error) {
         console.error('提交課程時發生錯誤:', error);
@@ -789,9 +799,9 @@ const calendarOptions: CalendarOptions = reactive({
 //#region Hook functions
 onMounted(() => {
   getClassRoomsOptions();
-  // loadTodayCourses(); // 已改用 handleDatesSet 自動載入
   getUsersOptions();
   getCourseOptions();
+  // 課程會由 handleDatesSet 自動載入（當 calendar 初始化時觸發）
 });
 
 //#endregion
@@ -818,75 +828,6 @@ async function getClassRoomsOptions() {
     }
   } catch (error) {
     console.error('載入教室資料失敗:', error);
-  }
-}
-
-// 載入當日所有課程
-async function loadTodayCourses() {
-  try {
-    // 取得當前日期 (格式: "2025-10-08")
-    const today = new Date().toISOString().split('T')[0];
-
-    // 準備 API 請求參數
-    const cmd = {
-      page: 1,
-      searchPage: 20,
-      dateFrom: today,
-      dateTo: today,
-      status: 1
-    };
-
-    const response = await API.getCoursesByDate(cmd);
-
-    if (response.data.content?.pageItems && Array.isArray(response.data.content.pageItems)) {
-      const calendarApi = fullCalendar.value?.getApi();
-      if (!calendarApi) return;
-
-      // 清除現有事件（可選）
-      // calendarApi.removeAllEvents();
-
-      // 將每個課程加入 Calendar
-      response.data.content.pageItems.forEach((schedule: any) => {
-        // 組合日期和時間
-        const scheduleDate = schedule.scheduleDate.replace(/\//g, '-'); // "2025/10/08" -> "2025-10-08"
-        const startDateTime = `${scheduleDate}T${schedule.startTime}:00`;
-        const endDateTime = `${scheduleDate}T${schedule.endTime}:00`;
-
-        // 組合標題
-        const titleParts = [];
-        if (schedule.studentName) titleParts.push(`學生：${schedule.studentName}`);
-        if (schedule.courseName) titleParts.push(`課程：${schedule.courseName}`);
-        if (schedule.teacherName) titleParts.push(`老師：${schedule.teacherName}`);
-        const title = titleParts.length > 0 ? titleParts.join(' ') : '課程';
-
-        calendarApi.addEvent({
-          id: schedule.scheduleId?.toString(),
-          title: title,
-          start: startDateTime,
-          end: endDateTime,
-          resourceId: schedule.classroomId.toString(),
-          extendedProps: {
-            scheduleId: schedule.scheduleId,
-            studentPermissionId: schedule.studentPermissionId,
-            courseName: schedule.courseName,
-            studentName: schedule.studentName,
-            classroomName: schedule.classroomName,
-            courseMode: schedule.courseMode,
-            courseModeName: schedule.courseModeName,
-            scheduleMode: schedule.scheduleMode,
-            scheduleModeName: schedule.scheduleModeName,
-            status: schedule.status,
-            statusName: schedule.statusName,
-            remark: schedule.remark,
-            teacherName: schedule.teacherName
-          }
-        });
-      });
-
-      console.log('載入的課程數量:', response.data.content.pageItems.length);
-    }
-  } catch (error) {
-    console.error('載入課程資料失敗:', error);
   }
 }
 
