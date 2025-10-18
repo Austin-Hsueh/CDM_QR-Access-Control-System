@@ -1321,7 +1321,7 @@ namespace DoorWebApp.Controllers
                         isGrant = true,
                         doorList = x.Permission.PermissionGroups
                         .Select(y => y.Id).ToList(),
-                        beginTime = x.Permission.DateFrom.Replace("/", "-").ToString() + "T" + x.Permission.TimeFrom.ToString() + ":00",
+                        beginTime = x.Permission.DateFrom.Replace("/", "-").ToString() + "T" + TimeSpan.Parse(x.Permission.TimeFrom.ToString()).Add(TimeSpan.FromMinutes(-10)).ToString(@"hh\:mm") + ":00",
                         endTime = x.Permission.DateTo.Replace("/", "-").ToString() + "T" + x.Permission.TimeTo.ToString() + ":00"
                     })
                     .ToList();
@@ -1427,7 +1427,7 @@ namespace DoorWebApp.Controllers
                         isGrant = true,
                         doorList = x.Permission.PermissionGroups
                         .Select(y => y.Id).ToList(),
-                        beginTime = x.Permission.DateFrom.Replace("/", "-").ToString() + "T" + x.Permission.TimeFrom.ToString() + ":00",
+                        beginTime = x.Permission.DateFrom.Replace("/", "-").ToString() + "T" + TimeSpan.Parse(x.Permission.TimeFrom.ToString()).Add(TimeSpan.FromMinutes(-10)).ToString(@"hh\:mm") + ":00",
                         endTime = x.Permission.DateTo.Replace("/", "-").ToString() + "T" + x.Permission.TimeTo.ToString() + ":00"
                     })
                     .ToList();
