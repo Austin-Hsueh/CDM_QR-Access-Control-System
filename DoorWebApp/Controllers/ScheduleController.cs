@@ -543,6 +543,7 @@ namespace DoorWebApp.Controllers
 
         /// <summary>
         /// 更新課表
+        /// UpdateMode: 1=單次修改, 2=某日後全部修改, 3=全部修改
         /// </summary>
         /// <returns></returns>
         [Authorize]
@@ -556,7 +557,7 @@ namespace DoorWebApp.Controllers
                 int operatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
                 string operatorUsername = User.Identity?.Name ?? "N/A";
 
-                log.LogInformation($"[{Request.Path}] Update schedule. OperatorId:{operatorId}, ScheduleId:{scheduleDTO.ScheduleId}");
+                log.LogInformation($"[{Request.Path}] Update schedule. OperatorId:{operatorId}, ScheduleId:{scheduleDTO.ScheduleId}, UpdateMode:{scheduleDTO.UpdateMode}");
                 
                 // 1. 資料檢核
                 var scheduleEntity = await ctx.TblSchedule
@@ -571,72 +572,106 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
-                // 2. 處理刪除請求
+                // 2. 根據 UpdateMode 決定要操作的課表範圍
+                List<TblSchedule> schedulesToUpdate = new List<TblSchedule>();
+                
+                switch (scheduleDTO.UpdateMode)
+                {
+                    case 1: // 單次修改
+                        schedulesToUpdate.Add(scheduleEntity);
+                        log.LogInformation($"[{Request.Path}] Single schedule update mode");
+                        break;
+                        
+                    case 2: // 某日後全部修改
+                        if (string.IsNullOrEmpty(scheduleDTO.FromDate))
+                        {
+                            res.result = APIResultCode.parameter_error;
+                            res.msg = "某日後全部修改模式需要提供起始日期 (FromDate)";
+                            return Ok(res);
+                        }
+                        
+                        var fromDate = scheduleDTO.FromDate.Replace("-", "/");
+                        schedulesToUpdate = await ctx.TblSchedule
+                            .Where(x => x.StudentPermissionId == scheduleEntity.StudentPermissionId &&
+                                       x.IsDelete == false &&
+                                       string.Compare(x.ScheduleDate, fromDate) >= 0)
+                            .ToListAsync();
+                            
+                        log.LogInformation($"[{Request.Path}] Update from date mode. FromDate:{fromDate}, Count:{schedulesToUpdate.Count}");
+                        break;
+                        
+                    case 3: // 全部修改
+                        schedulesToUpdate = await ctx.TblSchedule
+                            .Where(x => x.StudentPermissionId == scheduleEntity.StudentPermissionId &&
+                                       x.IsDelete == false)
+                            .ToListAsync();
+                            
+                        log.LogInformation($"[{Request.Path}] Update all schedules mode. Count:{schedulesToUpdate.Count}");
+                        break;
+                        
+                    default:
+                        res.result = APIResultCode.parameter_error;
+                        res.msg = "UpdateMode 參數錯誤 (1=單次修改, 2=某日後全部修改, 3=全部修改)";
+                        return Ok(res);
+                }
+
+                // 3. 處理刪除請求
                 if (scheduleDTO.IsDelete)
                 {
-                    // 2.1 判斷是否為週期性課程
-                    bool isPeriodicScheduleForDelete = (scheduleEntity.ScheduleMode == 1 || scheduleEntity.ScheduleMode == 2);
-
-                    if (isPeriodicScheduleForDelete)
+                    foreach (var schedule in schedulesToUpdate)
                     {
-                        // 刪除所有相關的週期性課程
-                        var schedulesToDelete = await ctx.TblSchedule
-                            .Where(x => x.StudentPermissionId == scheduleEntity.StudentPermissionId &&
-                                        x.IsDelete == false)
-                            .ToListAsync();
-
-                        log.LogInformation($"[{Request.Path}] Deleting {schedulesToDelete.Count} related schedules for StudentPermissionId: {scheduleEntity.StudentPermissionId}");
-
-                        foreach (var schedule in schedulesToDelete)
-                        {
-                            schedule.IsDelete = true;
-                            schedule.ModifiedTime = DateTime.Now;
-                        }
-
-                        int effectRowDelete = await ctx.SaveChangesAsync();
-                        log.LogInformation($"[{Request.Path}] Delete periodic schedules success. (EffectRow:{effectRowDelete})");
-
-                        auditLog.WriteAuditLog(AuditActType.Modify, $"刪除週期性課表. StudentPermissionId: {scheduleEntity.StudentPermissionId}, 共 {schedulesToDelete.Count} 筆", operatorUsername);
-                    }
-                    else
-                    {
-                        // 單次課程只刪除自己
-                        scheduleEntity.IsDelete = true;
-                        scheduleEntity.ModifiedTime = DateTime.Now;
-
-                        int effectRowDelete = await ctx.SaveChangesAsync();
-                        log.LogInformation($"[{Request.Path}] Delete single schedule success. (EffectRow:{effectRowDelete})");
-
-                        auditLog.WriteAuditLog(AuditActType.Modify, $"刪除課表. id: {scheduleEntity.Id}", operatorUsername);
+                        schedule.IsDelete = true;
+                        schedule.ModifiedTime = DateTime.Now;
                     }
 
+                    int effectRowDelete = await ctx.SaveChangesAsync();
+                    log.LogInformation($"[{Request.Path}] Delete schedules success. Mode:{scheduleDTO.UpdateMode}, Count:{schedulesToUpdate.Count}, EffectRow:{effectRowDelete}");
+
+                    // 更新門禁權限時間範圍
                     await UpdateStudentPermissionTimeRangeAsync(scheduleEntity.StudentPermissionId, log);
-                    var studentPermission = await ctx.TblStudentPermission
-                       .Where(x => x.Id == scheduleEntity.StudentPermissionId)
-                       .FirstOrDefaultAsync();
-                    if (studentPermission != null)
+                    
+                    // 檢查是否需要刪除門禁權限
+                    var remainingSchedules = await ctx.TblSchedule
+                        .Where(x => x.StudentPermissionId == scheduleEntity.StudentPermissionId && x.IsDelete == false)
+                        .AnyAsync();
+                    
+                    if (!remainingSchedules)
                     {
-                        studentPermission.IsDelete = true;
-                        await ctx.SaveChangesAsync();
-                        log.LogInformation($"Updated StudentPermission isDelete: id={scheduleEntity.StudentPermissionId}");
-
-                        // 刪除老師的相關門禁權限
-                        if (studentPermission.TeacherId > 0)
+                        var studentPermission = await ctx.TblStudentPermission
+                           .Where(x => x.Id == scheduleEntity.StudentPermissionId)
+                           .FirstOrDefaultAsync();
+                        if (studentPermission != null)
                         {
-                            await DeleteTeacherPermissionAsync(studentPermission, operatorUsername);
+                            studentPermission.IsDelete = true;
+                            await ctx.SaveChangesAsync();
+                            log.LogInformation($"Updated StudentPermission isDelete: id={scheduleEntity.StudentPermissionId}");
+
+                            // 刪除老師的相關門禁權限
+                            if (studentPermission.TeacherId > 0)
+                            {
+                                await DeleteTeacherPermissionAsync(studentPermission, operatorUsername);
+                            }
                         }
                     }
+
+                    var modeText = scheduleDTO.UpdateMode switch
+                    {
+                        1 => "單次課表",
+                        2 => "某日後全部課表",
+                        3 => "全部課表",
+                        _ => "課表"
+                    };
+
+                    auditLog.WriteAuditLog(AuditActType.Modify, $"刪除{modeText}. StudentPermissionId: {scheduleEntity.StudentPermissionId}, 共 {schedulesToUpdate.Count} 筆", operatorUsername);
 
                     res.result = APIResultCode.success;
                     res.msg = "success";
-
                     return Ok(res);
                 }
 
-                // 3. 驗證必填欄位
+                // 4. 驗證教室是否存在（如果有提供）
                 if (scheduleDTO.ClassroomId > 0)
                 {
-                    // 驗證教室是否存在
                     var classroom = await ctx.TblClassroom
                         .Where(x => x.Id == scheduleDTO.ClassroomId && x.IsDelete == false && x.IsEnable == true)
                         .FirstOrDefaultAsync();
@@ -648,163 +683,79 @@ namespace DoorWebApp.Controllers
                         res.msg = "查無教室或教室已停用";
                         return Ok(res);
                     }
-                    
-                    scheduleEntity.ClassroomId = scheduleDTO.ClassroomId;
                 }
 
-                // 3.1 保存原始時間和日期（用於計算週期性課程的時間差）
-                string originalStartTime = scheduleEntity.StartTime;
-                string originalEndTime = scheduleEntity.EndTime;
-                string originalScheduleDate = scheduleEntity.ScheduleDate;
-
-                // 3.2 判斷是否需要更新週期性課程
-                bool isPeriodicScheduleForUpdate = (scheduleEntity.ScheduleMode == 1 || scheduleEntity.ScheduleMode == 2);
-                bool shouldUpdateRelated = isPeriodicScheduleForUpdate &&
-                    (!string.IsNullOrEmpty(scheduleDTO.StartTime) ||
-                     !string.IsNullOrEmpty(scheduleDTO.EndTime) ||
-                     scheduleDTO.ClassroomId > 0 ||
-                     scheduleDTO.CourseMode > 0 ||
-                     scheduleDTO.Status > 0);
-
-                // 3.3 如果需要更新週期課程，先查詢所有相關課表（在修改當前課表之前）
-                List<TblSchedule> relatedSchedules = new List<TblSchedule>();
-                if (shouldUpdateRelated)
+                // 5. 更新課表資訊
+                foreach (var schedule in schedulesToUpdate)
                 {
-                    relatedSchedules = await ctx.TblSchedule
-                        .Where(x => x.StudentPermissionId == scheduleEntity.StudentPermissionId &&
-                                    x.IsDelete == false &&
-                                    x.Id != scheduleEntity.Id)
-                        .ToListAsync();
+                    // 更新教室（如果有提供）
+                    if (scheduleDTO.ClassroomId > 0)
+                        schedule.ClassroomId = scheduleDTO.ClassroomId;
 
-                    log.LogInformation($"[{Request.Path}] Found {relatedSchedules.Count} related schedules for StudentPermissionId: {scheduleEntity.StudentPermissionId}");
-                }
+                    // 更新日期（只有在單次修改模式下才允許修改日期）
+                    if (scheduleDTO.UpdateMode == 1 && !string.IsNullOrEmpty(scheduleDTO.ScheduleDate))
+                        schedule.ScheduleDate = scheduleDTO.ScheduleDate.Replace("-", "/");
 
-                // 3.4 更新當前課表
-                if (!string.IsNullOrEmpty(scheduleDTO.ScheduleDate))
-                    scheduleEntity.ScheduleDate = scheduleDTO.ScheduleDate.Replace("-", "/");
+                    // 更新時間
+                    if (!string.IsNullOrEmpty(scheduleDTO.StartTime))
+                        schedule.StartTime = scheduleDTO.StartTime;
 
-                if (!string.IsNullOrEmpty(scheduleDTO.StartTime))
-                    scheduleEntity.StartTime = scheduleDTO.StartTime;
+                    if (!string.IsNullOrEmpty(scheduleDTO.EndTime))
+                        schedule.EndTime = scheduleDTO.EndTime;
 
-                if (!string.IsNullOrEmpty(scheduleDTO.EndTime))
-                    scheduleEntity.EndTime = scheduleDTO.EndTime;
-
-                // 更新課程模式 (必填欄位)
-                if (scheduleDTO.CourseMode > 0)
-                {
-                    scheduleEntity.CourseMode = scheduleDTO.CourseMode;
-
-                    // 重新產生 QR Code
-                    if (scheduleDTO.CourseMode == 1) // 現場課程
+                    // 更新課程模式
+                    if (scheduleDTO.CourseMode > 0)
                     {
-                        scheduleEntity.QRCodeContent = GenerateQRCodeContent(scheduleEntity);
+                        schedule.CourseMode = scheduleDTO.CourseMode;
+
+                        // 重新產生 QR Code
+                        if (scheduleDTO.CourseMode == 1) // 現場課程
+                        {
+                            schedule.QRCodeContent = GenerateQRCodeContent(schedule);
+                        }
+                        else
+                        {
+                            schedule.QRCodeContent = null;
+                        }
                     }
                     else
                     {
-                        scheduleEntity.QRCodeContent = null;
-                    }
-                }
-                else
-                {
-                    // 如果沒有提供 CourseMode，保持原有的 QR Code 邏輯
-                    if (scheduleEntity.CourseMode == 1)
-                    {
-                        scheduleEntity.QRCodeContent = GenerateQRCodeContent(scheduleEntity);
-                    }
-                }
-
-                if (scheduleDTO.Status > 0)
-                    scheduleEntity.Status = scheduleDTO.Status;
-
-                scheduleEntity.Remark = scheduleDTO.Remark;
-                scheduleEntity.ModifiedTime = DateTime.Now;
-
-                // 4. 如果是週期性課程，更新所有相關課表
-                if (shouldUpdateRelated && relatedSchedules.Count > 0)
-                {
-                    // 計算時間差異
-                    TimeSpan? startTimeDiff = null;
-                    TimeSpan? endTimeDiff = null;
-
-                    if (!string.IsNullOrEmpty(scheduleDTO.StartTime))
-                    {
-                        var originalStart = TimeSpan.Parse(originalStartTime);
-                        var newStart = TimeSpan.Parse(scheduleDTO.StartTime);
-                        startTimeDiff = newStart - originalStart;
-                        log.LogInformation($"[{Request.Path}] Start time difference: {startTimeDiff.Value.TotalMinutes} minutes (Original: {originalStartTime}, New: {scheduleDTO.StartTime})");
-                    }
-
-                    if (!string.IsNullOrEmpty(scheduleDTO.EndTime))
-                    {
-                        var originalEnd = TimeSpan.Parse(originalEndTime);
-                        var newEnd = TimeSpan.Parse(scheduleDTO.EndTime);
-                        endTimeDiff = newEnd - originalEnd;
-                        log.LogInformation($"[{Request.Path}] End time difference: {endTimeDiff.Value.TotalMinutes} minutes (Original: {originalEndTime}, New: {scheduleDTO.EndTime})");
-                    }
-
-                    foreach (var schedule in relatedSchedules)
-                    {
-                        // 更新教室（如果有提供）
-                        if (scheduleDTO.ClassroomId > 0)
+                        // 如果沒有提供 CourseMode，保持原有的 QR Code 邏輯
+                        if (schedule.CourseMode == 1)
                         {
-                            schedule.ClassroomId = scheduleDTO.ClassroomId;
+                            schedule.QRCodeContent = GenerateQRCodeContent(schedule);
                         }
-
-                        // 更新開始時間（如果有提供）
-                        if (startTimeDiff.HasValue)
-                        {
-                            var scheduleStart = TimeSpan.Parse(schedule.StartTime);
-                            var newScheduleStart = scheduleStart + startTimeDiff.Value;
-                            schedule.StartTime = newScheduleStart.ToString(@"hh\:mm");
-                            log.LogInformation($"[{Request.Path}] Schedule {schedule.Id} StartTime: {scheduleStart} -> {schedule.StartTime}");
-                        }
-
-                        // 更新結束時間（如果有提供）
-                        if (endTimeDiff.HasValue)
-                        {
-                            var scheduleEnd = TimeSpan.Parse(schedule.EndTime);
-                            var newScheduleEnd = scheduleEnd + endTimeDiff.Value;
-                            schedule.EndTime = newScheduleEnd.ToString(@"hh\:mm");
-                            log.LogInformation($"[{Request.Path}] Schedule {schedule.Id} EndTime: {scheduleEnd} -> {schedule.EndTime}");
-                        }
-
-                        // 更新課程模式（如果有提供）
-                        if (scheduleDTO.CourseMode > 0)
-                        {
-                            schedule.CourseMode = scheduleDTO.CourseMode;
-
-                            // 重新產生 QR Code
-                            if (scheduleDTO.CourseMode == 1) // 現場課程
-                            {
-                                schedule.QRCodeContent = GenerateQRCodeContent(schedule);
-                            }
-                            else
-                            {
-                                schedule.QRCodeContent = null;
-                            }
-                        }
-
-                        // 更新狀態和備註（如果有提供）
-                        if (scheduleDTO.Status > 0)
-                            schedule.Status = scheduleDTO.Status;
-
-                        if (!string.IsNullOrEmpty(scheduleDTO.Remark))
-                            schedule.Remark = scheduleDTO.Remark;
-
-                        schedule.ModifiedTime = DateTime.Now;
                     }
+
+                    // 更新狀態
+                    if (scheduleDTO.Status > 0)
+                        schedule.Status = scheduleDTO.Status;
+
+                    // 更新備註
+                    if (!string.IsNullOrEmpty(scheduleDTO.Remark))
+                        schedule.Remark = scheduleDTO.Remark;
+
+                    schedule.ModifiedTime = DateTime.Now;
                 }
 
-                // 5. 存檔
+                // 6. 存檔
                 int effectRow = await ctx.SaveChangesAsync();
-                log.LogInformation($"[{Request.Path}] Update success. (EffectRow:{effectRow})");
+                log.LogInformation($"[{Request.Path}] Update success. Mode:{scheduleDTO.UpdateMode}, Count:{schedulesToUpdate.Count}, EffectRow:{effectRow}");
 
-                // 6. 同步更新門禁權限時間範圍
+                // 7. 同步更新門禁權限時間範圍
                 await UpdateStudentPermissionTimeRangeAsync(scheduleEntity.StudentPermissionId, log);
                 log.LogInformation($"[{Request.Path}] Updated StudentPermission time range for StudentPermissionId: {scheduleEntity.StudentPermissionId}");
 
-                // 7. 寫入稽核紀錄
-                auditLog.WriteAuditLog(AuditActType.Modify, $"更新課表資訊. id: {scheduleEntity.Id}", operatorUsername);
+                // 8. 寫入稽核紀錄
+                var updateModeText = scheduleDTO.UpdateMode switch
+                {
+                    1 => "單次課表",
+                    2 => "某日後全部課表",
+                    3 => "全部課表",
+                    _ => "課表"
+                };
+
+                auditLog.WriteAuditLog(AuditActType.Modify, $"更新{updateModeText}資訊. StudentPermissionId: {scheduleEntity.StudentPermissionId}, 共 {schedulesToUpdate.Count} 筆", operatorUsername);
 
                 res.result = APIResultCode.success;
                 res.msg = "success";

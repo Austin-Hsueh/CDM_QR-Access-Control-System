@@ -118,6 +118,16 @@ namespace DoorWebApp.Models.DTO
         /// 是否刪除
         /// </summary>
         public bool IsDelete { get; set; } = false;
+
+        /// <summary>
+        /// 更新模式 1=單次課表 2=某日後全部課表 3=全部課表
+        /// </summary>
+        public int UpdateMode { get; set; }
+
+        /// <summary>
+        ///     
+        /// </summary>
+        public string? FromDate { get; set; }
     }
 
     /// <summary>
