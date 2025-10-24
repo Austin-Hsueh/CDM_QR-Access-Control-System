@@ -1189,6 +1189,7 @@ namespace DoorWebApp.Controllers
                         TimeTo = maxEndTime.ToString(@"hh\:mm"),
                         Days = string.Join(",", daysOfWeek),
                         PermissionLevel = originalPermission.PermissionLevel,
+                        RecordId = originalPermission.Id,
                         IsEnable = true,
                         IsDelete = false,
                     };
@@ -1293,6 +1294,7 @@ namespace DoorWebApp.Controllers
                     TimeTo = studentPermission.TimeTo,
                     Days = studentPermission.Days,
                     PermissionLevel = 1,
+                    RecordId = studentPermission.RecordId,
                     IsEnable = true,
                     IsDelete = false,
                 };
