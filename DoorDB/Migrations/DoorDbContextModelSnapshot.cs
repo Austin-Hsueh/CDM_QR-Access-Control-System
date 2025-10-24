@@ -582,7 +582,11 @@ namespace DoorWebDB.Migrations
                     b.Property<int>("PermissionLevel")
                         .HasColumnType("int");
 
-                    b.Property<int>("TeacherId")
+                    b.Property<int>("RecordId")
+                        .HasColumnType("int")
+                        .HasComment("紀錄Id");
+
+                    b.Property<int?>("TeacherId")
                         .HasColumnType("int")
                         .HasComment("權限項目所屬老師([tblUser].[Id])");
 

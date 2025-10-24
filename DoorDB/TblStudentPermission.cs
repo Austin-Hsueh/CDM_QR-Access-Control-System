@@ -24,6 +24,14 @@ namespace DoorDB
         public int Id { get; set; }
 
         /// <summary>
+        /// 紀錄Id 當修改課表, 
+        /// 有新的TblStudentPermission產生時
+        /// 會更新此欄位為原本的TblStudentPermission.Id
+        /// </summary>
+        [Comment("紀錄Id")]
+        public int RecordId { get; set; } = 0;
+
+        /// <summary>
         /// 權限項目所屬使用者([tblUser].[Id])
         /// </summary>
         [Comment("權限項目所屬使用者([tblUser].[Id])")]
