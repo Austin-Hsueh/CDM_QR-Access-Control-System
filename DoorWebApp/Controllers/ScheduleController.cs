@@ -628,8 +628,12 @@ namespace DoorWebApp.Controllers
                     log.LogInformation($"[{Request.Path}] Delete schedules success. Mode:{scheduleDTO.UpdateMode}, Count:{schedulesToUpdate.Count}, EffectRow:{effectRowDelete}");
 
                     // 更新門禁權限時間範圍
-                    await UpdateStudentPermissionTimeRangeAsync(scheduleEntity.StudentPermissionId, log);
-                    
+                    if (scheduleDTO.UpdateMode == 3)
+                    {
+                        await UpdateStudentPermissionTimeRangeAsync(scheduleEntity.StudentPermissionId, log);
+                        log.LogInformation($"[{Request.Path}] Updated StudentPermission time range for StudentPermissionId: {scheduleEntity.StudentPermissionId}");
+                    }
+
                     // 檢查是否需要刪除門禁權限
                     var remainingSchedules = await ctx.TblSchedule
                         .Where(x => x.StudentPermissionId == scheduleEntity.StudentPermissionId && x.IsDelete == false)
@@ -742,9 +746,12 @@ namespace DoorWebApp.Controllers
                 int effectRow = await ctx.SaveChangesAsync();
                 log.LogInformation($"[{Request.Path}] Update success. Mode:{scheduleDTO.UpdateMode}, Count:{schedulesToUpdate.Count}, EffectRow:{effectRow}");
 
-                // 7. 同步更新門禁權限時間範圍
-                await UpdateStudentPermissionTimeRangeAsync(scheduleEntity.StudentPermissionId, log);
-                log.LogInformation($"[{Request.Path}] Updated StudentPermission time range for StudentPermissionId: {scheduleEntity.StudentPermissionId}");
+                // 7. 同步更新門禁權限時間範圍'
+                if(scheduleDTO.UpdateMode == 3)
+                {
+                    await UpdateStudentPermissionTimeRangeAsync(scheduleEntity.StudentPermissionId, log);
+                    log.LogInformation($"[{Request.Path}] Updated StudentPermission time range for StudentPermissionId: {scheduleEntity.StudentPermissionId}");
+                }
 
                 // 8. 寫入稽核紀錄
                 var updateModeText = scheduleDTO.UpdateMode switch
