@@ -4,6 +4,39 @@
   :options="calendarOptions"
 />
 
+<!-- 選擇更新模式 Dialog -->
+<el-dialog
+  v-model="isShowUpdateModeDialog"
+  title="選擇更新模式"
+  width="400px"
+>
+  <el-form label-position="top">
+    <el-form-item label="請選擇更新範圍：">
+      <el-select v-model="selectedUpdateMode" placeholder="請選擇" style="width: 100%">
+        <el-option label="僅此次課程" :value="1"></el-option>
+        <el-option label="此日期後的所有課程" :value="2"></el-option>
+        <el-option label="全部課程" :value="3"></el-option>
+      </el-select>
+    </el-form-item>
+    <el-form-item v-if="selectedUpdateMode === 2" label="起始日期：">
+      <el-date-picker
+        v-model="selectedFromDate"
+        type="date"
+        placeholder="請選擇日期"
+        format="YYYY-MM-DD"
+        value-format="YYYY-MM-DD"
+        style="width: 100%"
+      />
+    </el-form-item>
+  </el-form>
+  <template #footer>
+    <span class="dialog-footer">
+      <el-button @click="cancelUpdateMode">取消</el-button>
+      <el-button type="primary" @click="confirmUpdateMode">確定</el-button>
+    </span>
+  </template>
+</el-dialog>
+
 <!-- 新增課程 Dialog -->
 <el-dialog
   v-model="isShowAddCourseDialog"
@@ -190,6 +223,12 @@ const resources = ref<any[]>([]);
 const isShowAddCourseDialog = ref(false);
 const addCourseFormRef = ref<FormInstance>();
 
+// 更新模式 Dialog 控制
+const isShowUpdateModeDialog = ref(false);
+const selectedUpdateMode = ref(1);
+const selectedFromDate = ref('');
+let updateModeResolve: ((value: { updateMode: number; fromDate: string } | null) => void) | null = null;
+
 // 選項資料
 const usersOptions = ref<M_IUsersOptions[]>([]);
 const teachersOptions = ref<M_ITeachersOptions[]>([]);
@@ -299,6 +338,38 @@ const cancelAddCourse = () => {
     addCourseFormData.selectInfo.view.calendar.unselect();
   }
   addCourseFormRef.value?.resetFields();
+};
+
+// 顯示更新模式 Dialog
+const showUpdateModeDialog = (defaultDate: string): Promise<{ updateMode: number; fromDate: string } | null> => {
+  return new Promise((resolve) => {
+    selectedUpdateMode.value = 1;
+    selectedFromDate.value = defaultDate;
+    updateModeResolve = resolve;
+    isShowUpdateModeDialog.value = true;
+  });
+};
+
+// 確認更新模式
+const confirmUpdateMode = () => {
+  const result = {
+    updateMode: selectedUpdateMode.value,
+    fromDate: selectedFromDate.value
+  };
+  isShowUpdateModeDialog.value = false;
+  if (updateModeResolve) {
+    updateModeResolve(result);
+    updateModeResolve = null;
+  }
+};
+
+// 取消更新模式
+const cancelUpdateMode = () => {
+  isShowUpdateModeDialog.value = false;
+  if (updateModeResolve) {
+    updateModeResolve(null);
+    updateModeResolve = null;
+  }
 };
 
 // 清除表單
@@ -572,18 +643,39 @@ const handleEventDrop = async (dropInfo: any) => {
     const startTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`; // "15:00"
     const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`; // "17:00"
 
+    // 詢問使用者更新模式
+    const result = await showUpdateModeDialog(scheduleDate);
+
+    if (!result) {
+      // 使用者取消操作
+      dropInfo.revert();
+      return;
+    }
+
+    const updateMode = result.updateMode;
+    const fromDate = result.fromDate;
+
     // 準備 API 請求資料
-    const cmd = {
+    const cmd: any = {
       scheduleId: scheduleId,
       classroomId: Number(newResource.id),
-      scheduleDate: scheduleDate,
       startTime: startTime,
       endTime: endTime,
       courseMode: event.extendedProps.courseMode || 1,
       status: event.extendedProps.status || 1,
       remark: event.extendedProps.remark || '',
-      isDelete: false
+      updateMode: updateMode
     };
+
+    // 根據 updateMode 決定帶入的日期欄位
+    if (updateMode === 1) {
+      // 單次修改：需要 scheduleDate
+      cmd.scheduleDate = scheduleDate;
+    } else if (updateMode === 2) {
+      // 某日後全部修改：需要 fromDate
+      cmd.fromDate = fromDate;
+    }
+    // updateMode === 3 (全部修改)：不需要日期欄位
 
     console.log('更新課程排程:', cmd);
 
@@ -591,14 +683,28 @@ const handleEventDrop = async (dropInfo: any) => {
     const response = await API.updateCourseSchedule(cmd);
 
     if (response.data.result === 1) {
-      ElMessage.success(`課程已移動至 ${newResource.title} ${scheduleDate} ${startTime}-${endTime}`);
+      const modeText = updateMode === 1 ? '此次課程' : updateMode === 2 ? `${fromDate} 之後的課程` : '全部課程';
+      ElMessage.success(`已更新${modeText}至 ${newResource.title} ${startTime}-${endTime}`);
+      // 重新載入課程資料
+      const fullCalendarApi = fullCalendar.value?.getApi();
+      if (fullCalendarApi) {
+        const currentView = fullCalendarApi.view;
+        await handleDatesSet({
+          start: currentView.activeStart,
+          end: currentView.activeEnd,
+          startStr: currentView.activeStart.toISOString(),
+          endStr: currentView.activeEnd.toISOString(),
+          view: currentView
+        });
+      }
     } else {
       ElMessage.error(response.data.msg || '更新課程失敗');
       dropInfo.revert(); // 還原拖曳
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('更新課程排程失敗:', error);
-    ElMessage.error('更新課程失敗，請稍後再試');
+    console.error('錯誤詳情:', error.response?.data);
+    ElMessage.error(`更新課程失敗: ${error.response?.data?.msg || error.message || '請稍後再試'}`);
     dropInfo.revert(); // 還原拖曳
   }
 };
@@ -625,18 +731,39 @@ const handleEventResize = async (resizeInfo: any) => {
     const startTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`; // "15:00"
     const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`; // "17:00"
 
+    // 詢問使用者更新模式
+    const result = await showUpdateModeDialog(scheduleDate);
+
+    if (!result) {
+      // 使用者取消操作
+      resizeInfo.revert();
+      return;
+    }
+
+    const updateMode = result.updateMode;
+    const fromDate = result.fromDate;
+
     // 準備 API 請求資料
-    const cmd = {
+    const cmd: any = {
       scheduleId: scheduleId,
       classroomId: Number(resource.id),
-      scheduleDate: scheduleDate,
       startTime: startTime,
       endTime: endTime,
       courseMode: event.extendedProps.courseMode || 1,
       status: event.extendedProps.status || 1,
       remark: event.extendedProps.remark || '',
-      isDelete: false
+      updateMode: updateMode
     };
+
+    // 根據 updateMode 決定帶入的日期欄位
+    if (updateMode === 1) {
+      // 單次修改：需要 scheduleDate
+      cmd.scheduleDate = scheduleDate;
+    } else if (updateMode === 2) {
+      // 某日後全部修改：需要 fromDate
+      cmd.fromDate = fromDate;
+    }
+    // updateMode === 3 (全部修改)：不需要日期欄位
 
     console.log('更新課程時間:', cmd);
 
@@ -644,14 +771,28 @@ const handleEventResize = async (resizeInfo: any) => {
     const response = await API.updateCourseSchedule(cmd);
 
     if (response.data.result === 1) {
-      ElMessage.success(`課程時間已調整為 ${startTime}-${endTime}`);
+      const modeText = updateMode === 1 ? '此次課程' : updateMode === 2 ? `${fromDate} 之後的課程` : '全部課程';
+      ElMessage.success(`已更新${modeText}的時間為 ${startTime}-${endTime}`);
+      // 重新載入課程資料
+      const fullCalendarApi = fullCalendar.value?.getApi();
+      if (fullCalendarApi) {
+        const currentView = fullCalendarApi.view;
+        await handleDatesSet({
+          start: currentView.activeStart,
+          end: currentView.activeEnd,
+          startStr: currentView.activeStart.toISOString(),
+          endStr: currentView.activeEnd.toISOString(),
+          view: currentView
+        });
+      }
     } else {
       ElMessage.error(response.data.msg || '更新課程失敗');
       resizeInfo.revert(); // 還原調整
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('更新課程時間失敗:', error);
-    ElMessage.error('更新課程失敗，請稍後再試');
+    console.error('錯誤詳情:', error.response?.data);
+    ElMessage.error(`更新課程失敗: ${error.response?.data?.msg || error.message || '請稍後再試'}`);
     resizeInfo.revert(); // 還原調整
   }
 };
