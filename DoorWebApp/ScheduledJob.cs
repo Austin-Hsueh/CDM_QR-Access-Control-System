@@ -67,17 +67,18 @@ public class ScheduledJob : IJob
             //                                      }).ToList();
 
             //多時段設定
-            var studentPermissions = ctx.TblStudentPermission.FromSqlRaw(@"SELECT p.* 
-                                                FROM TblStudentPermission p 
-                                                LEFT JOIN Tbluser s ON p.UserId = s.Id 
+            var studentPermissions = ctx.TblStudentPermission.FromSqlRaw(@"SELECT p.*
+                                                FROM TblStudentPermission p
+                                                LEFT JOIN Tbluser s ON p.UserId = s.Id
                                                 WHERE (@nowDate BETWEEN p.DateFrom AND p.DateTo)
-                                                AND (  
+                                                AND (
                                                        (TIME(@time) BETWEEN TIME(p.TimeFrom) AND TIME(p.TimeTo))
                                                         OR
                                                        (TIME(p.TimeFrom) BETWEEN TIME(@time) AND TIME(@Endtime))
                                                     )
                                                 AND p.IsDelete = 0 AND s.IsDelete = 0
-                                                AND p.Days LIKE CONCAT('%', @day, '%')",
+                                                AND p.Days LIKE CONCAT('%', @day, '%')
+                                                AND p.UserId NOT IN (55, 56)",
                                                 new MySqlConnector.MySqlParameter("@nowDate", nowDate),
                                                 new MySqlConnector.MySqlParameter("@time", time),
                                                 new MySqlConnector.MySqlParameter("@Endtime", Endtime),
