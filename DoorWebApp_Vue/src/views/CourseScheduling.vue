@@ -784,6 +784,8 @@ const calendarOptions: CalendarOptions = reactive({
   resourceAreaWidth: '30%',
   slotMinTime: '07:00:00',
   slotMaxTime: '23:00:00',
+  slotDuration: '00:30:00',
+  slotLabelInterval: '00:30:00',
   select: handleDateSelect,
   eventClick: handleEventClick,
   eventsSet: handleEvents,
@@ -857,6 +859,3 @@ async function getCourseOptions() {
 //#endregion
 </script>
 
-<style scoped>
-
-</style>

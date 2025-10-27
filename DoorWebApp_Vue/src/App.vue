@@ -181,4 +181,7 @@ ion-icon {
   background: rgba(0, 0, 0, 0.2);
 }
 
+.fc .fc-timegrid-slot{
+  height: 2.25em !important;
+}
 </style>
