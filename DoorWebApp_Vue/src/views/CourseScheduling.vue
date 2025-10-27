@@ -504,11 +504,32 @@ const handleEventClick = async (clickInfo: any) => {
         return;
       }
 
-      // 準備 API 請求資料 (patch 方法直接傳遞資料物件)
-      const cmd = {
+      // 詢問刪除模式
+      const startDate = new Date(startTime);
+      const scheduleDate = startDate.toISOString().split('T')[0];
+      const result = await showUpdateModeDialog(scheduleDate);
+
+      if (!result) {
+        // 使用者取消操作
+        return;
+      }
+
+      // 準備 API 請求資料
+      const cmd: any = {
         scheduleId: scheduleId,
-        isDelete: true
+        isDelete: true,
+        updateMode: result.updateMode
       };
+
+      // 根據 updateMode 決定帶入的日期欄位
+      if (result.updateMode === 1) {
+        // 單次刪除：需要 scheduleDate
+        cmd.scheduleDate = scheduleDate;
+      } else if (result.updateMode === 2) {
+        // 某日後全部刪除：需要 fromDate
+        cmd.fromDate = result.fromDate;
+      }
+      // updateMode === 3 (全部刪除)：不需要日期欄位
 
       console.log('刪除課程排程:', cmd);
 
@@ -516,9 +537,21 @@ const handleEventClick = async (clickInfo: any) => {
       const response = await API.deleteCourseSchedule(cmd);
 
       if (response.data.result === 1) {
-        // 從日曆中移除事件
-        event.remove();
-        ElMessage.success('課程已刪除');
+        const modeText = result.updateMode === 1 ? '此次課程' : result.updateMode === 2 ? `${result.fromDate} 之後的課程` : '全部課程';
+        ElMessage.success(`已刪除${modeText}`);
+
+        // 重新載入課程資料
+        const fullCalendarApi = fullCalendar.value?.getApi();
+        if (fullCalendarApi) {
+          const currentView = fullCalendarApi.view;
+          await handleDatesSet({
+            start: currentView.activeStart,
+            end: currentView.activeEnd,
+            startStr: currentView.activeStart.toISOString(),
+            endStr: currentView.activeEnd.toISOString(),
+            view: currentView
+          });
+        }
       } else {
         ElMessage.error(response.data.msg || '刪除課程失敗');
       }
