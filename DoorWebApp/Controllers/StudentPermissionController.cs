@@ -641,12 +641,7 @@ namespace DoorWebApp.Controllers
 
                     log.LogInformation($"Created teacher permission for TeacherId:{permissionDTO.teacherId}, PermissionId:{teacherPermission.Id}");
 
-                    // 5. 為老師也產生課表（如果有教室）
-                    if (permissionDTO.classroomId.HasValue && permissionDTO.classroomId.Value > 0)
-                    {
-                        var scheduleCount = await GenerateSchedulesAsync(teacherPermission.Id, permissionDTO, permissionDTO.classroomId.Value);
-                        log.LogInformation($"Generated {scheduleCount} schedule records for teacher");
-                    }
+                    // 注意：不為老師產生課表，只保留門禁權限
                 }
 
                 auditLog.WriteAuditLog(AuditActType.Modify, $"Create/Update teacher permission for TeacherId:{permissionDTO.teacherId}", operatorUsername);

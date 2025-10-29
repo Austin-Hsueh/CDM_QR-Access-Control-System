@@ -46,7 +46,7 @@ namespace DoorWebApp.Controllers
                         .ThenInclude(x => x.User)
                     .Include(x => x.StudentPermission)
                         .ThenInclude(x => x.Teacher)
-                    .Where(x => x.IsDelete == false);
+                    .Where(x => x.IsDelete == false && x.StudentPermission.IsDelete == false);
 
                 // 教室篩選
                 if (queryDTO.ClassroomId.HasValue && queryDTO.ClassroomId > 0)
