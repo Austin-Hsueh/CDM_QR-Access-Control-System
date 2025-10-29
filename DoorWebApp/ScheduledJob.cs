@@ -70,14 +70,21 @@ public class ScheduledJob : IJob
             var studentPermissions = ctx.TblStudentPermission.FromSqlRaw(@"SELECT p.* 
                                                 FROM TblStudentPermission p 
                                                 LEFT JOIN Tbluser s ON p.UserId = s.Id 
+                                                INNER JOIN TblSchedule sch ON p.UserId = sch.UserId 
                                                 WHERE (@nowDate BETWEEN p.DateFrom AND p.DateTo)
                                                 AND (  
                                                        (TIME(@time) BETWEEN TIME(p.TimeFrom) AND TIME(p.TimeTo))
                                                         OR
                                                        (TIME(p.TimeFrom) BETWEEN TIME(@time) AND TIME(@Endtime))
                                                     )
-                                                AND p.IsDelete = 0 AND s.IsDelete = 0
-                                                AND p.Days LIKE CONCAT('%', @day, '%')",
+                                                AND p.IsDelete = 0 AND s.IsDelete = 0 AND sch.IsDelete = 0
+                                                AND p.Days LIKE CONCAT('%', @day, '%')
+                                                AND (@nowDate = ScheduleDate)
+                                                AND (  
+                                                       (TIME(@time) BETWEEN TIME(sch.StartTime) AND TIME(sch.EndTime))
+                                                        OR
+                                                       (TIME(sch.StartTime) BETWEEN TIME(@time) AND TIME(@Endtime))
+                                                    )",
                                                 new MySqlConnector.MySqlParameter("@nowDate", nowDate),
                                                 new MySqlConnector.MySqlParameter("@time", time),
                                                 new MySqlConnector.MySqlParameter("@Endtime", Endtime),
@@ -98,9 +105,11 @@ public class ScheduledJob : IJob
             //API 設定並取得QRcode
             if(studentPermissions.Count == 0)
             {
-                log.LogInformation($"無清單需要 更新 QRCode 完成");
+                log.LogInformation($"無對應課表的清單需要 更新 QRCode 完成");
                 return;
             }
+
+            log.LogInformation($"找到 {studentPermissions.Count} 筆有對應課表的學生權限需要更新 QRCode");
 
             var result = await SoyalAPI.SendUserAccessProfilesAsync(studentPermissions);
             if (result.msg == "Success" && result.content.Count > 0)
