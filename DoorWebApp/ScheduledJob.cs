@@ -70,7 +70,7 @@ public class ScheduledJob : IJob
             var studentPermissions = ctx.TblStudentPermission.FromSqlRaw(@"SELECT p.* 
                                                 FROM TblStudentPermission p 
                                                 LEFT JOIN Tbluser s ON p.UserId = s.Id 
-                                                INNER JOIN TblSchedule sch ON p.UserId = sch.UserId 
+                                                INNER JOIN TblSchedule sch ON p.Id = sch.StudentPermissionId
                                                 WHERE (@nowDate BETWEEN p.DateFrom AND p.DateTo)
                                                 AND (  
                                                        (TIME(@time) BETWEEN TIME(p.TimeFrom) AND TIME(p.TimeTo))
@@ -80,11 +80,6 @@ public class ScheduledJob : IJob
                                                 AND p.IsDelete = 0 AND s.IsDelete = 0 AND sch.IsDelete = 0
                                                 AND p.Days LIKE CONCAT('%', @day, '%')
                                                 AND (@nowDate = ScheduleDate)
-                                                AND (  
-                                                       (TIME(@time) BETWEEN TIME(sch.StartTime) AND TIME(sch.EndTime))
-                                                        OR
-                                                       (TIME(sch.StartTime) BETWEEN TIME(@time) AND TIME(@Endtime))
-                                                    )
                                                 AND p.IsDelete = 0 AND s.IsDelete = 0
                                                 AND p.Days LIKE CONCAT('%', @day, '%')
                                                 AND p.UserId NOT IN (55, 56)",
