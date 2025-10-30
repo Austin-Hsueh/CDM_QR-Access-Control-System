@@ -84,7 +84,7 @@ public class ScheduledJob : IJob
                                                        (TIME(@time) BETWEEN TIME(sch.StartTime) AND TIME(sch.EndTime))
                                                         OR
                                                        (TIME(sch.StartTime) BETWEEN TIME(@time) AND TIME(@Endtime))
-                                                    )",
+                                                    )
                                                 AND p.IsDelete = 0 AND s.IsDelete = 0
                                                 AND p.Days LIKE CONCAT('%', @day, '%')
                                                 AND p.UserId NOT IN (55, 56)",
