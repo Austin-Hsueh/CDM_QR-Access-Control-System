@@ -35,10 +35,10 @@
         <el-table-column sortable :label="t('userID')"  prop="userId" v-if="showId"/>
         <el-table-column sortable :label="t('username')"  prop="username"/>
         <el-table-column sortable :label="t('displayName')" prop="displayName" />
-        <!-- <el-table-column sortable :label="t('IdNumber')" prop="idcard" /> -->
-        <!-- <el-table-column sortable :label="t('Address')" prop="address" /> -->
         <el-table-column sortable :label="t('Email')" prop="email"/>
         <el-table-column sortable :label="t('Phone')" prop="phone"/>
+        <el-table-column sortable label="緊急聯絡人" prop="contactPerson" />
+        <el-table-column sortable label="聯絡人電話" prop="contactPhone" />
         <el-table-column sortable :label="t('Role')">
           <template #default="scope">
             {{ roleMap[scope.row.roleId as keyof typeof roleMap] }}
@@ -97,17 +97,20 @@
       <el-form-item :label="t('displayName')" prop="displayName" >
         <el-input  style="width:90%" v-model="createFormData.displayName"/>
       </el-form-item>
-      <el-form-item :label="t('IdNumber')" prop="idcard" >
-        <el-input  style="width:90%" v-model="createFormData.idcard"/>
-      </el-form-item>
-      <el-form-item :label="t('Address')" prop="address" >
-        <el-input  style="width:90%" v-model="createFormData.address"/>
-      </el-form-item>
       <el-form-item :label="t('Email')" prop="email" >
         <el-input  style="width:90%" v-model="createFormData.email"/>
       </el-form-item>
       <el-form-item :label="t('Phone')" prop="phone"  >
         <el-input  style="width:90%" v-model="createFormData.phone"/>
+      </el-form-item>
+      <el-form-item label="緊急聯絡人" prop="contactPerson"  >
+        <el-input  style="width:90%" v-model="createFormData.contactPerson"/>
+      </el-form-item>
+      <el-form-item label="聯絡人電話" prop="contactPhone"  >
+        <el-input  style="width:90%" v-model="createFormData.contactPhone"/>
+      </el-form-item>
+      <el-form-item label="關係稱謂" prop="relationshipTitle"  >
+        <el-input  style="width:90%" v-model="createFormData.relationshipTitle"/>
       </el-form-item>
       <el-form-item :label="t('password')" prop="password"  >
         <el-input  show-password style="width:90%" v-model="createFormData.password"/>
@@ -155,17 +158,20 @@
       <el-form-item :label="t('displayName')" prop="displayName" >
         <el-input  style="width:90%" v-model="updateFormData.displayName"/>
       </el-form-item>
-      <el-form-item :label="t('IdNumber')" prop="idcard" >
-        <el-input  style="width:90%" v-model="updateFormData.idcard"/>
-      </el-form-item>
-      <el-form-item :label="t('Address')" prop="address" >
-        <el-input  style="width:90%" v-model="updateFormData.address"/>
-      </el-form-item>
       <el-form-item :label="t('Email')" prop="email" >
         <el-input  style="width:90%" v-model="updateFormData.email"/>
       </el-form-item>
       <el-form-item :label="t('Phone')" prop="phone"  >
         <el-input  style="width:90%" v-model="updateFormData.phone"/>
+      </el-form-item>
+      <el-form-item label="緊急聯絡人" prop="contactPerson"  >
+        <el-input  style="width:90%" v-model="updateFormData.contactPerson"/>
+      </el-form-item>
+      <el-form-item label="聯絡人電話" prop="contactPhone"  >
+        <el-input  style="width:90%" v-model="updateFormData.contactPhone"/>
+      </el-form-item>
+      <el-form-item label="關係稱謂" prop="relationshipTitle"  >
+        <el-input  style="width:90%" v-model="updateFormData.relationshipTitle"/>
       </el-form-item>
       <el-form-item :label="t('password')" prop="password"  >
         <el-input  style="width:90%" v-model="updateFormData.password"  placeholder="若不變更密碼，留空即可。" />
@@ -312,6 +318,9 @@ const onEdit = (item: M_IUsers) => {
   updateFormData.type = item.type;
   updateFormData.address = item.address;
   updateFormData.idcard = item.idcard;
+  updateFormData.contactPerson = item.contactPerson ?? '';
+  updateFormData.contactPhone = item.contactPhone ?? '';
+  updateFormData.relationshipTitle = item.relationshipTitle ?? '';
   isShowEditRoleDialog.value = true;
 }
 
@@ -372,6 +381,7 @@ const onCreateRoleClicked = () => {
 }
 
 const submitForm = async () => {
+  console.log(createFormData)
   let notifyParam: NotificationParams = {};
 
   createaddRoleForm.value?.validate(async(valid) => {
@@ -508,8 +518,11 @@ const createFormData = reactive<M_ICreateRuleForm>({
   password: '',
   roleid: 3,
   type:1,
-  address:'',
-  idcard:''
+  address:'', //UI不顯示，預設回寫空白
+  idcard:'', //UI不顯示，預設回寫空白
+  contactPerson:'',
+  contactPhone:'',
+  relationshipTitle:''
 })
 
 // 編輯使用者表單
@@ -523,8 +536,11 @@ const updateFormData = reactive<M_IUpdateRuleForm>({
   password: '',
   roleid: 0,
   type:0,
-  address:'',
-  idcard:''
+  address:'', //UI不顯示，預設回寫空白
+  idcard:'', //UI不顯示，預設回寫空白
+  contactPerson:'',
+  contactPhone:'',
+  relationshipTitle:''
 })
 
 const deleteFormData = reactive<M_IDeleteRuleForm>({

@@ -21,6 +21,10 @@ export interface M_IUsers {
   idcard: string;
   parentId?: number | null;
   parentUsername?: string| null;
+  contactPerson: string| null,
+  contactPhone: string| null,
+  relationshipTitle: string| null,
+
 }
 
 export interface M_IUsersContent {

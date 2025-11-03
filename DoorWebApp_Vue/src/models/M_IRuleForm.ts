@@ -8,6 +8,9 @@ export interface M_ICreateRuleForm {
   type:number;
   address: string;
   idcard: string;
+  contactPerson:string;
+  contactPhone:string;
+  relationshipTitle:string;
   
 }
 
@@ -22,6 +25,9 @@ export interface M_IUpdateRuleForm {
   type:number;
   address: string;
   idcard: string;
+  contactPerson:string;
+  contactPhone:string;
+  relationshipTitle:string;
 }
 
 export interface M_IDeleteRuleForm {
