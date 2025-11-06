@@ -5,7 +5,7 @@
       <el-button type="primary" @click="onCreateClassRoomClicked">新增教室</el-button>
       <el-table name="userInfoTable" style="width: 100%"  :data="classRoomList">
         <el-table-column sortable label="教室名稱"  prop="classroomName"/>
-        <el-table-column sortable label="顯示顏色"  prop="description"/>
+        <el-table-column sortable label="備註"  prop="description"/>
         <el-table-column width="170px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
           <template #default="{ row }: { row: any }">
             <el-button type="primary" size="small" @click="onEditClassRoom(row)"><el-icon><EditPen /></el-icon>{{ t('edit') }}</el-button>
@@ -22,8 +22,9 @@
       <el-form-item label="教室" prop="classroomName"  >
         <el-input style="width:90%" v-model="createClassRoomFormData.classroomName"/>
       </el-form-item>
-      <el-form-item label="選擇事件顏色" prop="description"  >
-        <el-color-picker v-model="createClassRoomFormData.description" />
+      <el-form-item label="備註" prop="description"  >
+        <!-- <el-color-picker v-model="createClassRoomFormData.description" /> -->
+        <el-input style="width:90%" v-model="createClassRoomFormData.description"/>
       </el-form-item>
     </el-form>
     <template #footer>
@@ -41,8 +42,9 @@
       <el-form-item label="教室" prop="classroomName"  >
         <el-input style="width:90%" v-model="updateClassRoomFormData.classroomName"/>
       </el-form-item>
-      <el-form-item label="選擇事件顏色" prop="description"  >
-        <el-color-picker v-model="updateClassRoomFormData.description" />
+      <el-form-item label="備註" prop="description"  >
+        <!-- <el-color-picker v-model="updateClassRoomFormData.description" /> -->
+        <el-input style="width:90%" v-model="updateClassRoomFormData.description"/>
       </el-form-item>
     </el-form>
     <template #footer>

@@ -607,8 +607,13 @@ const handleDatesSet = async (dateInfo: any) => {
       // 清除現有事件
       calendarApi.removeAllEvents();
 
+      // 過濾掉 teacherName 為空的課程（TeacherId = 0 的情況）
+      const filteredSchedules = response.data.content.pageItems.filter((schedule: any) => {
+        return schedule.teacherName && schedule.teacherName.trim() !== '';
+      });
+
       // 將每個課程加入 Calendar
-      response.data.content.pageItems.forEach((schedule: any) => {
+      filteredSchedules.forEach((schedule: any) => {
         // 組合日期和時間
         const scheduleDate = schedule.scheduleDate.replace(/\//g, '-'); // "2025/10/08" -> "2025-10-08"
         const startDateTime = `${scheduleDate}T${schedule.startTime}:00`;
