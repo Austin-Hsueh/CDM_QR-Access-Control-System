@@ -411,8 +411,8 @@ const submitAddCourse = async () => {
         // 準備 API 資料
         const courseData = {
           userId: Number(addCourseFormData.userId),
-          courseId: addCourseFormData.courseId ? Number(addCourseFormData.courseId) : null,
-          teacherId: addCourseFormData.teacherId ? Number(addCourseFormData.teacherId) : null,
+          courseId: addCourseFormData.courseId ? Number(addCourseFormData.courseId) : 0,
+          teacherId: addCourseFormData.teacherId ? Number(addCourseFormData.teacherId) : 0,
           datefrom: formatDate(addCourseFormData.datepicker[0]),
           dateto: formatDate(addCourseFormData.datepicker[1]),
           timefrom: formatTime(addCourseFormData.timepicker[0]),
@@ -421,7 +421,7 @@ const submitAddCourse = async () => {
           days: addCourseFormData.days,
           groupIds: addCourseFormData.groupIds,
           classroomId: Number(addCourseFormData.classroomId),
-          courseMode: addCourseFormData.courseMode ? Number(addCourseFormData.courseMode) : null,
+          courseMode: addCourseFormData.courseMode ? Number(addCourseFormData.courseMode) : 1,
           scheduleMode: Number(addCourseFormData.scheduleMode),
           remark: addCourseFormData.remark || ''
         };
@@ -607,9 +607,14 @@ const handleDatesSet = async (dateInfo: any) => {
       // 清除現有事件
       calendarApi.removeAllEvents();
 
-      // 過濾掉 teacherName 為空的課程（TeacherId = 0 的情況）
+      // 過濾掉「上課類型但沒有老師」的課程，保留租借教室
       const filteredSchedules = response.data.content.pageItems.filter((schedule: any) => {
-        return schedule.teacherName && schedule.teacherName.trim() !== '';
+        // 如果是租借教室 (type=2)，保留
+        if (schedule.type === 2) return true;
+        // 如果是上課 (type=1)，必須有老師名稱
+        if (schedule.type === 1) return schedule.teacherName && schedule.teacherName.trim() !== '';
+        // 其他類型，保留
+        return true;
       });
 
       // 將每個課程加入 Calendar
@@ -619,11 +624,19 @@ const handleDatesSet = async (dateInfo: any) => {
         const startDateTime = `${scheduleDate}T${schedule.startTime}:00`;
         const endDateTime = `${scheduleDate}T${schedule.endTime}:00`;
 
-        // 組合標題
+        // 組合標題（依據類型顯示不同資訊）
         const titleParts = [];
-        if (schedule.studentName) titleParts.push(`學生：${schedule.studentName}`);
-        if (schedule.courseName) titleParts.push(`課程：${schedule.courseName}`);
-        if (schedule.teacherName) titleParts.push(`老師：${schedule.teacherName}`);
+        if (schedule.type === 1) {
+          // 上課：顯示學生、課程、老師
+          if (schedule.studentName) titleParts.push(`${schedule.studentName}`);
+          if (schedule.courseName) titleParts.push(`${schedule.courseName}`);
+          if (schedule.teacherName) titleParts.push(`${schedule.teacherName}`);
+        } else if (schedule.type === 2) {
+          // 租借教室：顯示學生、租借教室、備註
+          if (schedule.studentName) titleParts.push(`學生：${schedule.studentName}`);
+          titleParts.push(`租借教室`);
+          if (schedule.remark) titleParts.push(`備註：${schedule.remark}`);
+        }
         const title = titleParts.length > 0 ? titleParts.join(' ') : '課程';
 
         calendarApi.addEvent({
@@ -892,7 +905,7 @@ const eventContent = (arg: any) => {
     courseLine.style.whiteSpace = 'nowrap';
     courseLine.style.width = '100%';
     courseLine.style.textAlign = 'center';
-    courseLine.textContent = `課程：${courseName}`;
+    courseLine.textContent = `${courseName}`;
     column1.appendChild(courseLine);
   }
 
@@ -916,6 +929,8 @@ const eventContent = (arg: any) => {
   const column2Parts = [];
   // if (courseName) column2Parts.push(courseName);
   if (teacherName) column2Parts.push(teacherName);
+
+  if (type === 2) column2Parts.push('租借');
 
   if (column2Parts.length > 0) {
     column2.textContent = column2Parts.join(' ');
