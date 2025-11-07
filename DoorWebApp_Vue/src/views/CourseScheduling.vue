@@ -1,4 +1,18 @@
 <template>
+<!-- 日期選擇器 -->
+<div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+  <span style="font-weight: bold;">跳到指定日期：</span>
+  <el-date-picker
+    v-model="selectedDate"
+    type="date"
+    placeholder="選擇日期"
+    format="YYYY-MM-DD"
+    value-format="YYYY-MM-DD"
+    style="width: 200px"
+    @change="handleDateChange"
+  />
+</div>
+
 <FullCalendar
   ref="fullCalendar"
   :options="calendarOptions"
@@ -219,6 +233,9 @@ const fullCalendar = ref<any>(null);
 // 教室資源 (從 API 動態載入)
 const resources = ref<any[]>([]);
 
+// 日期選擇器
+const selectedDate = ref('');
+
 // Dialog 控制
 const isShowAddCourseDialog = ref(false);
 const addCourseFormRef = ref<FormInstance>();
@@ -295,6 +312,17 @@ const courseRules: FormRules = {
 // 事件處理函數
 const handleWeekendsToggle = () => {
   calendarOptions.weekends = !calendarOptions.weekends;
+};
+
+// 跳到指定日期
+const handleDateChange = (date: string) => {
+  if (!date) return;
+
+  const calendarApi = fullCalendar.value?.getApi();
+  if (calendarApi) {
+    calendarApi.gotoDate(date);
+    console.log('跳轉到日期:', date);
+  }
 };
 
 const handleDateSelect = (selectInfo: any) => {
