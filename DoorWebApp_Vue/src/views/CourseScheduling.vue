@@ -1,7 +1,44 @@
 <template>
+<!-- 日期與教室選擇器 -->
+<div style="margin-bottom: 15px; display: flex; align-items: center; gap: 20px;">
+  <!-- 日期選擇器 - 只在日視圖顯示 -->
+  <div v-if="currentViewType === 'resourceTimeGridDay'" style="display: flex; align-items: center; gap: 10px;">
+    <span style="font-weight: bold;">跳到指定日期：</span>
+    <el-date-picker
+      v-model="selectedDate"
+      type="date"
+      placeholder="選擇日期"
+      format="YYYY-MM-DD"
+      value-format="YYYY-MM-DD"
+      style="width: 200px"
+      @change="handleDateChange"
+    />
+  </div>
+  <!-- 教室篩選器 - 只在月視圖顯示 -->
+  <div v-if="currentViewType === 'dayGridMonth'" style="display: flex; align-items: center; gap: 10px;">
+    <span style="font-weight: bold;">篩選教室：</span>
+    <el-select
+      v-model="selectedClassroomId"
+      placeholder="全部教室"
+      clearable
+      style="width: 200px"
+      @change="handleClassroomFilterChange"
+    >
+      <el-option label="全部教室" :value="null"></el-option>
+      <el-option
+        v-for="item in classRoomList"
+        :key="item.classroomId"
+        :label="item.classroomName"
+        :value="item.classroomId"
+      />
+    </el-select>
+  </div>
+</div>
+
 <FullCalendar
   ref="fullCalendar"
   :options="calendarOptions"
+  class="custom-calendar"
 />
 
 <!-- 選擇更新模式 Dialog -->
@@ -219,6 +256,15 @@ const fullCalendar = ref<any>(null);
 // 教室資源 (從 API 動態載入)
 const resources = ref<any[]>([]);
 
+// 日期選擇器
+const selectedDate = ref('');
+
+// 教室篩選
+const selectedClassroomId = ref<number | null>(null);
+
+// 當前視圖類型
+const currentViewType = ref('resourceTimeGridDay');
+
 // Dialog 控制
 const isShowAddCourseDialog = ref(false);
 const addCourseFormRef = ref<FormInstance>();
@@ -295,6 +341,121 @@ const courseRules: FormRules = {
 // 事件處理函數
 const handleWeekendsToggle = () => {
   calendarOptions.weekends = !calendarOptions.weekends;
+};
+
+// 跳到指定日期
+const handleDateChange = (date: string) => {
+  if (!date) return;
+
+  const calendarApi = fullCalendar.value?.getApi();
+  if (calendarApi) {
+    calendarApi.gotoDate(date);
+    console.log('跳轉到日期:', date);
+  }
+};
+
+// 教室篩選變更
+const handleClassroomFilterChange = async () => {
+  const calendarApi = fullCalendar.value?.getApi();
+  if (!calendarApi) return;
+
+  const currentView = calendarApi.view;
+
+  // 如果清除篩選（值為 null），顯示全部教室
+  if (selectedClassroomId.value === null) {
+    console.log('清除教室篩選，顯示全部教室');
+  } else {
+    console.log('教室篩選:', selectedClassroomId.value);
+  }
+
+  // 直接重新載入課程資料（不通過 handleDatesSet，避免觸發視圖切換邏輯）
+  try {
+    const startDate = new Date(currentView.activeStart);
+    const endDate = new Date(currentView.activeEnd);
+
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const cmd = {
+      page: 1,
+      searchPage: 250,
+      dateFrom: formatDate(startDate),
+      dateTo: formatDate(endDate),
+      status: 1
+    };
+
+    const response = await API.getCoursesByDate(cmd);
+
+    if (response.data.content?.pageItems && Array.isArray(response.data.content.pageItems)) {
+      calendarApi.removeAllEvents();
+
+      // 過濾課程
+      let filteredSchedules = response.data.content.pageItems.filter((schedule: any) => {
+        if (schedule.type === 2) return true;
+        if (schedule.type === 1) return schedule.teacherName && schedule.teacherName.trim() !== '';
+        return true;
+      });
+
+      // 如果有選擇教室篩選，只顯示該教室的課程
+      if (selectedClassroomId.value !== null) {
+        filteredSchedules = filteredSchedules.filter((schedule: any) => {
+          return schedule.classroomId === selectedClassroomId.value;
+        });
+      }
+
+      // 將課程加入 Calendar
+      filteredSchedules.forEach((schedule: any) => {
+        const scheduleDate = schedule.scheduleDate.replace(/\//g, '-');
+        const startDateTime = `${scheduleDate}T${schedule.startTime}:00`;
+        const endDateTime = `${scheduleDate}T${schedule.endTime}:00`;
+
+        const titleParts = [];
+        if (schedule.type === 1) {
+          if (schedule.studentName) titleParts.push(`學生：${schedule.studentName}`);
+          if (schedule.courseName) titleParts.push(`課程：${schedule.courseName}`);
+          if (schedule.teacherName) titleParts.push(`老師：${schedule.teacherName}`);
+        } else if (schedule.type === 2) {
+          if (schedule.studentName) titleParts.push(`學生：${schedule.studentName}`);
+          titleParts.push(`租借教室`);
+          if (schedule.remark) titleParts.push(`備註：${schedule.remark}`);
+        }
+        const title = titleParts.length > 0 ? titleParts.join(' ') : '課程';
+
+        calendarApi.addEvent({
+          id: schedule.scheduleId?.toString(),
+          title: title,
+          start: startDateTime,
+          end: endDateTime,
+          resourceId: schedule.classroomId.toString(),
+          extendedProps: {
+            scheduleId: schedule.scheduleId,
+            studentPermissionId: schedule.studentPermissionId,
+            courseName: schedule.courseName,
+            studentName: schedule.studentName,
+            classroomName: schedule.classroomName,
+            courseMode: schedule.courseMode,
+            courseModeName: schedule.courseModeName,
+            scheduleMode: schedule.scheduleMode,
+            scheduleModeName: schedule.scheduleModeName,
+            status: schedule.status,
+            statusName: schedule.statusName,
+            remark: schedule.remark,
+            teacherName: schedule.teacherName,
+            type: schedule.type
+          }
+        });
+      });
+
+      console.log('載入的課程數量:', filteredSchedules.length);
+    }
+  } catch (error) {
+    console.error('載入課程資料失敗:', error);
+    ElMessage.error('載入課程失敗');
+  }
 };
 
 const handleDateSelect = (selectInfo: any) => {
@@ -411,8 +572,8 @@ const submitAddCourse = async () => {
         // 準備 API 資料
         const courseData = {
           userId: Number(addCourseFormData.userId),
-          courseId: addCourseFormData.courseId ? Number(addCourseFormData.courseId) : null,
-          teacherId: addCourseFormData.teacherId ? Number(addCourseFormData.teacherId) : null,
+          courseId: addCourseFormData.courseId ? Number(addCourseFormData.courseId) : 0,
+          teacherId: addCourseFormData.teacherId ? Number(addCourseFormData.teacherId) : 0,
           datefrom: formatDate(addCourseFormData.datepicker[0]),
           dateto: formatDate(addCourseFormData.datepicker[1]),
           timefrom: formatTime(addCourseFormData.timepicker[0]),
@@ -421,7 +582,7 @@ const submitAddCourse = async () => {
           days: addCourseFormData.days,
           groupIds: addCourseFormData.groupIds,
           classroomId: Number(addCourseFormData.classroomId),
-          courseMode: addCourseFormData.courseMode ? Number(addCourseFormData.courseMode) : null,
+          courseMode: addCourseFormData.courseMode ? Number(addCourseFormData.courseMode) : 1,
           scheduleMode: Number(addCourseFormData.scheduleMode),
           remark: addCourseFormData.remark || ''
         };
@@ -574,6 +735,17 @@ const handleDatesSet = async (dateInfo: any) => {
     view: dateInfo.view.type
   });
 
+  // 更新當前視圖類型
+  const previousViewType = currentViewType.value;
+  currentViewType.value = dateInfo.view.type;
+
+  // 切換到日視圖或週視圖時，重置教室篩選為全部教室
+  if ((dateInfo.view.type === 'resourceTimeGridDay' || dateInfo.view.type === 'resourceTimeGridWeek')
+      && previousViewType === 'dayGridMonth') {
+    selectedClassroomId.value = null;
+    console.log('切換到日/週視圖，重置教室篩選為全部教室');
+  }
+
   try {
     // 取得當前視圖的日期範圍
     const startDate = new Date(dateInfo.start);
@@ -607,10 +779,22 @@ const handleDatesSet = async (dateInfo: any) => {
       // 清除現有事件
       calendarApi.removeAllEvents();
 
-      // 過濾掉 teacherName 為空的課程（TeacherId = 0 的情況）
-      const filteredSchedules = response.data.content.pageItems.filter((schedule: any) => {
-        return schedule.teacherName && schedule.teacherName.trim() !== '';
+      // 過濾掉「上課類型但沒有老師」的課程，保留租借教室
+      let filteredSchedules = response.data.content.pageItems.filter((schedule: any) => {
+        // 如果是租借教室 (type=2)，保留
+        if (schedule.type === 2) return true;
+        // 如果是上課 (type=1)，必須有老師名稱
+        if (schedule.type === 1) return schedule.teacherName && schedule.teacherName.trim() !== '';
+        // 其他類型，保留
+        return true;
       });
+
+      // 如果有選擇教室篩選，只顯示該教室的課程
+      if (selectedClassroomId.value !== null) {
+        filteredSchedules = filteredSchedules.filter((schedule: any) => {
+          return schedule.classroomId === selectedClassroomId.value;
+        });
+      }
 
       // 將每個課程加入 Calendar
       filteredSchedules.forEach((schedule: any) => {
@@ -619,11 +803,19 @@ const handleDatesSet = async (dateInfo: any) => {
         const startDateTime = `${scheduleDate}T${schedule.startTime}:00`;
         const endDateTime = `${scheduleDate}T${schedule.endTime}:00`;
 
-        // 組合標題
+        // 組合標題（依據類型顯示不同資訊）
         const titleParts = [];
-        if (schedule.studentName) titleParts.push(`學生：${schedule.studentName}`);
-        if (schedule.courseName) titleParts.push(`課程：${schedule.courseName}`);
-        if (schedule.teacherName) titleParts.push(`老師：${schedule.teacherName}`);
+        if (schedule.type === 1) {
+          // 上課：顯示學生、課程、老師
+          if (schedule.studentName) titleParts.push(`${schedule.studentName}`);
+          if (schedule.courseName) titleParts.push(`${schedule.courseName}`);
+          if (schedule.teacherName) titleParts.push(`${schedule.teacherName}`);
+        } else if (schedule.type === 2) {
+          // 租借教室：顯示學生、租借教室、備註
+          if (schedule.studentName) titleParts.push(`學生：${schedule.studentName}`);
+          titleParts.push(`租借教室`);
+          if (schedule.remark) titleParts.push(`備註：${schedule.remark}`);
+        }
         const title = titleParts.length > 0 ? titleParts.join(' ') : '課程';
 
         calendarApi.addEvent({
@@ -892,7 +1084,7 @@ const eventContent = (arg: any) => {
     courseLine.style.whiteSpace = 'nowrap';
     courseLine.style.width = '100%';
     courseLine.style.textAlign = 'center';
-    courseLine.textContent = `課程：${courseName}`;
+    courseLine.textContent = `${courseName}`;
     column1.appendChild(courseLine);
   }
 
@@ -917,6 +1109,8 @@ const eventContent = (arg: any) => {
   // if (courseName) column2Parts.push(courseName);
   if (teacherName) column2Parts.push(teacherName);
 
+  if (type === 2) column2Parts.push('租借');
+
   if (column2Parts.length > 0) {
     column2.textContent = column2Parts.join(' ');
   }
@@ -936,7 +1130,7 @@ const calendarOptions: CalendarOptions = reactive({
   headerToolbar: {
     left: 'prev,next today',
     center: 'title',
-    end: 'resourceTimeGridDay,resourceTimeGridWeek'
+    end: 'resourceTimeGridDay,dayGridMonth'
   },
   titleFormat: (date) => {
     const year = date.date.year;
@@ -1038,3 +1232,42 @@ async function getCourseOptions() {
 //#endregion
 </script>
 
+<style scoped>
+/* 月視圖事件樣式調整 */
+.custom-calendar :deep(.fc-daygrid-event) {
+  min-height: 50px !important;
+  font-size: 13px !important;
+}
+
+.custom-calendar :deep(.fc-daygrid-event div) {
+  width: 100%;
+}
+
+
+.custom-calendar :deep(.fc-daygrid-day-events) {
+  min-height: 60px !important;
+}
+
+.custom-calendar :deep(.fc-daygrid-day-frame) {
+  min-height: 120px !important;
+}
+
+/* 增加月視圖每格的高度 */
+.custom-calendar :deep(.fc-daygrid-day) {
+  min-height: 120px !important;
+}
+
+/* 事件文字樣式 */
+.custom-calendar :deep(.fc-event-title) {
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  padding: 2px 4px !important;
+  white-space: normal !important;
+  overflow: visible !important;
+}
+
+/* 事件容器 */
+.custom-calendar :deep(.fc-event-main) {
+  padding: 1px !important;
+}
+</style>
