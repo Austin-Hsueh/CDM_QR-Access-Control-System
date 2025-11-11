@@ -618,7 +618,7 @@ namespace DoorWebApp.Controllers
                             .Where(x => x.UserId == studentPermission.TeacherId &&
                                        x.IsDelete == false)
                             .Where(x => x.DateFrom == studentPermission.DateFrom &&
-                                       x.DateFrom == studentPermission.DateTo)
+                                       x.DateTo == studentPermission.DateTo)
                             .Where(x => x.TimeFrom == studentPermission.TimeFrom &&
                                        x.TimeTo == studentPermission.TimeTo)
                             .Where(x => x.Days == studentPermission.Days &&
@@ -677,7 +677,7 @@ namespace DoorWebApp.Controllers
                                     ts.StartTime == scheduleEntity.StartTime);
                                 if (matchingTeacherSchedule != null)
                                 {
-                                    UpdateTeacherSchedule(matchingTeacherSchedule, scheduleDTO);
+                                    await UpdateTeacherSchedule(matchingTeacherSchedule, scheduleDTO);
                                 }
                             }
                         }
@@ -1651,7 +1651,7 @@ namespace DoorWebApp.Controllers
         /// <summary>
         /// 更新老師課表
         /// </summary>
-        private void UpdateTeacherSchedule(TblSchedule teacherSchedule, ReqUpdateScheduleDTO scheduleDTO)
+        private async Task UpdateTeacherSchedule(TblSchedule teacherSchedule, ReqUpdateScheduleDTO scheduleDTO)
         {
             teacherSchedule.ClassroomId = scheduleDTO.ClassroomId;
             teacherSchedule.ScheduleDate = scheduleDTO.ScheduleDate.Replace("-", "/");
@@ -1661,7 +1661,7 @@ namespace DoorWebApp.Controllers
             teacherSchedule.Status = scheduleDTO.Status;
             teacherSchedule.Remark = scheduleDTO.Remark;
             teacherSchedule.ModifiedTime = DateTime.Now;
-
+            await ctx.SaveChangesAsync();
             log.LogInformation($"Updated teacher schedule. ScheduleId:{teacherSchedule.Id}");
         }
 
