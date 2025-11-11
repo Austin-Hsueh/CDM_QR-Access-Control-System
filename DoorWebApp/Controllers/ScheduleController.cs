@@ -632,6 +632,7 @@ namespace DoorWebApp.Controllers
                     teacherPermission = new TblStudentPermission()
                     {
                         UserId = studentPermission.TeacherId.Value,
+                        TeacherId = 0,
                         CourseId = studentPermission.CourseId,
                         DateFrom = studentPermission.DateFrom,
                         DateTo = studentPermission.DateTo,
@@ -639,6 +640,8 @@ namespace DoorWebApp.Controllers
                         TimeTo = studentPermission.TimeTo,
                         Days = studentPermission.Days,
                         Type = studentPermission.Type,
+                        PermissionLevel = studentPermission.PermissionLevel,
+                        PermissionGroups = studentPermission.PermissionGroups,
                         IsEnable = true,
                         IsDelete = false,
                     };
@@ -787,9 +790,6 @@ namespace DoorWebApp.Controllers
                     
                     if (!remainingSchedules)
                     {
-                        var studentPermission = await ctx.TblStudentPermission
-                           .Where(x => x.Id == scheduleEntity.StudentPermissionId)
-                           .FirstOrDefaultAsync();
                         if (studentPermission != null)
                         {
                             studentPermission.IsDelete = true;
@@ -1483,14 +1483,14 @@ namespace DoorWebApp.Controllers
                 var newSchedule = new TblSchedule
                 {
                     StudentPermissionId = teacherStudentPermissionId,
-                    ClassroomId = originalSchedule.ClassroomId,
-                    ScheduleDate = originalSchedule.ScheduleDate,
-                    StartTime = originalSchedule.StartTime,
-                    EndTime = originalSchedule.EndTime,
-                    CourseMode = originalSchedule.CourseMode,
-                    ScheduleMode = originalSchedule.ScheduleMode,
+                    ClassroomId = scheduleDTO.ClassroomId,
+                    ScheduleDate = scheduleDTO.ScheduleDate,
+                    StartTime = scheduleDTO.StartTime,
+                    EndTime = scheduleDTO.EndTime,
+                    CourseMode = scheduleDTO.CourseMode,
+                    ScheduleMode = scheduleDTO.UpdateMode,
                     Status = (int)ScheduleStatusType.Normal,
-                    Remark = originalSchedule.Remark,
+                    Remark = scheduleDTO.Remark,
                     IsEnable = true,
                     IsDelete = false,
                     CreatedTime = DateTime.Now,
