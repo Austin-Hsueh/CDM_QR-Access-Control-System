@@ -626,61 +626,21 @@ namespace DoorWebApp.Controllers
                             .Where(x => x.Type == studentPermission.Type )
                             .FirstOrDefaultAsync();
 
-                // 4. 如果不存在，建立老師新的門禁權限
-                if (teacherPermission == null && scheduleEntity.StudentPermission?.TeacherId > 0)
-                {
-                    teacherPermission = new TblStudentPermission()
-                    {
-                        UserId = studentPermission.TeacherId.Value,
-                        TeacherId = 0,
-                        CourseId = studentPermission.CourseId,
-                        DateFrom = studentPermission.DateFrom,
-                        DateTo = studentPermission.DateTo,
-                        TimeFrom = studentPermission.TimeFrom,
-                        TimeTo = studentPermission.TimeTo,
-                        Days = studentPermission.Days,
-                        Type = studentPermission.Type,
-                        PermissionLevel = studentPermission.PermissionLevel,
-                        PermissionGroups = studentPermission.PermissionGroups,
-                        IsEnable = true,
-                        IsDelete = false,
-                    };
-                    ctx.TblStudentPermission.Add(teacherPermission);
-                    await ctx.SaveChangesAsync();
-                    log.LogInformation($"[{Request.Path}] Created new Teacher StudentPermission. Id:{teacherPermission.Id}");
-
-                    auditLog.WriteAuditLog(AuditActType.Create, $"建立老師門禁權限: StudentPermissionId: {teacherPermission.Id}", operatorUsername);
-                }
-
-
                 // 2. 根據 UpdateMode 決定要操作的課表範圍
                 List<TblSchedule> schedulesToUpdate = new List<TblSchedule>();
-                
+                List<TblSchedule> TeacherschedulesToUpdate = new List<TblSchedule>();
+                if (!existOtherStudent && teacherSchedules.Count > 0)
+                {
+                    foreach (var schedule in teacherSchedules)
+                    {
+                        TeacherschedulesToUpdate.Add(schedule);
+                    }
+                }
+
                 switch (scheduleDTO.UpdateMode)
                 {
                     case 1: // 單次修改
                         schedulesToUpdate.Add(scheduleEntity);
-                        
-                        // 處理老師課表
-                        if (scheduleEntity.StudentPermission?.TeacherId > 0)
-                        {
-                            if (teacherSchedules.Count == 0 || existOtherStudent)
-                            {
-                                // 新增老師課表
-                                await CreateNewTeacherScheduleForUpdate(scheduleEntity, scheduleDTO, operatorUsername, teacherPermission.Id);
-                            }
-                            else
-                            {
-                                // 更新老師課表
-                                var matchingTeacherSchedule = teacherSchedules.FirstOrDefault(ts => 
-                                    ts.ScheduleDate == scheduleEntity.ScheduleDate && 
-                                    ts.StartTime == scheduleEntity.StartTime);
-                                if (matchingTeacherSchedule != null)
-                                {
-                                    await UpdateTeacherSchedule(matchingTeacherSchedule, scheduleDTO);
-                                }
-                            }
-                        }
                         
                         log.LogInformation($"[{Request.Path}] Single schedule update mode");
                         break;
@@ -699,21 +659,6 @@ namespace DoorWebApp.Controllers
                                        x.IsDelete == false &&
                                        string.Compare(x.ScheduleDate, fromDate) >= 0)
                             .ToListAsync();
-
-                        // 處理老師課表
-                        if (scheduleEntity.StudentPermission?.TeacherId > 0)
-                        {
-                            if (existOtherStudent)
-                            {
-                                // 為老師建立新課表
-                                await CreateNewTeacherSchedulesForBulkUpdate(schedulesToUpdate, scheduleDTO, operatorUsername);
-                            }
-                            else
-                            {
-                                // 更新老師課表
-                                await UpdateTeacherSchedulesForBulkUpdate(teacherSchedules, schedulesToUpdate, scheduleDTO);
-                            }
-                        }
                             
                         log.LogInformation($"[{Request.Path}] Update from date mode. FromDate:{fromDate}, Count:{schedulesToUpdate.Count}");
                         break;
@@ -723,21 +668,6 @@ namespace DoorWebApp.Controllers
                             .Where(x => x.StudentPermissionId == scheduleEntity.StudentPermissionId &&
                                        x.IsDelete == false)
                             .ToListAsync();
-
-                        // 處理老師課表
-                        if (scheduleEntity.StudentPermission?.TeacherId > 0)
-                        {
-                            if (existOtherStudent)
-                            {
-                                // 為老師建立新課表
-                                await CreateNewTeacherSchedulesForBulkUpdate(schedulesToUpdate, scheduleDTO, operatorUsername);
-                            }
-                            else
-                            {
-                                // 更新老師課表
-                                await UpdateTeacherSchedulesForBulkUpdate(teacherSchedules, schedulesToUpdate, scheduleDTO);
-                            }
-                        }
                             
                         log.LogInformation($"[{Request.Path}] Update all schedules mode. Count:{schedulesToUpdate.Count}");
                         break;
@@ -891,14 +821,56 @@ namespace DoorWebApp.Controllers
                 // 更新老師課表資訊（如果不是新增的情況）
                 if (scheduleEntity.StudentPermission?.TeacherId > 0 && !existOtherStudent)
                 {
-                    foreach (var schedule in schedulesToUpdate)
+                    foreach (var schedule in TeacherschedulesToUpdate)
                     {
-                        var matchingTeacherSchedule = teacherSchedules.FirstOrDefault(ts => 
-                            ts.ScheduleDate == schedule.ScheduleDate && ts.StartTime == schedule.StartTime);
-                        if (matchingTeacherSchedule != null)
+                        // 更新教室（如果有提供）
+                        if (scheduleDTO.ClassroomId > 0)
+                            schedule.ClassroomId = scheduleDTO.ClassroomId;
+
+                        // 更新日期（只有在單次修改模式下才允許修改日期）
+                        if (scheduleDTO.UpdateMode == 1 && !string.IsNullOrEmpty(scheduleDTO.ScheduleDate))
+                            schedule.ScheduleDate = scheduleDTO.ScheduleDate.Replace("-", "/");
+
+                        // 更新時間
+                        if (!string.IsNullOrEmpty(scheduleDTO.StartTime))
+                            schedule.StartTime = scheduleDTO.StartTime;
+
+                        if (!string.IsNullOrEmpty(scheduleDTO.EndTime))
+                            schedule.EndTime = scheduleDTO.EndTime;
+
+                        // 更新課程模式
+                        if (scheduleDTO.CourseMode > 0)
                         {
-                            UpdateTeacherScheduleFromStudent(matchingTeacherSchedule, schedule);
+                            schedule.CourseMode = scheduleDTO.CourseMode;
+
+                            // 重新產生 QR Code
+                            if (scheduleDTO.CourseMode == 1) // 現場課程
+                            {
+                                schedule.QRCodeContent = GenerateQRCodeContent(schedule);
+                            }
+                            else
+                            {
+                                schedule.QRCodeContent = null;
+                            }
                         }
+                        else
+                        {
+                            // 如果沒有提供 CourseMode，保持原有的 QR Code 邏輯
+                            if (schedule.CourseMode == 1)
+                            {
+                                schedule.QRCodeContent = GenerateQRCodeContent(schedule);
+                            }
+                        }
+
+                        // 更新狀態
+                        if (scheduleDTO.Status > 0)
+                            schedule.Status = scheduleDTO.Status;
+
+                        // 更新備註
+                        if (!string.IsNullOrEmpty(scheduleDTO.Remark))
+                            schedule.Remark = scheduleDTO.Remark;
+
+                        schedule.ModifiedTime = DateTime.Now;
                     }
                 }
 
@@ -913,18 +885,11 @@ namespace DoorWebApp.Controllers
                     {
                         // 傳入老師課表一起處理
                         var allSchedulesToProcess = schedulesToUpdate.ToList();
-                        if (scheduleEntity.StudentPermission?.TeacherId > 0 && existOtherStudent)
-                        {
-                            var newTeacherSchedules = teacherSchedules.Where(ts => 
-                                schedulesToUpdate.Any(s => ts.ScheduleDate == s.ScheduleDate && ts.StartTime == s.StartTime)).ToList();
-                            allSchedulesToProcess.AddRange(newTeacherSchedules);
-                        }
+                        var allSchedulesTeacherToProcess = TeacherschedulesToUpdate.ToList();
                         
                         await CreateStudentPermissionFromSchedules(allSchedulesToProcess, operatorUsername);
+                        await CreateStudentPermissionFromSchedules(allSchedulesTeacherToProcess, operatorUsername);
                         log.LogInformation($"[{Request.Path}] Created StudentPermission for UpdateMode: {scheduleDTO.UpdateMode}");
-                        
-                        // 重新載入課表以取得更新後的 StudentPermissionId
-                        // ...existing reload logic...
                     }
                     catch (Exception ex)
                     {
@@ -1340,32 +1305,32 @@ namespace DoorWebApp.Controllers
                         }
                         await ctx.SaveChangesAsync();
 
-                        // 如果有老師且為上課類型，也為老師建立權限
-                        if (originalPermission.TeacherId > 0 && originalPermission.Type == 1)
-                        {
-                            var teacherPermission = await CreateTeacherPermissionFromStudentPermission(newPermission, operatorUsername);
+                        // // 如果有老師且為上課類型，也為老師建立權限
+                        // if (originalPermission.TeacherId > 0 && originalPermission.Type == 1)
+                        // {
+                        //     var teacherPermission = await CreateTeacherPermissionFromStudentPermission(newPermission, operatorUsername);
                             
-                            // 更新老師課表的 StudentPermissionId
-                            if (teacherPermission != null)
-                            {
-                                var teacherSchedulesToUpdate = await ctx.TblSchedule
-                                    .Include(x => x.StudentPermission)
-                                    .Where(x => x.StudentPermission.UserId == originalPermission.TeacherId)
-                                    .Where(x => x.StudentPermission.CourseId == originalPermission.CourseId)
-                                    .Where(x => x.StudentPermission.Type == originalPermission.Type)
-                                    .Where(x => scheduleList.Any(s => x.ScheduleDate == s.ScheduleDate && x.StartTime == s.StartTime))
-                                    .Where(x => x.IsDelete == false)
-                                    .ToListAsync();
+                        //     // 更新老師課表的 StudentPermissionId
+                        //     if (teacherPermission != null)
+                        //     {
+                        //         var teacherSchedulesToUpdate = await ctx.TblSchedule
+                        //             .Include(x => x.StudentPermission)
+                        //             .Where(x => x.StudentPermission.UserId == originalPermission.TeacherId)
+                        //             .Where(x => x.StudentPermission.CourseId == originalPermission.CourseId)
+                        //             .Where(x => x.StudentPermission.Type == originalPermission.Type)
+                        //             .Where(x => scheduleList.Any(s => x.ScheduleDate == s.ScheduleDate && x.StartTime == s.StartTime))
+                        //             .Where(x => x.IsDelete == false)
+                        //             .ToListAsync();
 
-                                foreach (var teacherSchedule in teacherSchedulesToUpdate)
-                                {
-                                    teacherSchedule.StudentPermissionId = teacherPermission.Id;
-                                }
-                                await ctx.SaveChangesAsync();
+                        //         foreach (var teacherSchedule in teacherSchedulesToUpdate)
+                        //         {
+                        //             teacherSchedule.StudentPermissionId = teacherPermission.Id;
+                        //         }
+                        //         await ctx.SaveChangesAsync();
                                 
-                                log.LogInformation($"Updated {teacherSchedulesToUpdate.Count} teacher schedules with new StudentPermissionId: {teacherPermission.Id}");
-                            }
-                        }
+                        //         log.LogInformation($"Updated {teacherSchedulesToUpdate.Count} teacher schedules with new StudentPermissionId: {teacherPermission.Id}");
+                        //     }
+                        // }
 
                         auditLog.WriteAuditLog(AuditActType.Create, 
                             $"Created StudentPermission from schedule update. UserId:{originalPermission.UserId}, " +
