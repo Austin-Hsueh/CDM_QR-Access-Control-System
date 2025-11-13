@@ -659,7 +659,13 @@ namespace DoorWebApp.Controllers
                                        x.IsDelete == false &&
                                        string.Compare(x.ScheduleDate, fromDate) >= 0)
                             .ToListAsync();
-                            
+
+                        TeacherschedulesToUpdate = await ctx.TblSchedule
+                            .Where(x => x.StudentPermissionId == teacherPermission.Id &&
+                                       x.IsDelete == false &&
+                                       string.Compare(x.ScheduleDate, fromDate) >= 0)
+                            .ToListAsync();
+
                         log.LogInformation($"[{Request.Path}] Update from date mode. FromDate:{fromDate}, Count:{schedulesToUpdate.Count}");
                         break;
                         
@@ -668,7 +674,12 @@ namespace DoorWebApp.Controllers
                             .Where(x => x.StudentPermissionId == scheduleEntity.StudentPermissionId &&
                                        x.IsDelete == false)
                             .ToListAsync();
-                            
+
+                        TeacherschedulesToUpdate = await ctx.TblSchedule
+                            .Where(x => x.StudentPermissionId == teacherPermission.Id &&
+                                       x.IsDelete == false)
+                            .ToListAsync();
+
                         log.LogInformation($"[{Request.Path}] Update all schedules mode. Count:{schedulesToUpdate.Count}");
                         break;
                         
@@ -687,21 +698,12 @@ namespace DoorWebApp.Controllers
                         schedule.ModifiedTime = DateTime.Now;
                     }
 
-                    // 處理老師課表刪除
-                    if (scheduleEntity.StudentPermission?.TeacherId > 0 && !existOtherStudent)
+                    foreach (var schedule in TeacherschedulesToUpdate)
                     {
-                        // 刪除老師對應的課表
-                        var teacherSchedulesToDelete = teacherSchedules.Where(ts => schedulesToUpdate.Any(s => 
-                            ts.ScheduleDate == s.ScheduleDate && ts.StartTime == s.StartTime)).ToList();
-                        
-                        foreach (var teacherSchedule in teacherSchedulesToDelete)
-                        {
-                            teacherSchedule.IsDelete = true;
-                            teacherSchedule.ModifiedTime = DateTime.Now;
-                        }
-                        
-                        log.LogInformation($"[{Request.Path}] Deleted {teacherSchedulesToDelete.Count} teacher schedules");
+                        schedule.IsDelete = true;
+                        schedule.ModifiedTime = DateTime.Now;
                     }
+
 
                     int effectRowDelete = await ctx.SaveChangesAsync();
                     log.LogInformation($"[{Request.Path}] Delete schedules success. Mode:{scheduleDTO.UpdateMode}, Count:{schedulesToUpdate.Count}, EffectRow:{effectRowDelete}");
@@ -709,7 +711,7 @@ namespace DoorWebApp.Controllers
                     // 更新門禁權限時間範圍
                     if (scheduleDTO.UpdateMode == 3)
                     {
-                        await UpdateStudentPermissionTimeRangeAsync(scheduleEntity.StudentPermissionId, existOtherStudent, operatorUsername, log);
+                        await UpdateStudentPermissionTimeRangeAsync(scheduleEntity.StudentPermissionId, operatorUsername, log);
                         log.LogInformation($"[{Request.Path}] Updated StudentPermission time range for StudentPermissionId: {scheduleEntity.StudentPermissionId}");
                     }
 
@@ -901,8 +903,11 @@ namespace DoorWebApp.Controllers
                 if(scheduleDTO.UpdateMode == 3)
                 {
                     var finalStudentPermissionId = schedulesToUpdate.Any() ? schedulesToUpdate.First().StudentPermissionId : scheduleEntity.StudentPermissionId;
-                    await UpdateStudentPermissionTimeRangeAsync(finalStudentPermissionId, existOtherStudent, operatorUsername, log);
+                    await UpdateStudentPermissionTimeRangeAsync(finalStudentPermissionId, operatorUsername, log);
                     log.LogInformation($"[{Request.Path}] Updated StudentPermission time range for StudentPermissionId: {finalStudentPermissionId}");
+                    var finalTeacherStudentPermissionId = TeacherschedulesToUpdate.Any() ? TeacherschedulesToUpdate.First().StudentPermissionId : teacherPermission.Id;
+                    await UpdateStudentPermissionTimeRangeAsync(finalTeacherStudentPermissionId, operatorUsername, log);
+                    log.LogInformation($"[{Request.Path}] Updated Teacher StudentPermission time range for StudentPermissionId: {finalTeacherStudentPermissionId}");
                 }
 
                 // 8. 寫入稽核紀錄
@@ -1103,7 +1108,7 @@ namespace DoorWebApp.Controllers
         /// <summary>
         /// 同步更新門禁權限的時間範圍
         /// </summary>
-        private async Task UpdateStudentPermissionTimeRangeAsync(int studentPermissionId, bool existOtherStudent, string operatorUsername, ILogger log)
+        private async Task UpdateStudentPermissionTimeRangeAsync(int studentPermissionId, string operatorUsername, ILogger log)
         {
             try
             {
@@ -1159,21 +1164,6 @@ namespace DoorWebApp.Controllers
                 studentPermission.TimeFrom = minStartTime.ToString(@"hh\:mm");
                 studentPermission.TimeTo = maxEndTime.ToString(@"hh\:mm");
                 studentPermission.Days = string.Join(",", daysOfWeek);
-
-                // 6. 處理老師權限
-                if (studentPermission.TeacherId > 0)
-                {
-                    if (existOtherStudent)
-                    {
-                        // 若老師沒有相同權限及課表則幫老師新增相同權限及課表
-                        await CreateTeacherPermissionAndScheduleIfNotExists(studentPermission, operatorUsername, log);
-                    }
-                    else
-                    {
-                        // 幫老師更新權限
-                        await UpdateTeacherPermissionTimeRange(studentPermission, log);
-                    }
-                }
 
                 // 7. 存檔
                 await ctx.SaveChangesAsync();
