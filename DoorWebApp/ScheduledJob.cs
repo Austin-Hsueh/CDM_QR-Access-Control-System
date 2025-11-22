@@ -85,29 +85,49 @@ public class ScheduledJob : IJob
                                                 new MySqlConnector.MySqlParameter("@time", time),
                                                 new MySqlConnector.MySqlParameter("@Endtime", Endtime),
                                                 new MySqlConnector.MySqlParameter("@day", day))
-                                                         // .Where(p => String.Compare(time, p.TimeFrom) >= 0 && String.Compare(time, p.TimeTo) <= 0)
+                                                         .ToList();
 
-                                                         
-                                                        .Select(g => new UserAccessProfile()
-                                                        {
-                                                             userAddr = (ushort)g.UserId,
-                                                             isGrant = true,
-                                                             doorList = g.PermissionGroups.Select(pg => pg.Id).ToList(),
-                                                             beginTime = nowDate.Replace("/", "-").ToString() + "T" + TimeSpan.Parse(g.TimeFrom).Add(TimeSpan.FromMinutes(-10)).ToString(@"hh\:mm") + ":00",
-                                                             endTime = nowDate.Replace("/", "-").ToString() + "T" + g.TimeTo + ":00"
-                                                        })
-                                                        .ToList();
+            // 建立學生的 UserAccessProfile 清單
+            var userAccessProfiles = studentPermissions.Select(g => new UserAccessProfile()
+            {
+                userAddr = (ushort)g.UserId,
+                isGrant = true,
+                doorList = g.PermissionGroups.Select(pg => pg.Id).ToList(),
+                beginTime = nowDate.Replace("/", "-").ToString() + "T" + TimeSpan.Parse(g.TimeFrom).Add(TimeSpan.FromMinutes(-10)).ToString(@"hh\:mm") + ":00",
+                endTime = nowDate.Replace("/", "-").ToString() + "T" + g.TimeTo + ":00"
+            }).ToList();
+
+            // 加入教師的 UserAccessProfile (TeacherId > 0 的情況)
+            var teacherAccessProfiles = studentPermissions
+                .Where(g => g.TeacherId > 0)
+                .Select(g => new UserAccessProfile()
+                {
+                    userAddr = (ushort)g.TeacherId,
+                    isGrant = true,
+                    doorList = g.PermissionGroups.Select(pg => pg.Id).ToList(),
+                    beginTime = nowDate.Replace("/", "-").ToString() + "T" + TimeSpan.Parse(g.TimeFrom).Add(TimeSpan.FromMinutes(-10)).ToString(@"hh\:mm") + ":00",
+                    endTime = nowDate.Replace("/", "-").ToString() + "T" + g.TimeTo + ":00"
+                }).ToList();
+
+            // 合併學生和教師的清單
+            userAccessProfiles.AddRange(teacherAccessProfiles);
+
+            // 移除重複的 userAddr
+            // userAccessProfiles = userAccessProfiles
+            //     .GroupBy(x => x.userAddr)
+            //     .Select(g => g.First())
+            //     .ToList();
 
             //API 設定並取得QRcode
-            if(studentPermissions.Count == 0)
+            if(userAccessProfiles.Count == 0)
             {
                 log.LogInformation($"無對應課表的清單需要 更新 QRCode 完成");
                 return;
             }
 
-            log.LogInformation($"找到 {studentPermissions.Count} 筆有對應課表的學生權限需要更新 QRCode");
+            log.LogInformation($"找到 {userAccessProfiles.Count} 筆有對應課表的學生權限需要更新 QRCode");
 
-            var result = await SoyalAPI.SendUserAccessProfilesAsync(studentPermissions);
+            var result = await SoyalAPI.SendUserAccessProfilesAsync(userAccessProfiles);
             if (result.msg == "Success" && result.content.Count > 0)
             {
                 foreach (var qrcode in result.content)
