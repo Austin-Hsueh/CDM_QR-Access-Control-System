@@ -109,6 +109,8 @@ namespace DoorWebApp
                 // �]�m�@�ӧ@�~�MĲ�o��
                 var jobKey = new JobKey("ScheduledJob");
                 q.AddJob<ScheduledJob>(opts => opts.WithIdentity(jobKey));
+                
+                // 定時觸發器 - 每 10 分鐘執行一次
                 q.AddTrigger(opts => opts
                     .ForJob(jobKey)
                     .WithIdentity("ScheduledJob-trigger")

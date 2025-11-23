@@ -85,6 +85,7 @@ public class ScheduledJob : IJob
                                                 new MySqlConnector.MySqlParameter("@time", time),
                                                 new MySqlConnector.MySqlParameter("@Endtime", Endtime),
                                                 new MySqlConnector.MySqlParameter("@day", day))
+                                                         .Include(p => p.PermissionGroups)
                                                          .ToList();
 
             // 建立學生的 UserAccessProfile 清單
@@ -92,7 +93,7 @@ public class ScheduledJob : IJob
             {
                 userAddr = (ushort)g.UserId,
                 isGrant = true,
-                doorList = g.PermissionGroups.Select(pg => pg.Id).ToList(),
+                doorList = g.PermissionGroups?.Select(pg => pg.Id).ToList() ?? new List<int>(),
                 beginTime = nowDate.Replace("/", "-").ToString() + "T" + TimeSpan.Parse(g.TimeFrom).Add(TimeSpan.FromMinutes(-10)).ToString(@"hh\:mm") + ":00",
                 endTime = nowDate.Replace("/", "-").ToString() + "T" + g.TimeTo + ":00"
             }).ToList();
@@ -104,7 +105,7 @@ public class ScheduledJob : IJob
                 {
                     userAddr = (ushort)g.TeacherId,
                     isGrant = true,
-                    doorList = g.PermissionGroups.Select(pg => pg.Id).ToList(),
+                    doorList = g.PermissionGroups?.Select(pg => pg.Id).ToList() ?? new List<int>(),
                     beginTime = nowDate.Replace("/", "-").ToString() + "T" + TimeSpan.Parse(g.TimeFrom).Add(TimeSpan.FromMinutes(-10)).ToString(@"hh\:mm") + ":00",
                     endTime = nowDate.Replace("/", "-").ToString() + "T" + g.TimeTo + ":00"
                 }).ToList();
@@ -113,13 +114,13 @@ public class ScheduledJob : IJob
             userAccessProfiles.AddRange(teacherAccessProfiles);
 
             // 移除重複的 userAddr
-            // userAccessProfiles = userAccessProfiles
-            //     .GroupBy(x => x.userAddr)
-            //     .Select(g => g.First())
-            //     .ToList();
+            userAccessProfiles = userAccessProfiles
+                .GroupBy(x => x.userAddr)
+                .Select(g => g.First())
+                .ToList();
 
             //API 設定並取得QRcode
-            if(userAccessProfiles.Count == 0)
+            if (userAccessProfiles.Count == 0)
             {
                 log.LogInformation($"無對應課表的清單需要 更新 QRCode 完成");
                 return;
