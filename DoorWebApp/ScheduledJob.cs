@@ -96,19 +96,23 @@ public class ScheduledJob : IJob
                 doorList = g.PermissionGroups?.Select(pg => pg.Id).ToList() ?? new List<int>(),
                 beginTime = nowDate.Replace("/", "-").ToString() + "T" + TimeSpan.Parse(g.TimeFrom).Add(TimeSpan.FromMinutes(-10)).ToString(@"hh\:mm") + ":00",
                 endTime = nowDate.Replace("/", "-").ToString() + "T" + g.TimeTo + ":00"
-            }).ToList();
+            })
+            .Where(u => u.doorList != null && u.doorList.Any()) // 過濾掉沒有權限群組的記錄
+            .ToList();
 
             // 加入教師的 UserAccessProfile (TeacherId > 0 的情況)
             var teacherAccessProfiles = studentPermissions
-                .Where(g => g.TeacherId > 0)
+                .Where(g => g.TeacherId > 0 && g.PermissionGroups != null) // 加入 null 檢查
                 .Select(g => new UserAccessProfile()
                 {
                     userAddr = (ushort)g.TeacherId,
                     isGrant = true,
-                    doorList = g.PermissionGroups?.Select(pg => pg.Id).ToList() ?? new List<int>(),
+                    doorList = g.PermissionGroups.Select(pg => pg.Id).ToList(),
                     beginTime = nowDate.Replace("/", "-").ToString() + "T" + TimeSpan.Parse(g.TimeFrom).Add(TimeSpan.FromMinutes(-10)).ToString(@"hh\:mm") + ":00",
                     endTime = nowDate.Replace("/", "-").ToString() + "T" + g.TimeTo + ":00"
-                }).ToList();
+                })
+                .Where(u => u.doorList != null && u.doorList.Any()) // 過濾掉沒有權限群組的記錄
+                .ToList();
 
             // 合併學生和教師的清單
             userAccessProfiles.AddRange(teacherAccessProfiles);
