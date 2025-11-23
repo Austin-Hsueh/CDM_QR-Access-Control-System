@@ -115,6 +115,12 @@ namespace DoorWebApp
                     .ForJob(jobKey)
                     .WithIdentity("ScheduledJob-trigger")
                     .WithSchedule(CronScheduleBuilder.CronSchedule("45 09,19,29,39,49,59 * * * ?")));
+                
+                // 啟動時立即執行一次的觸發器
+                q.AddTrigger(opts => opts
+                    .ForJob(jobKey)
+                    .WithIdentity("ScheduledJob-startup-trigger")
+                    .StartNow());
             });
 
             // �K�[ Quartz �D���A��
