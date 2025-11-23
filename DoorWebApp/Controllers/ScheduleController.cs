@@ -46,7 +46,10 @@ namespace DoorWebApp.Controllers
                         .ThenInclude(x => x.User)
                     .Include(x => x.StudentPermission)
                         .ThenInclude(x => x.Teacher)
-                    .Where(x => x.IsDelete == false && x.StudentPermission.IsDelete == false);
+                    .Where(x => x.IsDelete == false && x.StudentPermission.IsDelete == false)
+                    // 過濾條件：租借教室保留，上課類型必須有老師
+                    .Where(x => x.StudentPermission.Type == 2 ||
+                               (x.StudentPermission.Type == 1 && x.StudentPermission.Teacher != null && x.StudentPermission.Teacher.DisplayName != null && x.StudentPermission.Teacher.DisplayName.Trim() != ""));
 
                 // 教室篩選
                 if (queryDTO.ClassroomId.HasValue && queryDTO.ClassroomId > 0)
