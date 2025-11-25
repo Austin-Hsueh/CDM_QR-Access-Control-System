@@ -970,7 +970,7 @@ const handleEventResize = async (resizeInfo: any) => {
       return `${year}-${month}-${day}`;
     };
 
-    const scheduleDate = formatLocalDate(startDate); // "2024-02-15"
+    const scheduleDate = startDate.toISOString().split('T')[0]; // "2024-02-15"
     const startTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`; // "15:00"
     const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`; // "17:00"
 
