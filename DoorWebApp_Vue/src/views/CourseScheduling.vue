@@ -864,7 +864,15 @@ const handleEventDrop = async (dropInfo: any) => {
     const startDate = new Date(event.start);
     const endDate = new Date(event.end);
 
-    const scheduleDate = startDate.toISOString().split('T')[0]; // "2024-02-15"
+    // 使用本地時間格式化日期，避免時區問題
+    const formatLocalDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const scheduleDate = formatLocalDate(startDate); // "2024-02-15"
     const startTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`; // "15:00"
     const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`; // "17:00"
 
@@ -899,8 +907,10 @@ const handleEventDrop = async (dropInfo: any) => {
     } else if (updateMode === 2) {
       // 某日後全部修改：需要 fromDate
       cmd.fromDate = fromDate;
+    } else if (updateMode === 3) {
+      // 全部修改：需要 fromDate
+      cmd.fromDate = fromDate;
     }
-    // updateMode === 3 (全部修改)：不需要日期欄位
 
     console.log('更新課程排程:', cmd);
 
@@ -952,7 +962,15 @@ const handleEventResize = async (resizeInfo: any) => {
     const endDate = new Date(event.end);
     const resource = event.getResources()[0];
 
-    const scheduleDate = startDate.toISOString().split('T')[0]; // "2024-02-15"
+    // 使用本地時間格式化日期，避免時區問題
+    const formatLocalDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const scheduleDate = formatLocalDate(startDate); // "2024-02-15"
     const startTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`; // "15:00"
     const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`; // "17:00"
 
@@ -987,8 +1005,11 @@ const handleEventResize = async (resizeInfo: any) => {
     } else if (updateMode === 2) {
       // 某日後全部修改：需要 fromDate
       cmd.fromDate = fromDate;
+    } else if (updateMode === 3) {
+      // 某日後全部修改：需要 fromDate
+      cmd.fromDate = fromDate;
     }
-    // updateMode === 3 (全部修改)：不需要日期欄位
+    
 
     console.log('更新課程時間:', cmd);
 
