@@ -596,8 +596,7 @@ namespace DoorWebApp.Controllers
                         var fromDate = scheduleDTO.FromDate.Replace("-", "/");
                         schedulesToUpdate = await ctx.TblSchedule
                             .Where(x => x.StudentPermissionId == scheduleEntity.StudentPermissionId &&
-                                       x.IsDelete == false &&
-                                       string.Compare(x.ScheduleDate, fromDate) >= 0)
+                                       x.IsDelete == false && x.Id >= scheduleDTO.ScheduleId)
                             .ToListAsync();
 
                         log.LogInformation($"[{Request.Path}] Update from date mode. FromDate:{fromDate}, Count:{schedulesToUpdate.Count}");
@@ -692,6 +691,20 @@ namespace DoorWebApp.Controllers
                     }
                 }
 
+                // 計算日期差距（UpdateMode 2 和 3）
+                int dateDifference = 0;
+                if ((scheduleDTO.UpdateMode == 2 || scheduleDTO.UpdateMode == 3) && !string.IsNullOrEmpty(scheduleDTO.FromDate))
+                {
+                    // 原始課表日期
+                    DateTime originalScheduleDate = DateTime.ParseExact(scheduleEntity.ScheduleDate, "yyyy/MM/dd", null);
+                    // 新的目標日期
+                    DateTime newTargetDate = DateTime.ParseExact(scheduleDTO.FromDate.Replace("-", "/"), "yyyy/MM/dd", null);
+                    // 計算日期差距
+                    dateDifference = (newTargetDate - originalScheduleDate).Days;
+
+                    log.LogInformation($"[{Request.Path}] Date difference calculated: {dateDifference} days. Original:{scheduleEntity.ScheduleDate}, Target:{scheduleDTO.ScheduleDate}");
+                }
+
                 // 5. 更新課表資訊
                 foreach (var schedule in schedulesToUpdate)
                 {
@@ -699,9 +712,22 @@ namespace DoorWebApp.Controllers
                     if (scheduleDTO.ClassroomId > 0)
                         schedule.ClassroomId = scheduleDTO.ClassroomId;
 
-                    // 更新日期（只有在單次修改模式下才允許修改日期）
-                    if (scheduleDTO.UpdateMode == 1 && !string.IsNullOrEmpty(scheduleDTO.ScheduleDate))
-                        schedule.ScheduleDate = scheduleDTO.ScheduleDate.Replace("-", "/");
+                    // 更新日期
+                    if (!string.IsNullOrEmpty(scheduleDTO.FromDate))
+                    {
+                        if (scheduleDTO.UpdateMode == 1)
+                        {
+                            // 單次修改：直接使用提供的日期
+                            schedule.ScheduleDate = scheduleDTO.FromDate.Replace("-", "/");
+                        }
+                        else if (scheduleDTO.UpdateMode == 2 || scheduleDTO.UpdateMode == 3)
+                        {
+                            // 批次修改：根據日期差距調整
+                            DateTime currentScheduleDate = DateTime.ParseExact(schedule.ScheduleDate, "yyyy/MM/dd", null);
+                            DateTime newScheduleDate = currentScheduleDate.AddDays(dateDifference);
+                            schedule.ScheduleDate = newScheduleDate.ToString("yyyy/MM/dd");
+                        }
+                    }
 
                     // 更新時間
                     if (!string.IsNullOrEmpty(scheduleDTO.StartTime))
