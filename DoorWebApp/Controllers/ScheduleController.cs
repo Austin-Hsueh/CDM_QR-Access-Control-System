@@ -712,15 +712,13 @@ namespace DoorWebApp.Controllers
                     if (scheduleDTO.ClassroomId > 0)
                         schedule.ClassroomId = scheduleDTO.ClassroomId;
 
+                    if (!string.IsNullOrEmpty(scheduleDTO.ScheduleDate))
+                        schedule.ScheduleDate = scheduleDTO.ScheduleDate.Replace("-", "/");
+
                     // 更新日期
                     if (!string.IsNullOrEmpty(scheduleDTO.FromDate))
                     {
-                        if (scheduleDTO.UpdateMode == 1)
-                        {
-                            // 單次修改：直接使用提供的日期
-                            schedule.ScheduleDate = scheduleDTO.FromDate.Replace("-", "/");
-                        }
-                        else if (scheduleDTO.UpdateMode == 2 || scheduleDTO.UpdateMode == 3)
+                        if (scheduleDTO.UpdateMode == 2 || scheduleDTO.UpdateMode == 3)
                         {
                             // 批次修改：根據日期差距調整
                             DateTime currentScheduleDate = DateTime.ParseExact(schedule.ScheduleDate, "yyyy/MM/dd", null);
