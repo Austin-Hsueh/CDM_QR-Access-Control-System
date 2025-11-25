@@ -554,18 +554,16 @@ namespace DoorWebApp.Controllers
         public async Task<IActionResult> UpdateSchedule(ReqUpdateScheduleDTO scheduleDTO)
         {
             APIResponse res = new APIResponse();
-            
+
             try
             {
                 int operatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
                 string operatorUsername = User.Identity?.Name ?? "N/A";
 
                 log.LogInformation($"[{Request.Path}] Update schedule. OperatorId:{operatorId}, ScheduleId:{scheduleDTO.ScheduleId}, UpdateMode:{scheduleDTO.UpdateMode}");
-                
-                // 1. 資料檢核 - 撈出學生課表和老師課表
+
+                // 1. 資料檢核
                 var scheduleEntity = await ctx.TblSchedule
-                    .Include(x => x.StudentPermission)
-                        .ThenInclude(x => x.Teacher)
                     .Where(x => x.Id == scheduleDTO.ScheduleId && x.IsDelete == false)
                     .FirstOrDefaultAsync();
 
@@ -577,82 +575,16 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
-                // 檢查老師課表和其他學生狀況
-                List<TblSchedule> teacherSchedules = new List<TblSchedule>();
-                bool existOtherStudent = false;
-                
-                if (scheduleEntity.StudentPermission?.TeacherId > 0)
-                {
-                    var teacherId = scheduleEntity.StudentPermission.TeacherId.Value;
-                    
-                    // 查找老師的課表
-                    teacherSchedules = await ctx.TblSchedule
-                        .Include(x => x.StudentPermission)
-                        .Where(x => x.StudentPermission.UserId == teacherId)
-                        .Where(x => x.StudentPermission.CourseId == scheduleEntity.StudentPermission.CourseId)
-                        .Where(x => x.StudentPermission.Type == scheduleEntity.StudentPermission.Type)
-                        .Where(x => x.ScheduleDate == scheduleEntity.ScheduleDate)
-                        .Where(x => x.StartTime == scheduleEntity.StartTime)
-                        .Where(x => x.EndTime == scheduleEntity.EndTime)
-                        .Where(x => x.IsDelete == false)
-                        .ToListAsync();
-
-                    // 檢查是否有其他學生使用相同課表
-                    existOtherStudent = await ctx.TblSchedule
-                        .Include(x => x.StudentPermission)
-                        .Where(x => x.StudentPermission.TeacherId == teacherId)
-                        .Where(x => x.StudentPermission.CourseId == scheduleEntity.StudentPermission.CourseId)
-                        .Where(x => x.StudentPermission.Type == scheduleEntity.StudentPermission.Type)
-                        .Where(x => x.StudentPermissionId != scheduleEntity.StudentPermissionId)
-                        .Where(x => x.ScheduleDate == scheduleEntity.ScheduleDate)
-                        .Where(x => x.StartTime == scheduleEntity.StartTime)
-                        .Where(x => x.EndTime == scheduleEntity.EndTime)
-                        .Where(x => x.IsDelete == false)
-                        .AnyAsync();
-
-                    log.LogInformation($"[{Request.Path}] Teacher schedules found: {teacherSchedules.Count}, existOtherStudent: {existOtherStudent}");
-                }
-
-                // 撈老師門禁
-                var studentPermission = await ctx.TblStudentPermission
-                            .Where(x => x.Id == scheduleEntity.StudentPermissionId &&
-                                       x.IsDelete == false).FirstOrDefaultAsync();
-                
-                TblStudentPermission teacherPermission = null;
-                if (studentPermission?.TeacherId > 0)
-                {
-                    teacherPermission = await ctx.TblStudentPermission
-                                .Where(x => x.UserId == studentPermission.TeacherId &&
-                                           x.IsDelete == false)
-                                .Where(x => x.DateFrom == studentPermission.DateFrom &&
-                                           x.DateTo == studentPermission.DateTo)
-                                .Where(x => x.TimeFrom == studentPermission.TimeFrom &&
-                                           x.TimeTo == studentPermission.TimeTo)
-                                .Where(x => x.Days == studentPermission.Days &&
-                                           x.CourseId == studentPermission.CourseId)
-                                .Where(x => x.Type == studentPermission.Type)
-                                .FirstOrDefaultAsync();
-                }
-
                 // 2. 根據 UpdateMode 決定要操作的課表範圍
                 List<TblSchedule> schedulesToUpdate = new List<TblSchedule>();
-                List<TblSchedule> TeacherschedulesToUpdate = new List<TblSchedule>();
-                if (!existOtherStudent && teacherSchedules.Count > 0)
-                {
-                    foreach (var schedule in teacherSchedules)
-                    {
-                        TeacherschedulesToUpdate.Add(schedule);
-                    }
-                }
 
                 switch (scheduleDTO.UpdateMode)
                 {
                     case 1: // 單次修改
                         schedulesToUpdate.Add(scheduleEntity);
-                        
                         log.LogInformation($"[{Request.Path}] Single schedule update mode");
                         break;
-                        
+
                     case 2: // 某日後全部修改
                         if (string.IsNullOrEmpty(scheduleDTO.FromDate))
                         {
@@ -668,37 +600,18 @@ namespace DoorWebApp.Controllers
                                        string.Compare(x.ScheduleDate, fromDate) >= 0)
                             .ToListAsync();
 
-                        // 只有在老師門禁存在時才查詢老師課表
-                        if (teacherPermission != null)
-                        {
-                            TeacherschedulesToUpdate = await ctx.TblSchedule
-                                .Where(x => x.StudentPermissionId == teacherPermission.Id &&
-                                           x.IsDelete == false &&
-                                           string.Compare(x.ScheduleDate, fromDate) >= 0)
-                                .ToListAsync();
-                        }
-
                         log.LogInformation($"[{Request.Path}] Update from date mode. FromDate:{fromDate}, Count:{schedulesToUpdate.Count}");
                         break;
-                        
+
                     case 3: // 全部修改
                         schedulesToUpdate = await ctx.TblSchedule
                             .Where(x => x.StudentPermissionId == scheduleEntity.StudentPermissionId &&
                                        x.IsDelete == false)
                             .ToListAsync();
 
-                        // 只有在老師門禁存在時才查詢老師課表
-                        if (teacherPermission != null)
-                        {
-                            TeacherschedulesToUpdate = await ctx.TblSchedule
-                                .Where(x => x.StudentPermissionId == teacherPermission.Id &&
-                                           x.IsDelete == false)
-                                .ToListAsync();
-                        }
-
                         log.LogInformation($"[{Request.Path}] Update all schedules mode. Count:{schedulesToUpdate.Count}");
                         break;
-                        
+
                     default:
                         res.result = APIResultCode.parameter_error;
                         res.msg = "UpdateMode 參數錯誤 (1=單次修改, 2=某日後全部修改, 3=全部修改)";
@@ -714,20 +627,13 @@ namespace DoorWebApp.Controllers
                         schedule.ModifiedTime = DateTime.Now;
                     }
 
-                    foreach (var schedule in TeacherschedulesToUpdate)
-                    {
-                        schedule.IsDelete = true;
-                        schedule.ModifiedTime = DateTime.Now;
-                    }
-
-
                     int effectRowDelete = await ctx.SaveChangesAsync();
                     log.LogInformation($"[{Request.Path}] Delete schedules success. Mode:{scheduleDTO.UpdateMode}, Count:{schedulesToUpdate.Count}, EffectRow:{effectRowDelete}");
 
                     // 更新門禁權限時間範圍
                     if (scheduleDTO.UpdateMode == 3)
                     {
-                        await UpdateStudentPermissionTimeRangeAsync(scheduleEntity.StudentPermissionId, operatorUsername, log);
+                        await UpdateStudentPermissionTimeRangeAsync(scheduleEntity.StudentPermissionId, log);
                         log.LogInformation($"[{Request.Path}] Updated StudentPermission time range for StudentPermissionId: {scheduleEntity.StudentPermissionId}");
                     }
 
@@ -735,9 +641,12 @@ namespace DoorWebApp.Controllers
                     var remainingSchedules = await ctx.TblSchedule
                         .Where(x => x.StudentPermissionId == scheduleEntity.StudentPermissionId && x.IsDelete == false)
                         .AnyAsync();
-                    
+
                     if (!remainingSchedules)
                     {
+                        var studentPermission = await ctx.TblStudentPermission
+                           .Where(x => x.Id == scheduleEntity.StudentPermissionId)
+                           .FirstOrDefaultAsync();
                         if (studentPermission != null)
                         {
                             studentPermission.IsDelete = true;
@@ -773,7 +682,7 @@ namespace DoorWebApp.Controllers
                     var classroom = await ctx.TblClassroom
                         .Where(x => x.Id == scheduleDTO.ClassroomId && x.IsDelete == false && x.IsEnable == true)
                         .FirstOrDefaultAsync();
-                    
+
                     if (classroom == null)
                     {
                         log.LogWarning($"[{Request.Path}] Classroom (Id:{scheduleDTO.ClassroomId}) not found or disabled");
@@ -783,20 +692,6 @@ namespace DoorWebApp.Controllers
                     }
                 }
 
-                // 計算日期差距（UpdateMode 2 和 3）
-                int dateDifference = 0;
-                if ((scheduleDTO.UpdateMode == 2 || scheduleDTO.UpdateMode == 3) && !string.IsNullOrEmpty(scheduleDTO.FromDate))
-                {
-                    // 原始課表日期
-                    DateTime originalScheduleDate = DateTime.ParseExact(scheduleEntity.ScheduleDate, "yyyy/MM/dd", null);
-                    // 新的目標日期
-                    DateTime newTargetDate = DateTime.ParseExact(scheduleDTO.FromDate.Replace("-", "/"), "yyyy/MM/dd", null);
-                    // 計算日期差距
-                    dateDifference = (newTargetDate - originalScheduleDate).Days;
-                    
-                    log.LogInformation($"[{Request.Path}] Date difference calculated: {dateDifference} days. Original:{scheduleEntity.ScheduleDate}, Target:{scheduleDTO.ScheduleDate}");
-                }
-
                 // 5. 更新課表資訊
                 foreach (var schedule in schedulesToUpdate)
                 {
@@ -804,22 +699,9 @@ namespace DoorWebApp.Controllers
                     if (scheduleDTO.ClassroomId > 0)
                         schedule.ClassroomId = scheduleDTO.ClassroomId;
 
-                    // 更新日期
-                    if (!string.IsNullOrEmpty(scheduleDTO.FromDate))
-                    {
-                        if (scheduleDTO.UpdateMode == 1)
-                        {
-                            // 單次修改：直接使用提供的日期
-                            schedule.ScheduleDate = scheduleDTO.FromDate.Replace("-", "/");
-                        }
-                        else if (scheduleDTO.UpdateMode == 2 || scheduleDTO.UpdateMode == 3)
-                        {
-                            // 批次修改：根據日期差距調整
-                            DateTime currentScheduleDate = DateTime.ParseExact(schedule.ScheduleDate, "yyyy/MM/dd", null);
-                            DateTime newScheduleDate = currentScheduleDate.AddDays(dateDifference);
-                            schedule.ScheduleDate = newScheduleDate.ToString("yyyy/MM/dd");
-                        }
-                    }
+                    // 更新日期（只有在單次修改模式下才允許修改日期）
+                    if (scheduleDTO.UpdateMode == 1 && !string.IsNullOrEmpty(scheduleDTO.ScheduleDate))
+                        schedule.ScheduleDate = scheduleDTO.ScheduleDate.Replace("-", "/");
 
                     // 更新時間
                     if (!string.IsNullOrEmpty(scheduleDTO.StartTime))
@@ -863,91 +745,16 @@ namespace DoorWebApp.Controllers
                     schedule.ModifiedTime = DateTime.Now;
                 }
 
-                // 更新老師課表資訊（如果不是新增的情況）
-                if (scheduleEntity.StudentPermission?.TeacherId > 0 && !existOtherStudent)
-                {
-                    foreach (var schedule in TeacherschedulesToUpdate)
-                    {
-                        // 更新教室（如果有提供）
-                        if (scheduleDTO.ClassroomId > 0)
-                            schedule.ClassroomId = scheduleDTO.ClassroomId;
-
-                        // 更新日期
-                        if (!string.IsNullOrEmpty(scheduleDTO.ScheduleDate))
-                        {
-                            if (scheduleDTO.UpdateMode == 1)
-                            {
-                                // 單次修改：直接使用提供的日期
-                                schedule.ScheduleDate = scheduleDTO.ScheduleDate.Replace("-", "/");
-                            }
-                            else if (scheduleDTO.UpdateMode == 2 || scheduleDTO.UpdateMode == 3)
-                            {
-                                // 批次修改：根據日期差距調整
-                                DateTime currentScheduleDate = DateTime.ParseExact(schedule.ScheduleDate, "yyyy/MM/dd", null);
-                                DateTime newScheduleDate = currentScheduleDate.AddDays(dateDifference);
-                                schedule.ScheduleDate = newScheduleDate.ToString("yyyy/MM/dd");
-                            }
-                        }
-
-                        // 更新時間
-                        if (!string.IsNullOrEmpty(scheduleDTO.StartTime))
-                            schedule.StartTime = scheduleDTO.StartTime;
-
-                        if (!string.IsNullOrEmpty(scheduleDTO.EndTime))
-                            schedule.EndTime = scheduleDTO.EndTime;
-
-                        // 更新課程模式
-                        if (scheduleDTO.CourseMode > 0)
-                        {
-                            schedule.CourseMode = scheduleDTO.CourseMode;
-
-                            // 重新產生 QR Code
-                            if (scheduleDTO.CourseMode == 1) // 現場課程
-                            {
-                                schedule.QRCodeContent = GenerateQRCodeContent(schedule);
-                            }
-                            else
-                            {
-                                schedule.QRCodeContent = null;
-                            }
-                        }
-                        else
-                        {
-                            // 如果沒有提供 CourseMode，保持原有的 QR Code 邏輯
-                            if (schedule.CourseMode == 1)
-                            {
-                                schedule.QRCodeContent = GenerateQRCodeContent(schedule);
-                            }
-                        }
-
-                        // 更新狀態
-                        if (scheduleDTO.Status > 0)
-                            schedule.Status = scheduleDTO.Status;
-
-                        // 更新備註
-                        if (!string.IsNullOrEmpty(scheduleDTO.Remark))
-                            schedule.Remark = scheduleDTO.Remark;
-
-                        schedule.ModifiedTime = DateTime.Now;
-                    }
-                }
-
                 // 6. 存檔
                 int effectRow = await ctx.SaveChangesAsync();
                 log.LogInformation($"[{Request.Path}] Update success. Mode:{scheduleDTO.UpdateMode}, Count:{schedulesToUpdate.Count}, EffectRow:{effectRow}");
 
-                // 6.1 新增 StudentPermission 處理 (UpdateMode 1 和 2) - 需要先執行以取得新的 StudentPermissionId
+                // 6.1 新增 StudentPermission 處理 (UpdateMode 1 和 2)
                 if (scheduleDTO.UpdateMode == 1 || scheduleDTO.UpdateMode == 2)
                 {
                     try
                     {
-                        // 傳入老師課表一起處理
-                        var allSchedulesToProcess = schedulesToUpdate.ToList();
-                        var allSchedulesTeacherToProcess = TeacherschedulesToUpdate.ToList();
-                        
-                        await CreateStudentPermissionFromSchedules(allSchedulesToProcess, operatorUsername);
-                        if(allSchedulesTeacherToProcess.Count > 0)
-                            await CreateStudentPermissionFromSchedules(allSchedulesTeacherToProcess, operatorUsername);
+                        await CreateStudentPermissionFromSchedules(schedulesToUpdate, operatorUsername);
                         log.LogInformation($"[{Request.Path}] Created StudentPermission for UpdateMode: {scheduleDTO.UpdateMode}");
                     }
                     catch (Exception ex)
@@ -957,14 +764,10 @@ namespace DoorWebApp.Controllers
                 }
 
                 // 7. 同步更新門禁權限時間範圍
-                if(scheduleDTO.UpdateMode == 3)
+                if (scheduleDTO.UpdateMode == 3)
                 {
-                    var finalStudentPermissionId = schedulesToUpdate.Any() ? schedulesToUpdate.First().StudentPermissionId : scheduleEntity.StudentPermissionId;
-                    await UpdateStudentPermissionTimeRangeAsync(finalStudentPermissionId, operatorUsername, log);
-                    log.LogInformation($"[{Request.Path}] Updated StudentPermission time range for StudentPermissionId: {finalStudentPermissionId}");
-                    var finalTeacherStudentPermissionId = TeacherschedulesToUpdate.Any() ? TeacherschedulesToUpdate.First().StudentPermissionId : teacherPermission.Id;
-                    await UpdateStudentPermissionTimeRangeAsync(finalTeacherStudentPermissionId, operatorUsername, log);
-                    log.LogInformation($"[{Request.Path}] Updated Teacher StudentPermission time range for StudentPermissionId: {finalTeacherStudentPermissionId}");
+                    await UpdateStudentPermissionTimeRangeAsync(scheduleEntity.StudentPermissionId, log);
+                    log.LogInformation($"[{Request.Path}] Updated StudentPermission time range for StudentPermissionId: {scheduleEntity.StudentPermissionId}");
                 }
 
                 // 8. 寫入稽核紀錄
@@ -1000,7 +803,7 @@ namespace DoorWebApp.Controllers
         private List<TblSchedule> GenerateSchedules(ReqNewScheduleDTO scheduleDTO)
         {
             var schedules = new List<TblSchedule>();
-            
+
             DateTime startDate = DateTime.ParseExact(scheduleDTO.StartDate.Replace("-", "/"), "yyyy/MM/dd", CultureInfo.InvariantCulture);
             DateTime endDate = DateTime.ParseExact(scheduleDTO.EndDate.Replace("-", "/"), "yyyy/MM/dd", CultureInfo.InvariantCulture);
 
@@ -1009,11 +812,11 @@ namespace DoorWebApp.Controllers
                 case (int)ScheduleModeType.Weekly: // 每週固定
                     GenerateWeeklySchedules(schedules, scheduleDTO, startDate, endDate, 1);
                     break;
-                    
+
                 case (int)ScheduleModeType.BiWeekly: // 每兩週固定
                     GenerateWeeklySchedules(schedules, scheduleDTO, startDate, endDate, 2);
                     break;
-                    
+
                 case (int)ScheduleModeType.OneTime: // 單次課程
                     GenerateOneTimeSchedule(schedules, scheduleDTO, startDate);
                     break;
@@ -1025,14 +828,14 @@ namespace DoorWebApp.Controllers
         /// <summary>
         /// 產生週期性課表
         /// </summary>
-        private void GenerateWeeklySchedules(List<TblSchedule> schedules, ReqNewScheduleDTO scheduleDTO, 
+        private void GenerateWeeklySchedules(List<TblSchedule> schedules, ReqNewScheduleDTO scheduleDTO,
             DateTime startDate, DateTime endDate, int weekInterval)
         {
             if (!scheduleDTO.DayOfWeek.HasValue)
                 return;
 
             DateTime currentDate = startDate;
-            
+
             // 找到第一個符合星期幾的日期
             while (currentDate <= endDate && (int)currentDate.DayOfWeek != (scheduleDTO.DayOfWeek.Value % 7))
             {
@@ -1044,7 +847,7 @@ namespace DoorWebApp.Controllers
             {
                 var schedule = CreateScheduleEntity(scheduleDTO, currentDate);
                 schedules.Add(schedule);
-                
+
                 currentDate = currentDate.AddDays(7 * weekInterval); // 下一次課程
             }
         }
@@ -1165,7 +968,7 @@ namespace DoorWebApp.Controllers
         /// <summary>
         /// 同步更新門禁權限的時間範圍
         /// </summary>
-        private async Task UpdateStudentPermissionTimeRangeAsync(int studentPermissionId, string operatorUsername, ILogger log)
+        private async Task UpdateStudentPermissionTimeRangeAsync(int studentPermissionId, ILogger log)
         {
             try
             {
@@ -1205,7 +1008,7 @@ namespace DoorWebApp.Controllers
 
                 // 4. 計算涉及的星期幾
                 var daysOfWeek = relatedSchedules
-                    .Select(x => 
+                    .Select(x =>
                     {
                         var date = DateTime.ParseExact(x.ScheduleDate, "yyyy/MM/dd", null);
                         int day = (int)date.DayOfWeek;
@@ -1222,607 +1025,13 @@ namespace DoorWebApp.Controllers
                 studentPermission.TimeTo = maxEndTime.ToString(@"hh\:mm");
                 studentPermission.Days = string.Join(",", daysOfWeek);
 
-                // 7. 存檔
+                // 6. 存檔
                 await ctx.SaveChangesAsync();
                 log.LogInformation($"Updated StudentPermission time range: DateFrom={studentPermission.DateFrom}, DateTo={studentPermission.DateTo}, TimeFrom={studentPermission.TimeFrom}, TimeTo={studentPermission.TimeTo}, Days={studentPermission.Days}");
             }
             catch (Exception ex)
             {
                 log.LogError(ex, $"Error updating StudentPermission time range for StudentPermissionId: {studentPermissionId}");
-            }
-        }
-
-        /// <summary>
-        /// 根據課表建立對應的 StudentPermission（包含老師課表）
-        /// </summary>
-        private async Task CreateStudentPermissionFromSchedules(List<TblSchedule> schedules, string operatorUsername)
-        {
-            try
-            {
-                if (!schedules.Any()) return;
-
-                // 按 StudentPermissionId 分組處理
-                var groupedSchedules = schedules
-                    .GroupBy(s => s.StudentPermissionId)
-                    .ToList();
-
-                foreach (var group in groupedSchedules)
-                {
-                    var scheduleList = group.OrderBy(s => s.ScheduleDate).ThenBy(s => s.StartTime).ToList();
-                    var firstSchedule = scheduleList.First();
-
-                    // 取得原始的 StudentPermission 資訊
-                    var originalPermission = await ctx.TblStudentPermission
-                        .Include(x => x.PermissionGroups)
-                        .Include(x => x.User)
-                        .Include(x => x.Course)
-                        .Where(x => x.Id == group.Key)
-                        .FirstOrDefaultAsync();
-
-                    if (originalPermission == null) continue;
-
-                    // 計算新的時間範圍
-                    var dates = scheduleList.Select(s => DateTime.ParseExact(s.ScheduleDate, "yyyy/MM/dd", null)).ToList();
-                    var startTimes = scheduleList.Select(s => TimeSpan.Parse(s.StartTime)).ToList();
-                    var endTimes = scheduleList.Select(s => TimeSpan.Parse(s.EndTime)).ToList();
-
-                    DateTime minDate = dates.Min();
-                    DateTime maxDate = dates.Max();
-                    TimeSpan minStartTime = startTimes.Min();
-                    TimeSpan maxEndTime = endTimes.Max();
-
-                    // 計算涉及的星期幾
-                    var daysOfWeek = dates
-                        .Select(date => 
-                        {
-                            int day = (int)date.DayOfWeek;
-                            return day == 0 ? 7 : day; // 星期日調整為7
-                        })
-                        .Distinct()
-                        .OrderBy(x => x)
-                        .ToList();
-
-                    // 檢查是否已存在相同的 StudentPermission
-                    var existingPermission = await ctx.TblStudentPermission
-                        .Include(x => x.PermissionGroups)
-                        .Where(x => x.UserId == originalPermission.UserId)
-                        .Where(x => x.IsDelete == false)
-                        .Where(x => x.Type == originalPermission.Type)
-                        .Where(x => x.CourseId == originalPermission.CourseId)
-                        .Where(x => x.TeacherId == originalPermission.TeacherId)
-                        .Where(x => x.DateFrom == minDate.ToString("yyyy/MM/dd"))
-                        .Where(x => x.DateTo == maxDate.ToString("yyyy/MM/dd"))
-                        .Where(x => x.TimeFrom == minStartTime.ToString(@"hh\:mm"))
-                        .Where(x => x.TimeTo == maxEndTime.ToString(@"hh\:mm"))
-                        .Where(x => x.Days == string.Join(",", daysOfWeek))
-                        .FirstOrDefaultAsync();
-
-                    if (existingPermission != null)
-                    {
-                        log.LogInformation($"StudentPermission already exists for UserId:{originalPermission.UserId}, skipping creation");
-                        continue;
-                    }
-
-                    // 建立新的 StudentPermission
-                    var newPermission = new TblStudentPermission
-                    {
-                        UserId = originalPermission.UserId,
-                        CourseId = originalPermission.CourseId,
-                        TeacherId = originalPermission.TeacherId,
-                        Type = originalPermission.Type,
-                        DateFrom = minDate.ToString("yyyy/MM/dd"),
-                        DateTo = maxDate.ToString("yyyy/MM/dd"),
-                        TimeFrom = minStartTime.ToString(@"hh\:mm"),
-                        TimeTo = maxEndTime.ToString(@"hh\:mm"),
-                        Days = string.Join(",", daysOfWeek),
-                        PermissionLevel = originalPermission.PermissionLevel,
-                        RecordId = originalPermission.Id,
-                        IsEnable = true,
-                        IsDelete = false,
-                    };
-
-                    // 複製權限群組
-                    var permissionGroupIds = originalPermission.PermissionGroups.Select(pg => pg.Id).ToList();
-                    var permissionGroups = await ctx.TblPermissionGroup
-                        .Where(x => permissionGroupIds.Contains(x.Id))
-                        .ToListAsync();
-                    
-                    newPermission.PermissionGroups = permissionGroups;
-
-                    // 取得使用者並新增權限
-                    var user = await ctx.TblUsers
-                        .Include(x => x.StudentPermissions)
-                        .Where(x => x.Id == originalPermission.UserId)
-                        .FirstOrDefaultAsync();
-
-                    if (user != null)
-                    {
-                        user.StudentPermissions.Add(newPermission);
-                        await ctx.SaveChangesAsync();
-
-                        log.LogInformation($"Created new StudentPermission for UserId:{originalPermission.UserId}, " +
-                            $"DateRange:{newPermission.DateFrom}-{newPermission.DateTo}, " +
-                            $"TimeRange:{newPermission.TimeFrom}-{newPermission.TimeTo}, " +
-                            $"Days:{newPermission.Days}");
-
-                        // 更新課表的 StudentPermissionId
-                        foreach (var schedule in scheduleList)
-                        {
-                            schedule.StudentPermissionId = newPermission.Id;
-                        }
-                        await ctx.SaveChangesAsync();
-
-                        // // 如果有老師且為上課類型，也為老師建立權限
-                        // if (originalPermission.TeacherId > 0 && originalPermission.Type == 1)
-                        // {
-                        //     var teacherPermission = await CreateTeacherPermissionFromStudentPermission(newPermission, operatorUsername);
-                            
-                        //     // 更新老師課表的 StudentPermissionId
-                        //     if (teacherPermission != null)
-                        //     {
-                        //         var teacherSchedulesToUpdate = await ctx.TblSchedule
-                        //             .Include(x => x.StudentPermission)
-                        //             .Where(x => x.StudentPermission.UserId == originalPermission.TeacherId)
-                        //             .Where(x => x.StudentPermission.CourseId == originalPermission.CourseId)
-                        //             .Where(x => x.StudentPermission.Type == originalPermission.Type)
-                        //             .Where(x => scheduleList.Any(s => x.ScheduleDate == s.ScheduleDate && x.StartTime == s.StartTime))
-                        //             .Where(x => x.IsDelete == false)
-                        //             .ToListAsync();
-
-                        //         foreach (var teacherSchedule in teacherSchedulesToUpdate)
-                        //         {
-                        //             teacherSchedule.StudentPermissionId = teacherPermission.Id;
-                        //         }
-                        //         await ctx.SaveChangesAsync();
-                                
-                        //         log.LogInformation($"Updated {teacherSchedulesToUpdate.Count} teacher schedules with new StudentPermissionId: {teacherPermission.Id}");
-                        //     }
-                        // }
-
-                        auditLog.WriteAuditLog(AuditActType.Create, 
-                            $"Created StudentPermission from schedule update. UserId:{originalPermission.UserId}, " +
-                            $"PermissionId:{newPermission.Id}", operatorUsername);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                log.LogError(ex, "Error creating StudentPermission from schedules");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// 根據學生權限為老師建立對應權限（返回 TblStudentPermission）
-        /// </summary>
-        private async Task<TblStudentPermission> CreateTeacherPermissionFromStudentPermission(TblStudentPermission studentPermission, string operatorUsername)
-        {
-            try
-            {
-                // 取得老師資訊
-                var teacher = await ctx.TblUsers
-                    .Include(x => x.StudentPermissions)
-                    .ThenInclude(x => x.PermissionGroups)
-                    .Where(x => x.Id == studentPermission.TeacherId && x.IsDelete == false)
-                    .FirstOrDefaultAsync();
-
-                if (teacher == null)
-                {
-                    log.LogWarning($"Teacher (Id:{studentPermission.TeacherId}) not found");
-                    return null;
-                }
-
-                // 檢查是否已有相同時段的門禁權限
-                var existingPermission = teacher.StudentPermissions
-                    .Where(x => x.IsDelete == false)
-                    .Where(x => x.Type == studentPermission.Type)
-                    .Where(x => x.CourseId == studentPermission.CourseId)
-                    .Where(x => x.DateFrom == studentPermission.DateFrom)
-                    .Where(x => x.DateTo == studentPermission.DateTo)
-                    .Where(x => x.TimeFrom == studentPermission.TimeFrom)
-                    .Where(x => x.TimeTo == studentPermission.TimeTo)
-                    .Where(x => x.Days == studentPermission.Days)
-                    .FirstOrDefault();
-
-                if (existingPermission != null)
-                {
-                    log.LogInformation($"Teacher permission already exists for TeacherId:{studentPermission.TeacherId}");
-                    return existingPermission;
-                }
-
-                // 建立新的老師門禁權限
-                var teacherPermission = new TblStudentPermission
-                {
-                    CourseId = studentPermission.CourseId,
-                    TeacherId = 0, // 老師自己的權限不需要 TeacherId
-                    Type = studentPermission.Type,
-                    DateFrom = studentPermission.DateFrom,
-                    DateTo = studentPermission.DateTo,
-                    TimeFrom = studentPermission.TimeFrom,
-                    TimeTo = studentPermission.TimeTo,
-                    Days = studentPermission.Days,
-                    PermissionLevel = 1,
-                    RecordId = studentPermission.RecordId,
-                    IsEnable = true,
-                    IsDelete = false,
-                };
-
-                // 複製權限群組
-                var permissionGroupIds = studentPermission.PermissionGroups.Select(pg => pg.Id).ToList();
-                var permissionGroups = await ctx.TblPermissionGroup
-                    .Where(x => permissionGroupIds.Contains(x.Id))
-                    .ToListAsync();
-                
-                teacherPermission.PermissionGroups = permissionGroups;
-                teacher.StudentPermissions.Add(teacherPermission);
-                
-                await ctx.SaveChangesAsync();
-
-                log.LogInformation($"Created teacher permission for TeacherId:{studentPermission.TeacherId}, PermissionId:{teacherPermission.Id}");
-                auditLog.WriteAuditLog(AuditActType.Create, $"Created teacher permission from student schedule update. TeacherId:{studentPermission.TeacherId}", operatorUsername);
-                
-                return teacherPermission;
-            }
-            catch (Exception ex)
-            {
-                log.LogError(ex, $"Error creating teacher permission for TeacherId:{studentPermission.TeacherId}");
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// 為單次更新建立新的老師課表
-        /// </summary>
-        private async Task CreateNewTeacherScheduleForUpdate(TblSchedule originalSchedule, ReqUpdateScheduleDTO scheduleDTO, string operatorUsername, int teacherStudentPermissionId)
-        {
-            try
-            {
-                var teacherId = originalSchedule.StudentPermission.TeacherId.Value;
-
-                // 檢查老師是否存在
-                var teacher = await ctx.TblUsers
-                    .Where(x => x.Id == teacherId && x.IsDelete == false)
-                    .FirstOrDefaultAsync();
-
-                if (teacher == null)
-                {
-                    log.LogWarning($"Teacher (Id:{teacherId}) not found");
-                    return;
-                }
-
-
-                // 建立新的課表
-                var newSchedule = new TblSchedule
-                {
-                    StudentPermissionId = teacherStudentPermissionId,
-                    ClassroomId = scheduleDTO.ClassroomId,
-                    ScheduleDate = scheduleDTO.ScheduleDate,
-                    StartTime = scheduleDTO.StartTime,
-                    EndTime = scheduleDTO.EndTime,
-                    CourseMode = scheduleDTO.CourseMode,
-                    ScheduleMode = scheduleDTO.UpdateMode,
-                    Status = (int)ScheduleStatusType.Normal,
-                    Remark = scheduleDTO.Remark,
-                    IsEnable = true,
-                    IsDelete = false,
-                    CreatedTime = DateTime.Now,
-                    ModifiedTime = DateTime.Now
-                };
-
-                ctx.TblSchedule.Add(newSchedule);
-                await ctx.SaveChangesAsync();
-
-                log.LogInformation($"Created new teacher schedule for update. ScheduleId:{newSchedule.Id}");
-            }
-            catch (Exception ex)
-            {
-                log.LogError(ex, $"Error creating new teacher schedule for update. OriginalScheduleId:{originalSchedule.Id}");
-            }
-        }
-
-        /// <summary>
-        /// 為批次更新建立新的老師課表
-        /// </summary>
-        private async Task CreateNewTeacherSchedulesForBulkUpdate(List<TblSchedule> schedulesToUpdate, ReqUpdateScheduleDTO scheduleDTO, string operatorUsername)
-        {
-            try
-            {
-                if (!schedulesToUpdate.Any()) return;
-
-                // 取得所有相關的老師課表
-                var teacherSchedules = await ctx.TblSchedule
-                    .Include(x => x.StudentPermission)
-                    .Where(x => x.StudentPermission.TeacherId == x.StudentPermission.TeacherId)
-                    .Where(x => x.StudentPermission.CourseId == schedulesToUpdate.First().StudentPermission.CourseId)
-                    .Where(x => x.StudentPermission.Type == schedulesToUpdate.First().StudentPermission.Type)
-                    .Where(x => x.IsDelete == false)
-                    .ToListAsync();
-
-                // 找出需要新增的課表時間
-                var newScheduleTimes = schedulesToUpdate
-                    .Select(s => new { s.ScheduleDate, s.StartTime, s.EndTime })
-                    .Distinct()
-                    .ToList();
-
-                foreach (var scheduleTime in newScheduleTimes)
-                {
-                    // 檢查老師是否已經有相同時間的課表
-                    var existingTeacherSchedule = teacherSchedules.FirstOrDefault(ts => 
-                        ts.ScheduleDate == scheduleTime.ScheduleDate && 
-                        ts.StartTime == scheduleTime.StartTime);
-
-                    if (existingTeacherSchedule == null)
-                    {
-                        // 建立新的老師課表
-                        var newTeacherSchedule = new TblSchedule
-                        {
-                            StudentPermissionId = schedulesToUpdate.First().StudentPermissionId,
-                            ClassroomId = schedulesToUpdate.First().ClassroomId,
-                            ScheduleDate = scheduleTime.ScheduleDate,
-                            StartTime = scheduleTime.StartTime,
-                            EndTime = scheduleTime.EndTime,
-                            CourseMode = schedulesToUpdate.First().CourseMode,
-                            ScheduleMode = schedulesToUpdate.First().ScheduleMode,
-                            Status = (int)ScheduleStatusType.Normal,
-                            Remark = schedulesToUpdate.First().Remark,
-                            IsEnable = true,
-                            IsDelete = false,
-                            CreatedTime = DateTime.Now,
-                            ModifiedTime = DateTime.Now
-                        };
-
-                        ctx.TblSchedule.Add(newTeacherSchedule);
-                        log.LogInformation($"Created new teacher schedule for bulk update. ScheduleId:{newTeacherSchedule.Id}");
-                    }
-                }
-
-                await ctx.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                log.LogError(ex, "Error creating new teacher schedules for bulk update");
-            }
-        }
-
-        /// <summary>
-        /// 批次更新老師課表
-        /// </summary>
-        private async Task UpdateTeacherSchedulesForBulkUpdate(List<TblSchedule> teacherSchedules, List<TblSchedule> studentSchedules, ReqUpdateScheduleDTO scheduleDTO)
-        {
-            try
-            {
-                if (!teacherSchedules.Any() || !studentSchedules.Any()) return;
-
-                // 找出需要更新的老師課表
-                var schedulesToUpdate = teacherSchedules
-                    .Where(ts => studentSchedules.Any(s => 
-                        ts.ScheduleDate == s.ScheduleDate && 
-                        ts.StartTime == s.StartTime))
-                    .ToList();
-
-                foreach (var teacherSchedule in schedulesToUpdate)
-                {
-                    // 更新教室（如果有提供）
-                    if (scheduleDTO.ClassroomId > 0)
-                        teacherSchedule.ClassroomId = scheduleDTO.ClassroomId;
-
-                    // 更新日期（只有在單次修改模式下才允許修改日期）
-                    if (scheduleDTO.UpdateMode == 1 && !string.IsNullOrEmpty(scheduleDTO.ScheduleDate))
-                        teacherSchedule.ScheduleDate = scheduleDTO.ScheduleDate.Replace("-", "/");
-
-                    // 更新時間
-                    if (!string.IsNullOrEmpty(scheduleDTO.StartTime))
-                        teacherSchedule.StartTime = scheduleDTO.StartTime;
-
-                    if (!string.IsNullOrEmpty(scheduleDTO.EndTime))
-                        teacherSchedule.EndTime = scheduleDTO.EndTime;
-
-                    // 更新課程模式
-                    if (scheduleDTO.CourseMode > 0)
-                    {
-                        teacherSchedule.CourseMode = scheduleDTO.CourseMode;
-
-                        // 重新產生 QR Code
-                        if (scheduleDTO.CourseMode == 1) // 現場課程
-                        {
-                            teacherSchedule.QRCodeContent = GenerateQRCodeContent(teacherSchedule);
-                        }
-                        else
-                        {
-                            teacherSchedule.QRCodeContent = null;
-                        }
-                    }
-                    else
-                    {
-                        // 如果沒有提供 CourseMode，保持原有的 QR Code 邏輯
-                        if (teacherSchedule.CourseMode == 1)
-                        {
-                            teacherSchedule.QRCodeContent = GenerateQRCodeContent(teacherSchedule);
-                        }
-                    }
-
-                    // 更新狀態
-                    if (scheduleDTO.Status > 0)
-                        teacherSchedule.Status = scheduleDTO.Status;
-
-                    // 更新備註
-                    if (!string.IsNullOrEmpty(scheduleDTO.Remark))
-                        teacherSchedule.Remark = scheduleDTO.Remark;
-
-                    teacherSchedule.ModifiedTime = DateTime.Now;
-                }
-
-                log.LogInformation($"Updated {schedulesToUpdate.Count} teacher schedules for bulk update");
-            }
-            catch (Exception ex)
-            {
-                log.LogError(ex, "Error updating teacher schedules for bulk update");
-            }
-        }
-
-        /// <summary>
-        /// 更新老師課表
-        /// </summary>
-        private async Task UpdateTeacherSchedule(TblSchedule teacherSchedule, ReqUpdateScheduleDTO scheduleDTO)
-        {
-            teacherSchedule.ClassroomId = scheduleDTO.ClassroomId;
-            teacherSchedule.ScheduleDate = scheduleDTO.ScheduleDate.Replace("-", "/");
-            teacherSchedule.StartTime = scheduleDTO.StartTime;
-            teacherSchedule.EndTime = scheduleDTO.EndTime;
-            teacherSchedule.CourseMode = scheduleDTO.CourseMode;
-            teacherSchedule.Status = scheduleDTO.Status;
-            teacherSchedule.Remark = scheduleDTO.Remark;
-            teacherSchedule.ModifiedTime = DateTime.Now;
-            await ctx.SaveChangesAsync();
-            log.LogInformation($"Updated teacher schedule. ScheduleId:{teacherSchedule.Id}");
-        }
-
-        /// <summary>
-        /// 從學生課表更新老師課表
-        /// </summary>
-        private void UpdateTeacherScheduleFromStudent(TblSchedule teacherSchedule, TblSchedule studentSchedule)
-        {
-            teacherSchedule.ClassroomId = studentSchedule.ClassroomId;
-            teacherSchedule.ScheduleDate = studentSchedule.ScheduleDate;
-            teacherSchedule.StartTime = studentSchedule.StartTime;
-            teacherSchedule.EndTime = studentSchedule.EndTime;
-            teacherSchedule.CourseMode = studentSchedule.CourseMode;
-            teacherSchedule.Status = studentSchedule.Status;
-            teacherSchedule.Remark = studentSchedule.Remark;
-            teacherSchedule.ModifiedTime = DateTime.Now;
-
-            log.LogInformation($"Updated teacher schedule from student. ScheduleId:{teacherSchedule.Id}");
-        }
-
-        /// <summary>
-        /// 檢查並建立老師權限和課表
-        /// </summary>
-        private async Task CreateTeacherPermissionAndScheduleIfNotExists(TblStudentPermission studentPermission, string operatorUsername, ILogger log)
-        {
-            try
-            {
-                // 取得老師資訊
-                var teacher = await ctx.TblUsers
-                    .Include(x => x.StudentPermissions)
-                    .ThenInclude(x => x.PermissionGroups)
-                    .Where(x => x.Id == studentPermission.TeacherId && x.IsDelete == false)
-                    .FirstOrDefaultAsync();
-
-                if (teacher == null)
-                {
-                    log.LogWarning($"Teacher (Id:{studentPermission.TeacherId}) not found");
-                    return;
-                }
-
-                // 檢查是否已有相同時段的門禁權限
-                var existingPermission = teacher.StudentPermissions
-                    .Where(x => x.IsDelete == false)
-                    .Where(x => x.Type == studentPermission.Type)
-                    .Where(x => x.CourseId == studentPermission.CourseId)
-                    .Where(x => x.DateFrom == studentPermission.DateFrom)
-                    .Where(x => x.DateTo == studentPermission.DateTo)
-                    .Where(x => x.TimeFrom == studentPermission.TimeFrom)
-                    .Where(x => x.TimeTo == studentPermission.TimeTo)
-                    .Where(x => x.Days == studentPermission.Days)
-                    .FirstOrDefault();
-
-                if (existingPermission != null)
-                {
-                    log.LogInformation($"Teacher permission already exists for TeacherId:{studentPermission.TeacherId}");
-                    return;
-                }
-
-                // 建立新的老師門禁權限
-                var teacherPermission = new TblStudentPermission
-                {
-                    CourseId = studentPermission.CourseId,
-                    TeacherId = 0, // 老師自己的權限不需要 TeacherId
-                    Type = studentPermission.Type,
-                    DateFrom = studentPermission.DateFrom,
-                    DateTo = studentPermission.DateTo,
-                    TimeFrom = studentPermission.TimeFrom,
-                    TimeTo = studentPermission.TimeTo,
-                    Days = studentPermission.Days,
-                    PermissionLevel = 1,
-                    RecordId = studentPermission.RecordId,
-                    IsEnable = true,
-                    IsDelete = false,
-                };
-
-                // 複製權限群組
-                var permissionGroupIds = studentPermission.PermissionGroups.Select(pg => pg.Id).ToList();
-                var permissionGroups = await ctx.TblPermissionGroup
-                    .Where(x => permissionGroupIds.Contains(x.Id))
-                    .ToListAsync();
-                
-                teacherPermission.PermissionGroups = permissionGroups;
-                teacher.StudentPermissions.Add(teacherPermission);
-                
-                await ctx.SaveChangesAsync();
-
-                log.LogInformation($"Created teacher permission for TeacherId:{studentPermission.TeacherId}, PermissionId:{teacherPermission.Id}");
-                auditLog.WriteAuditLog(AuditActType.Create, $"Created teacher permission from student schedule update. TeacherId:{studentPermission.TeacherId}", operatorUsername);
-            }
-            catch (Exception ex)
-            {
-                log.LogError(ex, $"Error creating teacher permission for TeacherId:{studentPermission.TeacherId}");
-            }
-        }
-
-        /// <summary>
-        /// 更新老師權限時間範圍
-        /// </summary>
-        private async Task UpdateTeacherPermissionTimeRange(TblStudentPermission studentPermission, ILogger log)
-        {
-            try
-            {
-                // 取得老師的課表
-                var teacherSchedules = await ctx.TblSchedule
-                    .Where(x => x.StudentPermission.TeacherId == studentPermission.TeacherId && x.IsDelete == false)
-                    .ToListAsync();
-
-                if (!teacherSchedules.Any())
-                {
-                    log.LogWarning($"No schedules found for TeacherId:{studentPermission.TeacherId}");
-                    return;
-                }
-
-                // 計算時間範圍
-                var dates = teacherSchedules.Select(x => DateTime.ParseExact(x.ScheduleDate, "yyyy/MM/dd", null)).ToList();
-                var startTimes = teacherSchedules.Select(x => TimeSpan.Parse(x.StartTime)).ToList();
-                var endTimes = teacherSchedules.Select(x => TimeSpan.Parse(x.EndTime)).ToList();
-
-                DateTime minDate = dates.Min();
-                DateTime maxDate = dates.Max();
-                TimeSpan minStartTime = startTimes.Min();
-                TimeSpan maxEndTime = endTimes.Max();
-
-                // 計算涉及的星期幾
-                var daysOfWeek = teacherSchedules
-                    .Select(x => 
-                    {
-                        var date = DateTime.ParseExact(x.ScheduleDate, "yyyy/MM/dd", null);
-                        int day = (int)date.DayOfWeek;
-                        return day == 0 ? 7 : day; // 星期日調整為7
-                    })
-                    .Distinct()
-                    .OrderBy(x => x)
-                    .ToList();
-
-                // 更新老師的門禁權限
-                studentPermission.DateFrom = minDate.ToString("yyyy/MM/dd");
-                studentPermission.DateTo = maxDate.ToString("yyyy/MM/dd");
-                studentPermission.TimeFrom = minStartTime.ToString(@"hh\:mm");
-                studentPermission.TimeTo = maxEndTime.ToString(@"hh\:mm");
-                studentPermission.Days = string.Join(",", daysOfWeek);
-
-                // 存檔
-                await ctx.SaveChangesAsync();
-                log.LogInformation($"Updated teacher permission time range. TeacherId:{studentPermission.TeacherId}");
-            }
-            catch (Exception ex)
-            {
-                log.LogError(ex, $"Error updating teacher permission time range for TeacherId:{studentPermission.TeacherId}");
             }
         }
 
@@ -1896,6 +1105,220 @@ namespace DoorWebApp.Controllers
             catch (Exception ex)
             {
                 log.LogError(ex, $"Error deleting teacher permission for TeacherId:{studentPermission.TeacherId}");
+            }
+        }
+
+        /// <summary>
+        /// 根據課表建立對應的 StudentPermission
+        /// </summary>
+        private async Task CreateStudentPermissionFromSchedules(List<TblSchedule> schedules, string operatorUsername)
+        {
+            try
+            {
+                if (!schedules.Any()) return;
+
+                // 按 StudentPermissionId 分組處理
+                var groupedSchedules = schedules
+                    .GroupBy(s => s.StudentPermissionId)
+                    .ToList();
+
+                foreach (var group in groupedSchedules)
+                {
+                    var scheduleList = group.OrderBy(s => s.ScheduleDate).ThenBy(s => s.StartTime).ToList();
+                    var firstSchedule = scheduleList.First();
+
+                    // 取得原始的 StudentPermission 資訊
+                    var originalPermission = await ctx.TblStudentPermission
+                        .Include(x => x.PermissionGroups)
+                        .Include(x => x.User)
+                        .Include(x => x.Course)
+                        .Where(x => x.Id == group.Key)
+                        .FirstOrDefaultAsync();
+
+                    if (originalPermission == null) continue;
+
+                    // 計算新的時間範圍
+                    var dates = scheduleList.Select(s => DateTime.ParseExact(s.ScheduleDate, "yyyy/MM/dd", null)).ToList();
+                    var startTimes = scheduleList.Select(s => TimeSpan.Parse(s.StartTime)).ToList();
+                    var endTimes = scheduleList.Select(s => TimeSpan.Parse(s.EndTime)).ToList();
+
+                    DateTime minDate = dates.Min();
+                    DateTime maxDate = dates.Max();
+                    TimeSpan minStartTime = startTimes.Min();
+                    TimeSpan maxEndTime = endTimes.Max();
+
+                    // 計算涉及的星期幾
+                    var daysOfWeek = dates
+                        .Select(date =>
+                        {
+                            int day = (int)date.DayOfWeek;
+                            return day == 0 ? 7 : day; // 星期日調整為7
+                        })
+                        .Distinct()
+                        .OrderBy(x => x)
+                        .ToList();
+
+                    // 檢查是否已存在相同的 StudentPermission
+                    var existingPermission = await ctx.TblStudentPermission
+                        .Include(x => x.PermissionGroups)
+                        .Where(x => x.UserId == originalPermission.UserId)
+                        .Where(x => x.IsDelete == false)
+                        .Where(x => x.Type == originalPermission.Type)
+                        .Where(x => x.CourseId == originalPermission.CourseId)
+                        .Where(x => x.TeacherId == originalPermission.TeacherId)
+                        .Where(x => x.DateFrom == minDate.ToString("yyyy/MM/dd"))
+                        .Where(x => x.DateTo == maxDate.ToString("yyyy/MM/dd"))
+                        .Where(x => x.TimeFrom == minStartTime.ToString(@"hh\:mm"))
+                        .Where(x => x.TimeTo == maxEndTime.ToString(@"hh\:mm"))
+                        .Where(x => x.Days == string.Join(",", daysOfWeek))
+                        .FirstOrDefaultAsync();
+
+                    if (existingPermission != null)
+                    {
+                        log.LogInformation($"StudentPermission already exists for UserId:{originalPermission.UserId}, skipping creation");
+                        continue;
+                    }
+
+                    // 建立新的 StudentPermission
+                    var newPermission = new TblStudentPermission
+                    {
+                        UserId = originalPermission.UserId,
+                        CourseId = originalPermission.CourseId,
+                        TeacherId = originalPermission.TeacherId,
+                        Type = originalPermission.Type,
+                        DateFrom = minDate.ToString("yyyy/MM/dd"),
+                        DateTo = maxDate.ToString("yyyy/MM/dd"),
+                        TimeFrom = minStartTime.ToString(@"hh\:mm"),
+                        TimeTo = maxEndTime.ToString(@"hh\:mm"),
+                        Days = string.Join(",", daysOfWeek),
+                        PermissionLevel = originalPermission.PermissionLevel,
+                        RecordId = originalPermission.Id,
+                        IsEnable = true,
+                        IsDelete = false,
+                    };
+
+                    // 複製權限群組
+                    var permissionGroupIds = originalPermission.PermissionGroups.Select(pg => pg.Id).ToList();
+                    var permissionGroups = await ctx.TblPermissionGroup
+                        .Where(x => permissionGroupIds.Contains(x.Id))
+                        .ToListAsync();
+
+                    newPermission.PermissionGroups = permissionGroups;
+
+                    // 取得使用者並新增權限
+                    var user = await ctx.TblUsers
+                        .Include(x => x.StudentPermissions)
+                        .Where(x => x.Id == originalPermission.UserId)
+                        .FirstOrDefaultAsync();
+
+                    if (user != null)
+                    {
+                        user.StudentPermissions.Add(newPermission);
+                        await ctx.SaveChangesAsync();
+
+                        log.LogInformation($"Created new StudentPermission for UserId:{originalPermission.UserId}, " +
+                            $"DateRange:{newPermission.DateFrom}-{newPermission.DateTo}, " +
+                            $"TimeRange:{newPermission.TimeFrom}-{newPermission.TimeTo}, " +
+                            $"Days:{newPermission.Days}");
+
+                        // 更新課表的 StudentPermissionId
+                        foreach (var schedule in scheduleList)
+                        {
+                            schedule.StudentPermissionId = newPermission.Id;
+                        }
+                        await ctx.SaveChangesAsync();
+
+                        // 如果有老師且為上課類型，也為老師建立權限
+                        if (originalPermission.TeacherId > 0 && originalPermission.Type == 1)
+                        {
+                            await CreateTeacherPermissionFromStudentPermission(newPermission, operatorUsername);
+                        }
+
+                        auditLog.WriteAuditLog(AuditActType.Create,
+                            $"Created StudentPermission from schedule update. UserId:{originalPermission.UserId}, " +
+                            $"PermissionId:{newPermission.Id}", operatorUsername);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "Error creating StudentPermission from schedules");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 根據學生權限為老師建立對應權限
+        /// </summary>
+        private async Task CreateTeacherPermissionFromStudentPermission(TblStudentPermission studentPermission, string operatorUsername)
+        {
+            try
+            {
+                // 取得老師資訊
+                var teacher = await ctx.TblUsers
+                    .Include(x => x.StudentPermissions)
+                    .ThenInclude(x => x.PermissionGroups)
+                    .Where(x => x.Id == studentPermission.TeacherId && x.IsDelete == false)
+                    .FirstOrDefaultAsync();
+
+                if (teacher == null)
+                {
+                    log.LogWarning($"Teacher (Id:{studentPermission.TeacherId}) not found");
+                    return;
+                }
+
+                // 檢查是否已有相同時段的門禁權限
+                var existingPermission = teacher.StudentPermissions
+                    .Where(x => x.IsDelete == false)
+                    .Where(x => x.Type == studentPermission.Type)
+                    .Where(x => x.CourseId == studentPermission.CourseId)
+                    .Where(x => x.DateFrom == studentPermission.DateFrom)
+                    .Where(x => x.DateTo == studentPermission.DateTo)
+                    .Where(x => x.TimeFrom == studentPermission.TimeFrom)
+                    .Where(x => x.TimeTo == studentPermission.TimeTo)
+                    .Where(x => x.Days == studentPermission.Days)
+                    .FirstOrDefault();
+
+                if (existingPermission != null)
+                {
+                    log.LogInformation($"Teacher permission already exists for TeacherId:{studentPermission.TeacherId}");
+                    return;
+                }
+
+                // 建立新的老師門禁權限
+                var teacherPermission = new TblStudentPermission
+                {
+                    CourseId = studentPermission.CourseId,
+                    TeacherId = 0, // 老師自己的權限不需要 TeacherId
+                    Type = studentPermission.Type,
+                    DateFrom = studentPermission.DateFrom,
+                    DateTo = studentPermission.DateTo,
+                    TimeFrom = studentPermission.TimeFrom,
+                    TimeTo = studentPermission.TimeTo,
+                    Days = studentPermission.Days,
+                    PermissionLevel = 1,
+                    RecordId = studentPermission.RecordId,
+                    IsEnable = true,
+                    IsDelete = false,
+                };
+
+                // 複製權限群組
+                var permissionGroupIds = studentPermission.PermissionGroups.Select(pg => pg.Id).ToList();
+                var permissionGroups = await ctx.TblPermissionGroup
+                    .Where(x => permissionGroupIds.Contains(x.Id))
+                    .ToListAsync();
+
+                teacherPermission.PermissionGroups = permissionGroups;
+                teacher.StudentPermissions.Add(teacherPermission);
+
+                await ctx.SaveChangesAsync();
+
+                log.LogInformation($"Created teacher permission for TeacherId:{studentPermission.TeacherId}, PermissionId:{teacherPermission.Id}");
+                auditLog.WriteAuditLog(AuditActType.Create, $"Created teacher permission from student schedule update. TeacherId:{studentPermission.TeacherId}", operatorUsername);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, $"Error creating teacher permission for TeacherId:{studentPermission.TeacherId}");
             }
         }
 
