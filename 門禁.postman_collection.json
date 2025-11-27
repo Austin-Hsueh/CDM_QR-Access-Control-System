@@ -1,0 +1,2793 @@
+{
+	"info": {
+		"_postman_id": "ea4b909a-c906-446b-b8aa-970660e19378",
+		"name": "門禁",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "702418"
+	},
+	"item": [
+		{
+			"name": "登入",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"isKeepLogin\" : true,\r\n  \"locale\" : \"en_us\",\r\n  \"username\": \"admin\",\r\n  \"password\": \"1qaz2wsx\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/User/login",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"User",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得使用者清單",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"SearchText\" : \"\",\r\n  \"SearchPage\" : 500,\r\n  \"Page\": 1,\r\n  \"type\": 0\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Users",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得所有使用者下拉選單",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjNhYmFkOTdlLTljNTktNDc4ZC04MjFhLTdmM2M0OWI2OThlMSIsIklkIjoiNTEiLCJuYmYiOjE3MjE4MDY1NzIsImV4cCI6MTc4MTgwNjUxMiwiaWF0IjoxNzIxODA2NTcyLCJpc3MiOiJKd3RBdXRoRGVtbyJ9.z31jIyErWk4GsjQXQ8wKZpIFglmeZoMoglEcv2y0hHQ",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/UsersOptions",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"UsersOptions"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得使用者RoleId",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjIxNzQ1YzljLThhODctNDNkMC04NTM4LWRmNWFkNWE1N2VkNyIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MTIyNDYsImV4cCI6MTc4MTkxMjE4NiwiaWF0IjoxNzIxOTEyMjQ2LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.0zSvG6SWuFJGo7wtgWXq4pd7Qu5Z2X0imh8pFZR3QsI",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/User/Roleid/54",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"User",
+						"Roleid",
+						"54"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得使用者{門禁頁籤}及{QRcode}",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjdjNGJmNzFiLTc2YTYtNDJmNy04MmFlLTJmNTM3Nzk4MjE5OCIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MDY3OTYsImV4cCI6MTc4MTkwNjczNiwiaWF0IjoxNzIxOTA2Nzk2LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.FV-pNis_NFr6Szsbg9630xqZg_6oMeX71D73PB65Wo4",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/User/Permission/52",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"User",
+						"Permission",
+						"52"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得門禁使用者清單",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjNhYmFkOTdlLTljNTktNDc4ZC04MjFhLTdmM2M0OWI2OThlMSIsIklkIjoiNTEiLCJuYmYiOjE3MjE4MDY1NzIsImV4cCI6MTc4MTgwNjUxMiwiaWF0IjoxNzIxODA2NTcyLCJpc3MiOiJKd3RBdXRoRGVtbyJ9.z31jIyErWk4GsjQXQ8wKZpIFglmeZoMoglEcv2y0hHQ",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Users/Door/3",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Users",
+						"Door",
+						"3"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://127.0.0.1:8080/api/v1/User/RefreshToken",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjQxZDc5NWM5LTQwNTEtNDllNC04MzI4LWYxYzU5MzFmZGRiNyIsIklkIjoiNTEiLCJuYmYiOjE3MjE4MjUzMDksImV4cCI6MTc4MTgyNTI0OSwiaWF0IjoxNzIxODI1MzA5LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.EQp06CC-AhnoHSh_DQGlh-praP9qnOqhF0yXkDJOBnE",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/User/RefreshToken",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"User",
+						"RefreshToken"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "更新使用者資訊",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjUzZjI3NjdmLTZlNGMtNDFhYy1hODFhLThiMGUzZDk2NDljNCIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MDg3MjgsImV4cCI6MTc4MTkwODY2OCwiaWF0IjoxNzIxOTA4NzI4LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.rqfye_hA6YFsGE53HyEJJ_NJ6RW_z9C4dtm_7jOM0r0",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\r\n  \"userId\" : 167,\r\n  \"username\" : \"user167\",\r\n  \"displayName\" : \"學生25\",\r\n  \"email\": \"user25@mail.com\",\r\n  \"phone\": \"0912345625\",\r\n  \"password\": \"1qaz2ws\",\r\n  \"roleid\": 3,\r\n  \"IsDelete\": false,\r\n  \"type\": 1,\r\n  \"address\": \"地址\",\r\n  \"idcard\": \"A123456789\",\r\n  \"contactPerson\": \"aaa\",\r\n  \"ContactPhone\": \"09123456\",\r\n  \"RelationshipTitle\": \"Father\",\r\n   \"isRecord\": true\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/UpdateUser",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"UpdateUser"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "新增使用者",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"username\" : \"car11\",\r\n  \"displayName\" : \"car老師\",\r\n  \"email\": \"car@mail.com\",\r\n  \"phone\": \"0912345675\",\r\n  \"password\": \"1qaz2wsx\",\r\n  \"roleid\": 2,\r\n  \"type\": 1,\r\n  \"address\": \"地址\",\r\n  \"idcard\": \"A123456789\",\r\n  \"contactPerson\": \"aaa\",\r\n  \"ContactPhone\": \"09123456\",\r\n  \"RelationshipTitle\": \"Father\",\r\n  \"isRecord\": true\r\n\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/User",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"User"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "設定使用者通行資料",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6ImUyNmFiYWY2LTI5YzktNDAzYS05NTUxLWQ1ZTAxMmY5ZGY5YiIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MDc1MDksImV4cCI6MTc4MTkwNzQ0OSwiaWF0IjoxNzIxOTA3NTA5LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.cbCBbTxkrHA0XIxgZuxMwFJdblzTFeFIZiLVxyLFgVA",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"userId\": 54,\r\n  \"datefrom\" : \"2024-07-22\",\r\n  \"dateto\" : \"2024-08-22\",\r\n  \"timefrom\": \"09:01\",\r\n  \"timeto\": \"21:01\",\r\n  \"days\": [1,3,5],\r\n  \"groupIds\": [1,3]\r\n\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/User/Permission",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"User",
+						"Permission"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得使用者通行資料",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjIxNzQ1YzljLThhODctNDNkMC04NTM4LWRmNWFkNWE1N2VkNyIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MTIyNDYsImV4cCI6MTc4MTkxMjE4NiwiaWF0IjoxNzIxOTEyMjQ2LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.0zSvG6SWuFJGo7wtgWXq4pd7Qu5Z2X0imh8pFZR3QsI",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/User/PermissionSetting/52",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"User",
+						"PermissionSetting",
+						"52"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得臨時QRcode",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/User/TempDoorSetting",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"User",
+						"TempDoorSetting"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "更新臨時Qrcode 設定",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6ImJhZGFhNWU0LWIwYTAtNGYyNC1iMzQ0LWI3ZGU2NGI0ZDI1YSIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MDI5MDksImV4cCI6MTc4MTkwMjg0OSwiaWF0IjoxNzIxOTAyOTA5LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.NakfkhYwsnU9uJjk_iFEmT218OSTCc5egC_2DmKb7tc",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"datefrom\" : \"2024-10-20\",\r\n  \"dateto\" : \"2024-10-31\",\r\n  \"timefrom\": \"08:30\",\r\n  \"timeto\": \"21:30\",\r\n  \"days\": [1,3,5],\r\n  \"groupIds\": [1,3]\r\n\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/User/TempDoorSetting",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"User",
+						"TempDoorSetting"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得所有角色",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjIxNzQ1YzljLThhODctNDNkMC04NTM4LWRmNWFkNWE1N2VkNyIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MTIyNDYsImV4cCI6MTc4MTkxMjE4NiwiaWF0IjoxNzIxOTEyMjQ2LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.0zSvG6SWuFJGo7wtgWXq4pd7Qu5Z2X0imh8pFZR3QsI",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Roles",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Roles"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得門禁使用者清單-多時段",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjIxNzQ1YzljLThhODctNDNkMC04NTM4LWRmNWFkNWE1N2VkNyIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MTIyNDYsImV4cCI6MTc4MTkxMjE4NiwiaWF0IjoxNzIxOTEyMjQ2LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.0zSvG6SWuFJGo7wtgWXq4pd7Qu5Z2X0imh8pFZR3QsI",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"SearchText\" : \"\",\r\n  \"SearchPage\" : 10,\r\n  \"Page\": 1\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/StudentPermissions",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"StudentPermissions"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "新增使用者門禁設定-多時段",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6ImUyNmFiYWY2LTI5YzktNDAzYS05NTUxLWQ1ZTAxMmY5ZGY5YiIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MDc1MDksImV4cCI6MTc4MTkwNzQ0OSwiaWF0IjoxNzIxOTA3NTA5LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.cbCBbTxkrHA0XIxgZuxMwFJdblzTFeFIZiLVxyLFgVA",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"userId\": 51,\r\n  \"courseId\": 2,\r\n  \"teacherId\": 53,\r\n  \"datefrom\" : \"2024-08-22\",\r\n  \"dateto\" : \"2024-08-30\",\r\n  \"timefrom\": \"09:01\",\r\n  \"timeto\": \"10:01\",\r\n  \"type\": 2,\r\n  \"days\": [1,5],\r\n  \"groupIds\": [1,2,3]\r\n\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/StudentPermission",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"StudentPermission"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "更新使用者門禁設定-多時段",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6ImUyNmFiYWY2LTI5YzktNDAzYS05NTUxLWQ1ZTAxMmY5ZGY5YiIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MDc1MDksImV4cCI6MTc4MTkwNzQ0OSwiaWF0IjoxNzIxOTA3NTA5LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.cbCBbTxkrHA0XIxgZuxMwFJdblzTFeFIZiLVxyLFgVA",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"Id\": 1,\r\n  \"userId\": 51,\r\n  \"courseId\": 3,\r\n  \"teacherId\": 53,\r\n  \"datefrom\" : \"2024-09-25\",\r\n  \"dateto\" : \"2024-09-26\",\r\n  \"timefrom\": \"14:01\",\r\n  \"timeto\": \"15:01\",\r\n  \"days\": [1],\r\n  \"groupIds\": [1]\r\n\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/StudentPermission",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"StudentPermission"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得門禁單一使用者-多時段",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjIxNzQ1YzljLThhODctNDNkMC04NTM4LWRmNWFkNWE1N2VkNyIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MTIyNDYsImV4cCI6MTc4MTkxMjE4NiwiaWF0IjoxNzIxOTEyMjQ2LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.0zSvG6SWuFJGo7wtgWXq4pd7Qu5Z2X0imh8pFZR3QsI",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/StudentPermission/51",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"StudentPermission",
+						"51"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "手動設定當天所有門禁",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjIxNzQ1YzljLThhODctNDNkMC04NTM4LWRmNWFkNWE1N2VkNyIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MTIyNDYsImV4cCI6MTc4MTkxMjE4NiwiaWF0IjoxNzIxOTEyMjQ2LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.0zSvG6SWuFJGo7wtgWXq4pd7Qu5Z2X0imh8pFZR3QsI",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/UpdateUsersAllPermission",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"UpdateUsersAllPermission"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "忘記密碼",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"username\" : \"TemDoor\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/User/resetPassword",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"User",
+						"resetPassword"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得單一使用者資訊",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/User/167",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"User",
+						"167"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "更新使用者扣課時間",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6ImUyNmFiYWY2LTI5YzktNDAzYS05NTUxLWQ1ZTAxMmY5ZGY5YiIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MDc1MDksImV4cCI6MTc4MTkwNzQ0OSwiaWF0IjoxNzIxOTA3NTA5LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.cbCBbTxkrHA0XIxgZuxMwFJdblzTFeFIZiLVxyLFgVA",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"serial\": 1,\r\n  \"IsDelete\": false,\r\n  \"eventTime\": \"2024-10-25 10:50:28.000000\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/BookingLog",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"BookingLog"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "刪除使用者扣課紀錄",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6ImUyNmFiYWY2LTI5YzktNDAzYS05NTUxLWQ1ZTAxMmY5ZGY5YiIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MDc1MDksImV4cCI6MTc4MTkwNzQ0OSwiaWF0IjoxNzIxOTA3NTA5LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.cbCBbTxkrHA0XIxgZuxMwFJdblzTFeFIZiLVxyLFgVA",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"serial\": 1,\r\n  \"IsDelete\": true\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/BookingLog",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"BookingLog"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得老師進出資料",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"SearchText\" : \"\",\r\n  \"SearchPage\" : 500,\r\n  \"Page\": 1,\r\n  \"UserId\": 0\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/TeacherAccesseventLog",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"TeacherAccesseventLog"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "更新單一使用者門禁時間",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjY5MDA5NzliLTg2YzctNDIxMC1hYmY5LWIxNThmMzkzZjljNyIsIklkIjoiNTEiLCJuYmYiOjE3MzUwNDUyNjMsImV4cCI6MTc5NTA0NTIwMywiaWF0IjoxNzM1MDQ1MjYzLCJpc3MiOiJKd3RBdXRoRGVtbyJ9.zDbP6lvrNVekAbklrpCJX9aGJVl0AgcGFVs68ILu7x4",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"username\" : \"user168\",\r\n  \"displayName\" : \"學生5\",\r\n  \"email\": \"user5@mail.com\",\r\n  \"phone\": \"0912345675\",\r\n  \"password\": \"1qaz2wsx\",\r\n  \"roleid\": 3,\r\n  \"type\": 1,\r\n  \"isRecord\": true\r\n\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/UpdateUserPermission/51",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"UpdateUserPermission",
+						"51"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得學生選課狀態統計",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjIxNzQ1YzljLThhODctNDNkMC04NTM4LWRmNWFkNWE1N2VkNyIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MTIyNDYsImV4cCI6MTc4MTkxMjE4NiwiaWF0IjoxNzIxOTEyMjQ2LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.0zSvG6SWuFJGo7wtgWXq4pd7Qu5Z2X0imh8pFZR3QsI",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Users/StudentTypeCount",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Users",
+						"StudentTypeCount"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得所有課程",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjIxNzQ1YzljLThhODctNDNkMC04NTM4LWRmNWFkNWE1N2VkNyIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MTIyNDYsImV4cCI6MTc4MTkxMjE4NiwiaWF0IjoxNzIxOTEyMjQ2LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.0zSvG6SWuFJGo7wtgWXq4pd7Qu5Z2X0imh8pFZR3QsI",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Courses",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Courses"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "新增課程",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"courseName\" : \"歌唱\"\r\n  \r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Course",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Course"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "更新課程資訊",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjUzZjI3NjdmLTZlNGMtNDFhYy1hODFhLThiMGUzZDk2NDljNCIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MDg3MjgsImV4cCI6MTc4MTkwODY2OCwiaWF0IjoxNzIxOTA4NzI4LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.rqfye_hA6YFsGE53HyEJJ_NJ6RW_z9C4dtm_7jOM0r0",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\r\n  \"courseId\" : 1,\r\n  \"courseName\" : \"鋼琴\",\r\n  \"IsDelete\": false\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/UpdateCourse",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"UpdateCourse"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得所有老師",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjIxNzQ1YzljLThhODctNDNkMC04NTM4LWRmNWFkNWE1N2VkNyIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MTIyNDYsImV4cCI6MTc4MTkxMjE4NiwiaWF0IjoxNzIxOTEyMjQ2LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.0zSvG6SWuFJGo7wtgWXq4pd7Qu5Z2X0imh8pFZR3QsI",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Teachers",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Teachers"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得所有課程類別",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjIxNzQ1YzljLThhODctNDNkMC04NTM4LWRmNWFkNWE1N2VkNyIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MTIyNDYsImV4cCI6MTc4MTkxMjE4NiwiaWF0IjoxNzIxOTEyMjQ2LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.0zSvG6SWuFJGo7wtgWXq4pd7Qu5Z2X0imh8pFZR3QsI",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/CourseTypes",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"CourseTypes"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "新增課程類別",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"courseTypeName\" : \"歌唱類\"\r\n  \r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/CourseType",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"CourseType"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "更新課程類別",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjUzZjI3NjdmLTZlNGMtNDFhYy1hODFhLThiMGUzZDk2NDljNCIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MDg3MjgsImV4cCI6MTc4MTkwODY2OCwiaWF0IjoxNzIxOTA4NzI4LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.rqfye_hA6YFsGE53HyEJJ_NJ6RW_z9C4dtm_7jOM0r0",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\r\n  \"courseTypeId\" : 1,\r\n  \"courseTypeName\" : \"鋼琴類\",\r\n  \"IsDelete\": false\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/UpdateCourseType",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"UpdateCourseType"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "簽到記錄",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjIxNzQ1YzljLThhODctNDNkMC04NTM4LWRmNWFkNWE1N2VkNyIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MTIyNDYsImV4cCI6MTc4MTkxMjE4NiwiaWF0IjoxNzIxOTEyMjQ2LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.0zSvG6SWuFJGo7wtgWXq4pd7Qu5Z2X0imh8pFZR3QsI",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Attends/4",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Attends",
+						"4"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "新增簽到記錄",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"studentPermissionId\": 3,\r\n  \"attendanceDate\": \"2025-06-04\",\r\n   \"attendanceType\": 2\r\n  \r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Attend",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Attend"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "更新簽到記錄",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjUzZjI3NjdmLTZlNGMtNDFhYy1hODFhLThiMGUzZDk2NDljNCIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MDg3MjgsImV4cCI6MTc4MTkwODY2OCwiaWF0IjoxNzIxOTA4NzI4LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.rqfye_hA6YFsGE53HyEJJ_NJ6RW_z9C4dtm_7jOM0r0",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\r\n  \"id\": 6,\r\n    \"studentPermissionId\": 4,\r\n    \"attendanceDate\": \"2025-06-05\",\r\n    \"attendanceType\": 3,\r\n    \"modifiedUserId\": 52,\r\n    \"isDelete\": true\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/UpdateAttend",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"UpdateAttend"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "新增子帳號",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"parentId\": 51,\r\n  \"childId\": 52\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/User/AddChild",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"User",
+						"AddChild"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "移除子帳號",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"childId\": 52\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/User/RemoveChild",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"User",
+						"RemoveChild"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得所有教室",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjIxNzQ1YzljLThhODctNDNkMC04NTM4LWRmNWFkNWE1N2VkNyIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MTIyNDYsImV4cCI6MTc4MTkxMjE4NiwiaWF0IjoxNzIxOTEyMjQ2LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.0zSvG6SWuFJGo7wtgWXq4pd7Qu5Z2X0imh8pFZR3QsI",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Classrooms",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Classrooms"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "新增教室",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"classroomName\" : \"testA\"\r\n  \r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Classroom",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Classroom"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "更新教室資訊",
+			"request": {
+				"auth": {
+					"type": "bearer"
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjUzZjI3NjdmLTZlNGMtNDFhYy1hODFhLThiMGUzZDk2NDljNCIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MDg3MjgsImV4cCI6MTc4MTkwODY2OCwiaWF0IjoxNzIxOTA4NzI4LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.rqfye_hA6YFsGE53HyEJJ_NJ6RW_z9C4dtm_7jOM0r0",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\r\n  \"classroomId\" : 1,\r\n  \"classroomName\" : \"鋼琴教室\",\r\n  \"description\" : \"\",\r\n  \"IsDelete\": false\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/UpdateClassroom",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"UpdateClassroom"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得單一教室資訊",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Classroom/1",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Classroom",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "建立測試學生課表",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6ImVmMzhhODIyLWZiZjktNDUxZS05NDFmLTExOTFiZmQ1OGU3NyIsIklkIjoiNTEiLCJuYmYiOjE3NTk2NDYyMTUsImV4cCI6MTgxOTY0NjE1NSwiaWF0IjoxNzU5NjQ2MjE1LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.uszSw0qrh62UcyQ1hpHb2SM8oWtgmilB0Bmj-Aq3V-k",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"userId\": 51,\n    \"courseId\": 1,\n    \"teacherId\": 1,\n    \"datefrom\": \"2024-01-01\",\n    \"dateto\": \"2025-03-31\",\n    \"timefrom\": \"10:00\",\n    \"timeto\": \"12:00\",\n    \"type\": 1,\n    \"days\": [1, 3, 5],\n    \"groupIds\": [1],\n    \"classroomId\": 1,\n    \"courseMode\": 1,\n    \"scheduleMode\": 1,\n    \"remark\": \"測試課程 - 程式設計基礎\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/StudentPermission",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"StudentPermission"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得課表清單 (分頁查詢)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has correct structure\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('result');",
+							"    pm.expect(jsonData).to.have.property('msg');",
+							"    pm.expect(jsonData).to.have.property('content');",
+							"});",
+							"",
+							"pm.test(\"Result is success\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.result).to.eql('success');",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6ImVmMzhhODIyLWZiZjktNDUxZS05NDFmLTExOTFiZmQ1OGU3NyIsIklkIjoiNTEiLCJuYmYiOjE3NTk2NDYyMTUsImV4cCI6MTgxOTY0NjE1NSwiaWF0IjoxNzU5NjQ2MjE1LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.uszSw0qrh62UcyQ1hpHb2SM8oWtgmilB0Bmj-Aq3V-k",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}",
+						"description": "JWT 認證 Token"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"page\": 1,\n    \"searchPage\": 10,\n    \"searchText\": \"\",\n    \"classroomId\": 1,\n    \"courseMode\": 1,\n    \"status\": 0,\n    \"dateFrom\": \"2024-01-01\",\n    \"dateTo\": \"2024-01-03\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Schedules",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Schedules"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得單一課表詳細資訊",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has schedule data\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    if (jsonData.result === 'success' && jsonData.content) {",
+							"        pm.expect(jsonData.content).to.have.property('scheduleId');",
+							"        pm.expect(jsonData.content).to.have.property('classroomName');",
+							"        pm.expect(jsonData.content).to.have.property('scheduleDate');",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}",
+						"description": "JWT 認證 Token"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Schedule/2",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Schedule",
+						"2"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "更新課表",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6ImVmMzhhODIyLWZiZjktNDUxZS05NDFmLTExOTFiZmQ1OGU3NyIsIklkIjoiNTEiLCJuYmYiOjE3NTk2NDYyMTUsImV4cCI6MTgxOTY0NjE1NSwiaWF0IjoxNzU5NjQ2MjE1LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.uszSw0qrh62UcyQ1hpHb2SM8oWtgmilB0Bmj-Aq3V-k",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"scheduleId\": 3,\n    \"classroomId\": 1,\n    \"scheduleDate\": \"2025-04-05\",\n    \"startTime\": \"06:00\",\n    \"endTime\": \"09:00\",\n    \"courseMode\": 2,\n    \"status\": 2,\n    \"remark\": \"更新後的課程備註\",\n    \"updateMode\": 3, //更新模式 1=單次課表 2=某日後全部課表 3=全部課表\n    \"fromDate\": \"2025-10-22\",  //某日後全部修改\n    \"isDelete\": true\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Schedule",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Schedule"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "刪除課表 (軟刪除)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Schedule deleted successfully\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.result).to.eql('success');",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6ImVmMzhhODIyLWZiZjktNDUxZS05NDFmLTExOTFiZmQ1OGU3NyIsIklkIjoiNTEiLCJuYmYiOjE3NTk2NDYyMTUsImV4cCI6MTgxOTY0NjE1NSwiaWF0IjoxNzU5NjQ2MjE1LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.uszSw0qrh62UcyQ1hpHb2SM8oWtgmilB0Bmj-Aq3V-k",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"scheduleId\": 1,\n    \"isDelete\": true\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Schedule",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Schedule"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得教室當日課表",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"page\": 1,\n    \"searchPage\": 20,\n    \"classroomId\": 1,\n    \"dateFrom\": \"2024-01-17\",\n    \"dateTo\": \"2024-01-17\",\n    \"status\": 1\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/Schedules",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"Schedules"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得當前登入學生的課表",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6ImVmMzhhODIyLWZiZjktNDUxZS05NDFmLTExOTFiZmQ1OGU3NyIsIklkIjoiNTEiLCJuYmYiOjE3NTk2NDYyMTUsImV4cCI6MTgxOTY0NjE1NSwiaWF0IjoxNzU5NjQ2MjE1LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.uszSw0qrh62UcyQ1hpHb2SM8oWtgmilB0Bmj-Aq3V-k",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"page\": 1,\n    \"searchPage\": 20,\n    \"classroomId\": 1,\n    \"dateFrom\": \"2024-01-17\",\n    \"dateTo\": \"2024-01-17\",\n    \"status\": 1\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/MySchedules",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"MySchedules"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "取得所有課程收費設定",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/CourseFees",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"CourseFees"
+					],
+					"query": [
+						{
+							"key": "courseTypeId",
+							"value": "1",
+							"description": "課程分類ID（選填）",
+							"disabled": true
+						},
+						{
+							"key": "includeArchived",
+							"value": "false",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "新增課程收費設定",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjUzZjI3NjdmLTZlNGMtNDFhYy1hODFhLThiMGUzZDk2NDljNCIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MDg3MjgsImV4cCI6MTc4MTkwODY2OCwiaWF0IjoxNzIxOTA4NzI4LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.rqfye_hA6YFsGE53HyEJJ_NJ6RW_z9C4dtm_7jOM0r0",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"courseTypeId\": 1,\n  \"feeName\": \"標準收費-10堂課\",\n  \"feeAmount\": 10000,\n  \"splitRatio\": 0.6,\n  \"lessonCount\": 10,\n  \"sequence\": 1,\n  \"isStudentAbsenceNotDeduct\": false,\n  \"isCountTransaction\": true,\n  \"isArchived\": false\n}"
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/CourseFee",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"CourseFee"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "更新課程收費設定",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Course fee updated successfully\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.result).to.eql(0);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{access_token}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImp0aSI6IjUzZjI3NjdmLTZlNGMtNDFhYy1hODFhLThiMGUzZDk2NDljNCIsIklkIjoiNTEiLCJuYmYiOjE3MjE5MDg3MjgsImV4cCI6MTc4MTkwODY2OCwiaWF0IjoxNzIxOTA4NzI4LCJpc3MiOiJKd3RBdXRoRGVtbyJ9.rqfye_hA6YFsGE53HyEJJ_NJ6RW_z9C4dtm_7jOM0r0",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id\": 1,\n  \"courseTypeId\": 1,\n  \"feeName\": \"標準收費-10堂課（已調整）\",\n  \"feeAmount\": 11000,\n  \"splitRatio\": 0.65,\n  \"lessonCount\": 10,\n  \"sequence\": 1,\n  \"isStudentAbsenceNotDeduct\": false,\n  \"isCountTransaction\": true,\n  \"isArchived\": true\n}"
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8080/api/v1/CourseFee",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"CourseFee"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
