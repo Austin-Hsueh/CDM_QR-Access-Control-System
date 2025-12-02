@@ -323,5 +323,44 @@ namespace DoorWebApp.Controllers
                 return Ok(res);
             }
         }
+
+
+        /// <summary>
+        /// 取得學生清單
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("v1/Students")]
+        public IActionResult GetAllStudents()
+        {
+            APIResponse<List<ResStudentDTO>> res = new APIResponse<List<ResStudentDTO>>();
+
+            try
+            {
+                // 1. 撈出資料
+                var studentList = ctx.TblUsers.Include(x => x.Roles)
+                    .Where(x => x.Roles.Any(r => r.Id == 3)) // 角色 ID 3 是學生
+                    .Where(x => x.IsDelete == false)
+                    .Select(x => new ResStudentDTO()
+                    {
+                        studentId = x.Id,
+                        studentName = x.DisplayName
+                    })
+                    .ToList();
+
+                // 2. 回傳結果
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                res.content = studentList;
+
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
     }
 }
