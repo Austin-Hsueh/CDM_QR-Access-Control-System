@@ -27,6 +27,7 @@ namespace DoorDB
         public virtual DbSet<TblCourse> TbCourses { set; get; } = null!;
         public virtual DbSet<AccessEventLog> AccessEventLog { get; set; } = null!;
         public virtual DbSet<TblAttendance> TblAttendance { get; set; } = null!;
+        public virtual DbSet<TblAttendanceFee> TblAttendanceFee { get; set; } = null!;
         public virtual DbSet<TblPayment> TblPayment { get; set; } = null!;
         public virtual DbSet<TblCourseType> TblCourseType { get; set; } = null!;
         public virtual DbSet<TblClassroom> TblClassroom { get; set; } = null!;
@@ -284,6 +285,13 @@ namespace DoorDB
                 .HasOne(f => f.StudentPermission)
                 .WithOne(sp => sp.StudentPermissionFee)
                 .HasForeignKey<TblStudentPermissionFee>(f => f.StudentPermissionId);
+
+            // 設置 TblAttendanceFee 與 TblAttendance (AttendanceId) 一對一關聯
+            // AttendanceId 是外鍵,在 TblAttendanceFee 端,已設 UNIQUE 約束
+            modelBuilder.Entity<TblAttendanceFee>()
+                .HasOne(f => f.Attendance)
+                .WithOne(a => a.AttendanceFee)
+                .HasForeignKey<TblAttendanceFee>(f => f.AttendanceId);
 
             // 設置 TblStudentPermission 與 TblAttendance (StudentPermissionId) 一對多關聯
             modelBuilder.Entity<TblStudentPermission>()

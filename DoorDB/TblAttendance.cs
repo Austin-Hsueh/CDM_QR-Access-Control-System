@@ -45,5 +45,9 @@ namespace DoorDB
 
         [Required]
         public bool IsDelete { get; set; } = false;
+
+        // Navigation Properties
+        /// <summary>一對一關係: 每個簽到記錄可以有一個費用記錄</summary>
+        public virtual TblAttendanceFee? AttendanceFee { get; set; }
     }
 }
