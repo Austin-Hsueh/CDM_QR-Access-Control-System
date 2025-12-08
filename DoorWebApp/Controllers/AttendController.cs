@@ -243,5 +243,98 @@ namespace DoorWebApp.Controllers
                 return Ok(res);
             }
         }
+
+        /// <summary>
+        /// 取得課程清單
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("v1/Attends/Course/{StudentPermissionId}")]
+        public IActionResult GetAllAttendsByStudentPermission(int StudentPermissionId, [FromQuery] int hours = 4)
+        {
+            APIResponse<List<ResCourseAttendDTO>> res = new APIResponse<List<ResCourseAttendDTO>>();
+
+            try
+            {
+                var finalAttendancesList = GetCourseAttendancesByHours(StudentPermissionId, hours);
+
+                // 回傳結果
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                res.content = finalAttendancesList;
+
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
+        /// <summary>
+        /// 根據 StudentPermissionId 和時數取得課程簽到清單
+        /// </summary>
+        /// <param name="studentPermissionId">學生權限 ID</param>
+        /// <param name="hours">每組時數</param>
+        /// <returns>課程簽到清單,依時數分組</returns>
+        private List<ResCourseAttendDTO> GetCourseAttendancesByHours(int studentPermissionId, int hours)
+        {
+            // 取得課程名稱
+            var firstAttendance = ctx.TblAttendance
+                .Include(x => x.StudentPermission)
+                .ThenInclude(x => x.Course)
+                .Include(x => x.StudentPermission)
+                .ThenInclude(x => x.User)
+                .Where(x => x.StudentPermission.Id == studentPermissionId)
+                .Where(x => x.IsDelete == false)
+                .FirstOrDefault();
+
+            string courseName = firstAttendance != null && firstAttendance.StudentPermission?.Course != null && firstAttendance.StudentPermission?.User != null
+                ? (firstAttendance.StudentPermission.User.DisplayName ?? "") + " -" + (firstAttendance.StudentPermission.Course.Name ?? "")
+                : "";
+
+            // 1-1. 撈出資料 原本課程資料
+            var attendancesList = ctx.TblAttendance
+                .Include(x => x.StudentPermission)
+                .Where(x => x.StudentPermission.Id == studentPermissionId)
+                .Where(x => x.IsDelete == false)
+                .Where(x => x.StudentPermission.IsDelete == false)
+                .Select(x => x.AttendanceDate)
+                .ToList();
+
+            // 1-2. 撈出資料 原本課程資料-被調整過時間  屬於原本課程的
+            var subAttendancesList = ctx.TblAttendance
+                .Include(x => x.StudentPermission)
+                .Where(x => x.StudentPermission.RecordId == studentPermissionId)
+                .Where(x => x.IsDelete == false)
+                .Where(x => x.StudentPermission.IsDelete == false)
+                .Select(x => x.AttendanceDate)
+                .ToList();
+
+            // 合併並排序
+            attendancesList.AddRange(subAttendancesList);
+            attendancesList = attendancesList.OrderBy(x => DateTime.Parse(x)).ToList();
+
+            // 根據時數分組
+            List<ResCourseAttendDTO> finalAttendancesList = new List<ResCourseAttendDTO>();
+            int index = 1;
+            for (int i = 0; i < attendancesList.Count; i += hours)
+            {
+                var group = attendancesList.Skip(i).Take(hours).ToList();
+                var courseAttendDTO = new ResCourseAttendDTO
+                {
+                    index = index,
+                    courseName = courseName,
+                    remainingTimes = hours - group.Count,
+                    courseAttend = group,
+                };
+                finalAttendancesList.Add(courseAttendDTO);
+                index++;
+            }
+
+            return finalAttendancesList;
+        }
     }
 }
