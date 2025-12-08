@@ -46,5 +46,8 @@ namespace DoorDB
 
         public virtual List<TblStudentPermission> CourseStudentPermissions { set; get; }
         public virtual TblCourseType CourseType { set; get; }
+        
+        /// <summary>一對一關係: 課程費用配置 (從 TblCourseFee 端引用)</summary>
+        public virtual TblCourseFee? CourseFee { set; get; }
     }
 }
