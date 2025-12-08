@@ -27,6 +27,12 @@ namespace DoorDB
         public int Pay { get; set; } = 0;
 
         /// <summary>
+        /// 結帳單號
+        /// </summary>
+        [Comment("結帳單號")]
+        public string? ReceiptNumber { get; set; }
+
+        /// <summary>
         /// 操作者帳號Id
         /// </summary>
         public int ModifiedUserId { get; set; }
