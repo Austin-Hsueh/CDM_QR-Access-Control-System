@@ -33,6 +33,18 @@ namespace DoorDB
         public string? ReceiptNumber { get; set; }
 
         /// <summary>
+        /// 總額折扣
+        /// </summary>
+        [Comment("總額折扣")]
+        public int DiscountAmount { get; set; } = 0;
+
+        /// <summary>
+        /// 備註
+        /// </summary>
+        [Comment("備註")]
+        public string? Remark { get; set; }
+
+        /// <summary>
         /// 操作者帳號Id
         /// </summary>
         public int ModifiedUserId { get; set; }
