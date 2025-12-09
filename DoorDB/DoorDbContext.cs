@@ -267,9 +267,10 @@ namespace DoorDB
 
             // 設置 TblTeacherSettlement 與 TblUser (TeacherId) 一對一關聯
             // TeacherId 是外鍵,在 TblTeacherSettlement 端,已設 UNIQUE 約束
+            // 老師與拆帳設定一對一，確保 Teacher.TeacherSettlement 可正確載入
             modelBuilder.Entity<TblTeacherSettlement>()
                 .HasOne(ts => ts.Teacher)
-                .WithOne()
+                .WithOne(u => u.TeacherSettlement)
                 .HasForeignKey<TblTeacherSettlement>(ts => ts.TeacherId);
 
             // 設置 TblCourseFee 與 TblCourse (CourseId) 一對一關聯

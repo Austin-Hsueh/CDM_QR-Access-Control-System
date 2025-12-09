@@ -81,7 +81,40 @@ namespace DoorWebApp.Controllers
             log.LogInformation($"[{Request.Path}] AddAttend Request : {AttendDTO.studentPermissionId}");
             try
             {
-                
+                // 0. 讀取 StudentPermission 以取得課程費用與老師拆帳
+                var permission = ctx.TblStudentPermission
+                    .Where(sp => sp.Id == AttendDTO.studentPermissionId && sp.IsDelete == false)
+                    .Include(sp => sp.Course)
+                        .ThenInclude(c => c.CourseFee)
+                    .Include(sp => sp.Teacher)
+                        .ThenInclude(t => t.TeacherSettlement)
+                    .FirstOrDefault();
+
+                if (permission == null)
+                {
+                    log.LogWarning($"[{Request.Path}] StudentPermission not found: {AttendDTO.studentPermissionId}");
+                    res.result = APIResultCode.data_not_found;
+                    res.msg = "studentPermission_not_found";
+                    return Ok(res);
+                }
+
+                var courseFee = permission.Course?.CourseFee;
+                decimal courseSplitRatio = courseFee?.SplitRatio ?? 0;
+                decimal teacherSplitRatio = permission.Teacher?.TeacherSettlement?.SplitRatio ?? 0;
+
+                decimal normalizedCourseRatio = courseSplitRatio > 1 ? courseSplitRatio / 100 : courseSplitRatio;
+                decimal normalizedTeacherRatio = teacherSplitRatio > 1 ? teacherSplitRatio / 100 : teacherSplitRatio;
+                decimal minSplitRatio = Math.Clamp(Math.Min(normalizedCourseRatio, normalizedTeacherRatio), 0, 1);
+
+                int tuitionFee = courseFee?.Amount ?? 0;
+                int materialFee = courseFee?.MaterialFee ?? 0;
+                int totalAmount = tuitionFee + materialFee;
+                decimal totalHours = courseFee?.Hours ?? 1;
+                if (totalHours <= 0) totalHours = 1; // 避免除以 0
+
+                int teacherShare = (int)Math.Round(totalAmount * (1 - minSplitRatio), MidpointRounding.AwayFromZero);
+                int SplitHourAmount = (int)Math.Round(teacherShare / totalHours, MidpointRounding.AwayFromZero);
+
                 // 1. 檢查輸入參數
                 // 1-1 必填欄位缺少
                 //日期
@@ -105,7 +138,7 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
-                // 2. 新增使用者
+                // 2. 新增簽到
                 TblAttendance NewAttend = new TblAttendance();
                 NewAttend.StudentPermissionId = AttendDTO.studentPermissionId; 
                 NewAttend.AttendanceDate = AttendDTO.attendanceDate;
@@ -117,16 +150,29 @@ namespace DoorWebApp.Controllers
                 NewAttend.ModifiedTime = DateTime.Now;
 
                 ctx.TblAttendance.Add(NewAttend);
-                ctx.SaveChanges(); // Save Attend 
-                log.LogInformation($"[{Request.Path}] Create Attend : Name={NewAttend.Id}");
+                await ctx.SaveChangesAsync(); // Save Attend to get Id
+                log.LogInformation($"[{Request.Path}] Create Attend : Id={NewAttend.Id}");
 
-                // 3. 寫入資料庫
-                log.LogInformation($"[{Request.Path}] Save changes");
-                int EffectRow = ctx.SaveChanges();
-                log.LogInformation($"[{Request.Path}] Create Attend. (EffectRow:{EffectRow})");
+                // 3. 建立對應 AttendanceFee：Hours=1, Amount=teacherShare, AdjustmentAmount=0
+                var newFee = new TblAttendanceFee
+                {
+                    AttendanceId = NewAttend.Id,
+                    Hours = 1,
+                    Amount = SplitHourAmount,
+                    AdjustmentAmount = 0,
+                    CreatedTime = DateTime.Now,
+                    ModifiedTime = DateTime.Now
+                };
+
+                ctx.TblAttendanceFee.Add(newFee);
+
+                // 4. 寫入資料庫
+                log.LogInformation($"[{Request.Path}] Save changes (Attend + Fee)");
+                int EffectRow = await ctx.SaveChangesAsync();
+                log.LogInformation($"[{Request.Path}] Create Attend/Fee. (EffectRow:{EffectRow})");
 
 
-                // 4. 回傳結果
+                // 5. 回傳結果
                 res.result = APIResultCode.success;
                 res.msg = "success";
 

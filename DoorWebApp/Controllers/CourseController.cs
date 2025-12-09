@@ -343,6 +343,7 @@ namespace DoorWebApp.Controllers
                     .Select(x => new ResStudentDTO()
                     {
                         studentId = x.Id,
+                        userName = x.Username,
                         studentName = x.DisplayName
                     })
                     .ToList();
