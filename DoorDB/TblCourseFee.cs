@@ -68,7 +68,7 @@ namespace DoorDB
         /// 預設拆帳比例 (百分比，例如: 0.7 代表 70%)
         /// </summary>
         [Comment("預設拆帳比例")]
-        public int SplitRatio { get; set; } = 0;
+        public decimal SplitRatio { get; set; } = 0;
 
         /// <summary>
         /// 開放課程費用
