@@ -123,10 +123,84 @@
             <div id="courses" class="tab-content">
                 <div style="padding: 16px 0;">
                     <button class="btn-primary" onclick="loadCourses()">🔄 載入課程列表</button>
+                    <button class="btn-primary" onclick="showAddCourseDialog()">➕ 新增課程</button>
                     <button class="btn-default" onclick="clearCourses()">清除</button>
                 </div>
                 <div id="coursesContent"></div>
                 <div id="coursesError" class="error" style="display:none;"></div>
+                
+                <!-- 課程詳情查詢 -->
+                <div style="margin-top: 24px; padding: 16px; background: #f5f7fa; border-radius: 8px;">
+                    <h4 style="margin: 0 0 12px 0; color: #333;">查詢課程詳情</h4>
+                    <div style="display: flex; gap: 8px; align-items: flex-end;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 4px; font-weight: bold; font-size: 14px;">課程 ID:</label>
+                            <input type="number" id="singleCourseId" placeholder="輸入課程 ID" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;" />
+                        </div>
+                        <button class="btn-primary" onclick="loadCourseDetail()">查詢</button>
+                    </div>
+                </div>
+                <div id="courseDetailStatus" style="color: #666; font-style: italic; margin-top:12px;"></div>
+                <div id="courseDetailError" class="error" style="display:none; margin-top:12px;"></div>
+                <div id="courseDetailContent" style="margin-top:12px;"></div>
+                
+                <!-- 新增/編輯課程對話框 -->
+                <div id="courseDialog" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+                    <div style="background: white; border-radius: 8px; padding: 24px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+                        <h3 id="courseDialogTitle" style="margin-bottom: 20px;">新增課程</h3>
+                        <div style="display: grid; gap: 12px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 4px; font-weight: bold;">課程名稱 *:</label>
+                                <input type="text" id="dialogCourseName" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 4px; font-weight: bold;">課程類型 ID:</label>
+                                <input type="number" id="dialogCourseTypeId" placeholder="選填" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 4px; font-weight: bold;">課程類別:</label>
+                                <input type="text" id="dialogCategory" placeholder="例如: 程式設計" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 4px; font-weight: bold;">排序順序:</label>
+                                <input type="number" id="dialogSortOrder" value="500" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 4px; font-weight: bold;">收費編號:</label>
+                                <input type="text" id="dialogFeeCode" placeholder="例如: FEE001" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 4px; font-weight: bold;">費用:</label>
+                                    <input type="number" id="dialogAmount" placeholder="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 4px; font-weight: bold;">教材費:</label>
+                                    <input type="number" id="dialogMaterialFee" placeholder="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 4px; font-weight: bold;">時數:</label>
+                                    <input type="number" id="dialogHours" placeholder="0" step="0.5" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 4px; font-weight: bold;">拆帳比例 (0-1):</label>
+                                    <input type="number" id="dialogSplitRatio" placeholder="0.5" step="0.01" min="0" max="1" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                                </div>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 4px; font-weight: bold;">開放課程費用:</label>
+                                <input type="number" id="dialogOpenCourseAmount" placeholder="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                            </div>
+                        </div>
+                        <div id="courseDialogError" class="error" style="display:none; margin-top: 12px;"></div>
+                        <div style="margin-top: 20px; display: flex; gap: 8px; justify-content: flex-end;">
+                            <button class="btn-default" onclick="closeCourseDialog()">取消</button>
+                            <button class="btn-primary" onclick="saveCourse()">儲存</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- 新增門禁時間 Tab -->
@@ -365,13 +439,24 @@
                     <div style="background: #f9fafb; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
                         <h3 style="margin-bottom: 12px; color: #667eea;">API 選單</h3>
                         <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📚 課程管理</div>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('coursesList')">📖 取得課程列表</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('courseDetail')">📖 取得單一課程</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createCourse')">➕ 新增課程</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('editCourse')">✏️ 編輯課程</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('copyCourse')">📋 複製課程</button>
+
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">💳 繳費管理</div>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('studentsList')">👨‍🎓 取得學生名單</button>
-                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceList')">📝 上課紀錄列表</button>
-                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('paymentDetail')">💰 繳費細項</button>
-                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceFee')">✏️ 單堂老師費用修改</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('getPaymentInfo')">💳 取得學生繳費資訊</button>
-                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createPayment')">💵 建立繳費記錄</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createPayment')">💵 儲存學生繳費</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('updatePayment')">✏️ 更新繳費記錄</button>
+
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📝 上課紀錄</div>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('studentsList')">👨‍🎓 取得學生名單</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceList')">📝 顯示上課紀錄(列表)</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('paymentDetail')">💰 顯示繳費細項</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceFee')">✏️ 單堂老師費用修改</button>
                         </div>
                     </div>
 
@@ -645,7 +730,7 @@
             contentDiv.innerHTML = '<div class="loading">載入中...</div>';
             
             try {
-                const res = await apiFetch('/api/v1/Courses');
+                const res = await apiFetch('/api/v2/Courses');
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 const courses = data.content || data || [];
@@ -666,13 +751,25 @@
                 if (courses.length === 0) {
                     contentDiv.innerHTML = '<div class="empty">沒有課程資料</div>';
                 } else {
-                    let html = '<table><thead><tr><th>課程 ID</th><th>課程名稱</th><th>課程類型</th><th>說明</th></tr></thead><tbody>';
+                    let html = '<table><thead><tr><th>課程 ID</th><th>課程名稱</th><th>課程類型</th><th>收費編號</th><th>費用</th><th>教材費</th><th>時數</th><th>拆帳比例</th><th>操作</th></tr></thead><tbody>';
                     courses.forEach((course) => {
+                        const cid = course.id || course.courseId;
+                        const cname = (course.name || course.courseName || '').replace(/'/g, "\\'");
                         html += `<tr>
-                            <td>${course.id || course.courseId || '-'}</td>
+                            <td>${cid || '-'}</td>
                             <td>${course.name || course.courseName || '-'}</td>
-                            <td>${course.type || course.courseType || '-'}</td>
-                            <td>${course.description || course.remark || '-'}</td>
+                            <td>${course.courseTypeName || '-'}</td>
+                            <td>${course.feeCode || '-'}</td>
+                            <td>${course.amount !== null && course.amount !== undefined ? '$' + course.amount : '-'}</td>
+                            <td>${course.materialFee !== null && course.materialFee !== undefined ? '$' + course.materialFee : '-'}</td>
+                            <td>${course.hours !== null && course.hours !== undefined ? course.hours : '-'}</td>
+                            <td>${course.splitRatio !== null && course.splitRatio !== undefined ? (course.splitRatio * 100).toFixed(0) + '%' : '-'}</td>
+                            <td>
+                                ${cid ? `<button class="btn-small btn-primary" onclick="loadCourseDetail(${cid})" style="margin: 2px;">查看</button>` : ''}
+                                ${cid ? `<button class="btn-small" onclick="editCourse(${cid})" style="margin: 2px; background: #67c23a; color: white;">編輯</button>` : ''}
+                                ${cid ? `<button class="btn-small" onclick="copyCourse(${cid}, '${cname}')" style="margin: 2px; background: #e6a23c; color: white;">複製</button>` : ''}
+                                ${cid ? `<button class="btn-small" onclick="deleteCourse(${cid}, '${cname}')" style="margin: 2px; background: #f56c6c; color: white;">刪除</button>` : '<span style="color: #999;">-</span>'}
+                            </td>
                         </tr>`;
                     });
                     html += '</tbody></table>';
@@ -685,9 +782,256 @@
             }
         }
 
+        // 取得單一課程（包含收費資料）
+        async function loadCourseDetail(courseIdFromRow) {
+            const idInput = document.getElementById('singleCourseId');
+            const status = document.getElementById('courseDetailStatus');
+            const errorDiv = document.getElementById('courseDetailError');
+            const contentDiv = document.getElementById('courseDetailContent');
+
+            if (!status || !errorDiv || !contentDiv) {
+                console.error('Required DOM elements not found');
+                return;
+            }
+
+            status.textContent = '';
+            errorDiv.style.display = 'none';
+            contentDiv.innerHTML = '';
+
+            const courseId = courseIdFromRow ? courseIdFromRow : (idInput && idInput.value ? parseInt(idInput.value, 10) : NaN);
+            if (!courseId || isNaN(courseId)) {
+                errorDiv.textContent = '請輸入課程 ID';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            // 若按下表格中的按鈕，順便同步到輸入框
+            if (idInput) {
+                idInput.value = courseId;
+            }
+
+            try {
+                status.textContent = '載入中...';
+                const res = await apiFetch(`/api/v2/Course/${courseId}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                const course = data.content || data;
+
+                if (!course || !course.courseId) {
+                    contentDiv.innerHTML = '<div class="empty">查無課程資料</div>';
+                } else {
+                    const feeRatio = course.splitRatio !== null && course.splitRatio !== undefined ? (course.splitRatio * 100).toFixed(0) + '%' : '-';
+                    contentDiv.innerHTML = `
+                        <div class="info" style="line-height:1.8;">
+                            <div><strong>課程 ID：</strong>${course.courseId}</div>
+                            <div><strong>課程名稱：</strong>${course.courseName || '-'}</div>
+                            <div><strong>課程分類：</strong>${course.courseTypeName || '-'}</div>
+                            <div><strong>課程類別：</strong>${course.category || '-'}</div>
+                            <div><strong>收費編號：</strong>${course.feeCode || '-'}</div>
+                            <div><strong>費用：</strong>${course.amount !== null && course.amount !== undefined ? '$' + course.amount : '-'}</div>
+                            <div><strong>教材費：</strong>${course.materialFee !== null && course.materialFee !== undefined ? '$' + course.materialFee : '-'}</div>
+                            <div><strong>時數：</strong>${course.hours !== null && course.hours !== undefined ? course.hours : '-'}</div>
+                            <div><strong>拆帳比例：</strong>${feeRatio}</div>
+                            <div><strong>開放課程費用：</strong>${course.openCourseAmount !== null && course.openCourseAmount !== undefined ? '$' + course.openCourseAmount : '-'}</div>
+                        </div>`;
+                }
+                status.textContent = '完成';
+            } catch (err) {
+                errorDiv.textContent = '載入失敗: ' + err.message;
+                errorDiv.style.display = 'block';
+                contentDiv.innerHTML = '';
+                status.textContent = '';
+            }
+        }
+
         function clearCourses() {
             document.getElementById('coursesContent').innerHTML = '';
             document.getElementById('coursesError').style.display = 'none';
+        }
+
+        // 課程對話框相關函數
+        let editingCourseId = null;
+
+        function showAddCourseDialog() {
+            editingCourseId = null;
+            document.getElementById('courseDialogTitle').textContent = '新增課程';
+            document.getElementById('dialogCourseName').value = '';
+            document.getElementById('dialogCourseTypeId').value = '';
+            document.getElementById('dialogCategory').value = '';
+            document.getElementById('dialogSortOrder').value = '500';
+            document.getElementById('dialogFeeCode').value = '';
+            document.getElementById('dialogAmount').value = '';
+            document.getElementById('dialogMaterialFee').value = '';
+            document.getElementById('dialogHours').value = '';
+            document.getElementById('dialogSplitRatio').value = '';
+            document.getElementById('dialogOpenCourseAmount').value = '';
+            document.getElementById('courseDialogError').style.display = 'none';
+            document.getElementById('courseDialog').style.display = 'flex';
+        }
+
+        async function editCourse(courseId) {
+            try {
+                const res = await apiFetch(`/api/v2/Course/${courseId}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                const course = data.content || data;
+
+                editingCourseId = courseId;
+                document.getElementById('courseDialogTitle').textContent = '編輯課程';
+                document.getElementById('dialogCourseName').value = course.courseName || '';
+                document.getElementById('dialogCourseTypeId').value = course.courseTypeId || '';
+                document.getElementById('dialogCategory').value = course.category || '';
+                document.getElementById('dialogSortOrder').value = course.sortOrder || 500;
+                document.getElementById('dialogFeeCode').value = course.feeCode || '';
+                document.getElementById('dialogAmount').value = course.amount || '';
+                document.getElementById('dialogMaterialFee').value = course.materialFee || '';
+                document.getElementById('dialogHours').value = course.hours || '';
+                document.getElementById('dialogSplitRatio').value = course.splitRatio || '';
+                document.getElementById('dialogOpenCourseAmount').value = course.openCourseAmount || '';
+                document.getElementById('courseDialogError').style.display = 'none';
+                document.getElementById('courseDialog').style.display = 'flex';
+            } catch (err) {
+                alert('載入課程資料失敗: ' + err.message);
+            }
+        }
+
+        function closeCourseDialog() {
+            document.getElementById('courseDialog').style.display = 'none';
+            editingCourseId = null;
+        }
+
+        async function saveCourse() {
+            const errorDiv = document.getElementById('courseDialogError');
+            errorDiv.style.display = 'none';
+
+            const courseName = document.getElementById('dialogCourseName').value.trim();
+            if (!courseName) {
+                errorDiv.textContent = '請輸入課程名稱';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            const courseData = {
+                courseName: courseName,
+                courseTypeId: document.getElementById('dialogCourseTypeId').value ? parseInt(document.getElementById('dialogCourseTypeId').value) : null,
+                category: document.getElementById('dialogCategory').value || null,
+                sortOrder: parseInt(document.getElementById('dialogSortOrder').value) || 500,
+                feeCode: document.getElementById('dialogFeeCode').value || null,
+                amount: document.getElementById('dialogAmount').value ? parseFloat(document.getElementById('dialogAmount').value) : null,
+                materialFee: document.getElementById('dialogMaterialFee').value ? parseFloat(document.getElementById('dialogMaterialFee').value) : null,
+                hours: document.getElementById('dialogHours').value ? parseFloat(document.getElementById('dialogHours').value) : null,
+                splitRatio: document.getElementById('dialogSplitRatio').value ? parseFloat(document.getElementById('dialogSplitRatio').value) : null,
+                openCourseAmount: document.getElementById('dialogOpenCourseAmount').value ? parseFloat(document.getElementById('dialogOpenCourseAmount').value) : null
+            };
+
+            try {
+                let res;
+                if (editingCourseId) {
+                    // 更新課程
+                    courseData.courseId = editingCourseId;
+                    courseData.isDelete = false;
+                    res = await apiFetch('/api/v2/UpdateCourse', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(courseData)
+                    });
+                } else {
+                    // 新增課程
+                    res = await apiFetch('/api/v2/Course', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(courseData)
+                    });
+                }
+
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.msg || `HTTP ${res.status}`);
+                }
+
+                const data = await res.json();
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '操作失敗');
+                }
+
+                closeCourseDialog();
+                alert(editingCourseId ? '更新成功' : '新增成功');
+                loadCourses(); // 重新載入列表
+            } catch (err) {
+                errorDiv.textContent = '儲存失敗: ' + err.message;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        async function deleteCourse(courseId, courseName) {
+            if (!confirm(`確定要刪除課程「${courseName}」嗎？`)) {
+                return;
+            }
+
+            try {
+                const res = await apiFetch('/api/v2/UpdateCourse', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        courseId: courseId,
+                        isDelete: true
+                    })
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.msg || `HTTP ${res.status}`);
+                }
+
+                const data = await res.json();
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '刪除失敗');
+                }
+
+                alert('刪除成功');
+                loadCourses(); // 重新載入列表
+            } catch (err) {
+                alert('刪除失敗: ' + err.message);
+            }
+        }
+
+        async function copyCourse(courseId, courseName) {
+            const newName = prompt(`請輸入新課程名稱\n（原課程：${courseName}）`, `${courseName} - 副本`);
+            if (newName === null) {
+                // 使用者按取消
+                return;
+            }
+
+            // 如果留空，自動加上「- 副本」
+            const finalName = newName.trim() ? newName.trim() : `${courseName} - 副本`;
+
+            const newFeeCode = prompt('請輸入新的收費編號（選填，留空則不設定）', '');
+
+            try {
+                const res = await apiFetch('/api/v2/CopyCourse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sourceCourseId: courseId,
+                        newCourseName: finalName,
+                        newFeeCode: newFeeCode || null
+                    })
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.msg || `HTTP ${res.status}`);
+                }
+
+                const data = await res.json();
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '複製失敗');
+                }
+
+                alert(`複製成功！新課程 ID: ${data.content?.newCourseId || '未知'}`);
+                loadCourses(); // 重新載入列表
+            } catch (err) {
+                alert('複製失敗: ' + err.message);
+            }
         }
 
         function clearTeachers() {
@@ -851,8 +1195,9 @@
                         <div><strong>課程 ID:</strong> ${detail.courseId || '-'}</div>
                         <div><strong>課程名稱:</strong> ${detail.courseName || '-'}</div>
                         <div><strong>課程分類:</strong> ${detail.category || '-'}</div>
+                        <div><strong>課程編號:</strong> ${detail.feeCode || '-'}</div>
                         <div><strong>老師名稱:</strong> ${detail.teacherName || '-'}</div>
-                        <div><strong>課程總時數:</strong> ${detail.hours || '0'} 小時</div>
+                        <div><strong>課程總時數:</strong> ${detail.hours || '0'} </div>
                         <div><strong>課程拆帳比(小者優先):</strong> ${formatRatio(detail.courseSplitRatio)}</div>
                         <div><strong>老師拆帳比(小者優先):</strong> ${formatRatio(detail.teacherSplitRatio)}</div>
                         <div><strong>課程總金額:</strong> $${(detail.totalAmount || 0).toLocaleString()}</div>
@@ -862,8 +1207,8 @@
             `;
 
             // 最近一筆收款記錄
-            if (detail.latestPayment) {
-                const payment = detail.latestPayment;
+            if (detail.payment) {
+                const payment = detail.payment;
                 html += '<h4 style="margin-top: 20px; margin-bottom: 10px;">💳 最近收款記錄</h4>';
                 html += '<table><thead><tr><th>繳費日期</th><th>收款結帳單號</th><th>學費金額</th><th>教材金額</th><th>已收金額</th></tr></thead><tbody>';
                 html += `<tr>
@@ -891,7 +1236,7 @@
                         <td>${record.dayOfWeek || '-'}</td>
                         <td>${record.checkInTime || '-'}</td>
                         <td>${record.teacherName || '-'}</td>
-                        <td>${record.hours || '0'} 小時</td>
+                        <td>${record.hours || '0'} </td>
                         <td>$${(record.amount || 0).toLocaleString()}</td>
                         <td style="${adjustmentStyle}">${(record.adjustmentAmount || 0) >= 0 ? '+' : ''}$${(record.adjustmentAmount || 0).toLocaleString()}</td>
                         <td><strong>$${actualAmount.toLocaleString()}</strong></td>
@@ -1199,7 +1544,7 @@
 
                 let html = '<div class="success"><strong>✅ 費用記錄建立成功！</strong><br>';
                 html += `簽到 ID: ${attendanceId}<br>`;
-                html += `扣課時數: ${hours} 小時<br>`;
+                html += `扣課時數: ${hours} <br>`;
                 html += `單堂學費: ${amount} 元<br>`;
                 html += `增減金額: ${adjustmentAmount || 0} 元<br>`;
                 html += `實際金額: ${amount + (parseInt(adjustmentAmount) || 0)} 元`;
@@ -1377,7 +1722,8 @@
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>serialNo</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">序號</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">課程 ID</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">課程名稱</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>category</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">課程分類</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>category</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">類別 (例如: 個別班、團體班等)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>feeCode</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">課程編號</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>teacherId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">老師 ID</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>teacherName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">老師名稱</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>hours</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal</td><td style="padding: 8px; border: 1px solid #ddd;">課程總時數</td></tr>
@@ -1543,11 +1889,18 @@
 
                 case 'createPayment':
                     html = `
-                        <h2 style="color: #667eea;">💵 建立繳費記錄</h2>
+                        <h2 style="color: #667eea;">💵 儲存學生繳費</h2>
                         <div style="margin-top: 20px;">
                             <h3>📖 API 概述</h3>
                             <p><strong>端點：</strong><code>POST /api/v1/StudentPayment</code></p>
-                            <p><strong>說明：</strong>建立新的繳費記錄</p>
+                            <p><strong>說明：</strong>建立或更新繳費記錄（若無則新增，若有則編輯）</p>
+                            <div class="info" style="margin-top: 10px; padding: 12px; background: #fffacd; border-left: 4px solid #fbbf24; border-radius: 4px;">
+                                <p style="margin: 0;"><strong>⚠️ 智能儲存：</strong></p>
+                                <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+                                    <li>若該學生權限尚無繳費記錄 → <strong>新增</strong>記錄（產生收據編號）</li>
+                                    <li>若該學生權限已有繳費記錄 → <strong>更新</strong>現有記錄（保留原收據編號）</li>
+                                </ul>
+                            </div>
 
                             <h3 style="margin-top: 20px;">📥 請求參數 (ReqCreatePaymentDTO)</h3>
                             <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
@@ -1596,7 +1949,7 @@
                                 </thead>
                                 <tbody>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>result</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">結果代碼 (1=成功)</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">訊息</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">操作結果：<br/>• <code>created</code> = 新增成功<br/>• <code>updated</code> = 更新成功</td></tr>
                                 </tbody>
                             </table>
 
@@ -1694,6 +2047,243 @@
                             
                             <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
                             <pre id="rawData-updatePayment" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'coursesList':
+                    html = `
+                        <h2 style="color: #667eea;">📖 取得課程列表</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>GET /api/v2/Courses</code></p>
+                            <p><strong>說明：</strong>取得所有課程清單，包含課程基本資訊和收費詳情</p>
+                            
+                            <h3 style="margin-top: 20px;">📥 請求參數</h3>
+                            <p>無需參數</p>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位 (ResCourseDTO[])</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">課程 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">課程名稱</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseTypeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">課程類型 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseTypeName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">課程類型名稱</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>category</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">課程類別</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>feeCode</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">收費編號</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>amount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">課程費用</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>materialFee</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">教材費</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>hours</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">課程時數</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>splitRatio</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">拆帳比例 (0-1)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>openCourseAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">開放課程費用</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <button class="btn-primary" onclick="testCoursesList()">執行測試</button>
+                            <div id="testResult-coursesList" style="margin-top: 10px;"></div>
+                            
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-coursesList" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'courseDetail':
+                    html = `
+                        <h2 style="color: #667eea;">📖 取得單一課程</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>GET /api/v2/Course/{courseId}</code></p>
+                            <p><strong>說明：</strong>取得指定課程的詳細資訊，包含收費資料</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">課程 ID (URL 路徑)</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位 (ResCourseDTO)</h3>
+                            <p>同取得課程列表中的 ResCourseDTO</p>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <label>課程 ID: <input type="number" id="testCourseDetailId" value="1" style="width: 150px; padding: 6px;" /></label>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testCourseDetail()">執行測試</button>
+                            <div id="testResult-courseDetail" style="margin-top: 10px;"></div>
+                            
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-courseDetail" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'createCourse':
+                    html = `
+                        <h2 style="color: #667eea;">➕ 新增課程</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>POST /api/v2/Course</code></p>
+                            <p><strong>說明：</strong>新增課程及其收費資訊</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數 (ReqNewCourseDTO)</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">課程名稱</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseTypeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">課程類型 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>category</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">課程類別</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>sortOrder</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">排序順序 (預設 500)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>feeCode</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">收費編號</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>amount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">課程費用</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>materialFee</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">教材費</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>hours</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">課程時數</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>splitRatio</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">拆帳比例 (0-1)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>openCourseAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">開放課程費用</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>result</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">結果代碼 (1=成功)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">訊息</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    break;
+
+                case 'editCourse':
+                    html = `
+                        <h2 style="color: #667eea;">✏️ 編輯課程</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>PATCH /api/v2/UpdateCourse</code></p>
+                            <p><strong>說明：</strong>更新課程及其收費資訊</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數 (ReqUpdateCourseDTO)</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">課程 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">課程名稱</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseTypeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">課程類型 ID (可空=不修改)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>isDelete</code></td><td style="padding: 8px; border: 1px solid #ddd;">bool</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">軟刪除標記：<br/>• <code>true</code> = 標記為已刪除，課程將從列表隱藏<br/>• <code>false</code> = 恢復課程顯示<br/>（數據保留在數據庫中，支持恢復）</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>category</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">課程類別 (可空=不修改)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>sortOrder</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">排序順序 (可空=不修改)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>feeCode</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">收費編號 (可空=不修改)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>amount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">課程費用 (可空=不修改)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>materialFee</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">教材費 (可空=不修改)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>hours</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">課程時數 (可空=不修改)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>splitRatio</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">拆帳比例 0-1 (可空=不修改)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>openCourseAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">開放課程費用 (可空=不修改)</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>result</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">結果代碼 (1=成功)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">訊息</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    break;
+
+                case 'copyCourse':
+                    html = `
+                        <h2 style="color: #667eea;">📋 複製課程</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>POST /api/v2/CopyCourse</code></p>
+                            <p><strong>說明：</strong>複製指定課程及其收費資訊，生成新課程</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數 (ReqCopyCourseDTO)</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>sourceCourseId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">來源課程 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>newCourseName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">新課程名稱 (留空則自動加「- 副本」)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>newFeeCode</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">新的收費編號 (可空)</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>result</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">結果代碼 (1=成功)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">訊息</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>content.newCourseId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">新建課程的 ID</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">💡 複製內容</h3>
+                            <div class="info">
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li><strong>課程基本資訊：</strong>名稱、類型、啟用狀態</li>
+                                    <li><strong>收費資訊：</strong>類別、排序、金額、教材費、時數、拆帳比例、開放課程費用</li>
+                                    <li><strong>新課程名稱：</strong>若留空自動生成為「來源課程名稱 - 副本」</li>
+                                </ul>
+                            </div>
                         </div>
                     `;
                     break;
@@ -1932,7 +2522,7 @@
 
             const resultDiv = document.getElementById('createPaymentResult');
             const errorDiv = document.getElementById('createPaymentError');
-            resultDiv.innerHTML = '<div class="loading">新增中...</div>';
+            resultDiv.innerHTML = '<div class="loading">儲存中...</div>';
             errorDiv.style.display = 'none';
 
             try {
@@ -1953,16 +2543,21 @@
                 const data = await res.json();
                 
                 if (data.result !== 1) {
-                    throw new Error(data.msg || '新增失敗');
+                    throw new Error(data.msg || '儲存失敗');
                 }
 
+                const isCreated = data.msg === 'created';
+                const isUpdated = data.msg === 'updated';
+                const actionText = isCreated ? '新增' : isUpdated ? '更新' : '儲存';
+
                 resultDiv.innerHTML = `
-                    <div class="success">✅ 新增成功</div>
+                    <div class="success">✅ ${actionText}成功</div>
                     <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px;">
-                        <p>繳費ID: ${data.content.paymentId}</p>
-                        <p>繳費日期: ${data.content.payDate}</p>
-                        <p>收據編號: ${data.content.receiptNumber || '-'}</p>
-                        <p>繳費金額: ¥${data.content.pay}</p>
+                        <p><strong>操作：</strong>${actionText}</p>
+                        <p><strong>學生權限ID：</strong>${permissionId}</p>
+                        <p><strong>繳費金額：</strong>$${pay}</p>
+                        <p><strong>折扣金額：</strong>$${discount}</p>
+                        ${remark ? `<p><strong>備註：</strong>${remark}</p>` : ''}
                     </div>
                 `;
                 
@@ -2258,6 +2853,78 @@
             } catch(err) {
                 resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
                 document.getElementById('rawData-updatePayment').textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        // 課程相關測試函數
+        async function testCoursesList() {
+            const resultDiv = document.getElementById('testResult-coursesList');
+            resultDiv.innerHTML = '<div class="loading">載入中...</div>';
+
+            try {
+                const res = await apiFetch('/api/v2/Courses');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                const courses = data.content || data || [];
+
+                if (courses.length === 0) {
+                    resultDiv.innerHTML = '<div class="info">📭 未找到課程</div>';
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ 查詢成功，共 ${courses.length} 筆課程</div>
+                        <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px; max-height: 200px; overflow-y: auto;">
+                            ${courses.slice(0, 3).map(c => `
+                                <div style="border-bottom: 1px solid #e2e8f0; padding: 8px 0;">
+                                    <p><strong>${c.courseName || c.name}</strong> (ID: ${c.courseId || c.id})</p>
+                                    <p style="color: #666; font-size: 12px;">類型: ${c.courseTypeName || '-'} | 費用: ￥${c.amount || '-'}</p>
+                                </div>
+                            `).join('')}
+                            ${courses.length > 3 ? `<p style="color: #718096; margin-top: 8px;">... 及其他 ${courses.length - 3} 門課程</p>` : ''}
+                        </div>
+                    `;
+                }
+
+                document.getElementById('rawData-coursesList').textContent = JSON.stringify(data, null, 2);
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                document.getElementById('rawData-coursesList').textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        async function testCourseDetail() {
+            const courseId = document.getElementById('testCourseDetailId').value;
+            if (!courseId) {
+                alert('請輸入課程 ID');
+                return;
+            }
+
+            const resultDiv = document.getElementById('testResult-courseDetail');
+            resultDiv.innerHTML = '<div class="loading">載入中...</div>';
+
+            try {
+                const res = await apiFetch(`/api/v2/Course/${courseId}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                const course = data.content || data;
+
+                if (!course || !course.courseId) {
+                    resultDiv.innerHTML = '<div class="info">📭 課程不存在</div>';
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ 查詢成功</div>
+                        <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                            <p><strong>課程名稱:</strong> ${course.courseName || '-'}</p>
+                            <p><strong>課程類型:</strong> ${course.courseTypeName || '-'}</p>
+                            <p><strong>費用:</strong> ￥${course.amount || '-'} | <strong>教材費:</strong> ￥${course.materialFee || '-'}</p>
+                            <p><strong>時數:</strong> ${course.hours || '-'} | <strong>拆帳比例:</strong> ${course.splitRatio ? (course.splitRatio * 100).toFixed(0) + '%' : '-'}</p>
+                        </div>
+                    `;
+                }
+
+                document.getElementById('rawData-courseDetail').textContent = JSON.stringify(data, null, 2);
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                document.getElementById('rawData-courseDetail').textContent = `錯誤: ${err.message}`;
             }
         }
     </script>

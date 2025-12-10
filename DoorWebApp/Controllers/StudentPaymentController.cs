@@ -7,6 +7,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using DoorDB.Enums;
+using DoorWebApp.Models;
 
 namespace DoorWebApp.Controllers
 {
@@ -16,10 +18,14 @@ namespace DoorWebApp.Controllers
     public class StudentPaymentController : ControllerBase
     {
         private readonly DoorDbContext ctx;
+        private readonly ILogger<StudentPaymentController> log;
+        private readonly AuditLogWritter auditLog;
 
-        public StudentPaymentController(DoorDbContext ctx)
+        public StudentPaymentController(DoorDbContext ctx, ILogger<StudentPaymentController> log, AuditLogWritter auditLog)
         {
             this.ctx = ctx;
+            this.log = log;
+            this.auditLog = auditLog;
         }
 
         /// <summary>
@@ -142,7 +148,7 @@ namespace DoorWebApp.Controllers
         }
 
         /// <summary>
-        /// 建立繳費記錄
+        /// 建立或更新繳費記錄（若無則新增，若有則編輯）
         /// </summary>
         [HttpPost("StudentPayment")]
         public async Task<IActionResult> CreatePayment([FromBody] ReqCreatePaymentDTO dto)
@@ -177,40 +183,80 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
-                // 系統產生收據編號
-                string receiptNumber = await GenerateReceiptNumber();
-
-                // 取得當前 UTC+8 時間作為繳費日期
-                var nowUtc8 = DateTime.UtcNow.AddHours(8);
-                string payDate = nowUtc8.ToString("yyyy/MM/dd");
-
-                // 建立繳費記錄
-                var payment = new TblPayment
-                {
-                    StudentPermissionId = dto.StudentPermissionId,
-                    PayDate = payDate,
-                    Pay = dto.Pay,
-                    DiscountAmount = (int)(dto.DiscountAmount ?? 0),
-                    ReceiptNumber = receiptNumber,
-                    Remark = dto.Remark,
-                    ModifiedUserId = operatorId.Value,
-                    CreatedTime = DateTime.Now,
-                    ModifiedTime = DateTime.Now,
-                    IsDelete = false
-                };
-
-                ctx.TblPayment.Add(payment);
-                await ctx.SaveChangesAsync();
-
                 // 查詢操作者
-                var user = await ctx.TblUsers.FirstOrDefaultAsync(u => u.Id == dto.ModifiedUserId);
+                var user = await ctx.TblUsers.FirstOrDefaultAsync(u => u.Id == operatorId.Value);
+                string operatorUsername = user?.Username ?? $"UserId:{operatorId}";
 
-                res.result = APIResultCode.success;
-                res.msg = "ok";
-                return Ok(res);
+                // 檢查是否已存在繳費記錄
+                var existingPayment = await ctx.TblPayment
+                    .FirstOrDefaultAsync(p => p.StudentPermissionId == dto.StudentPermissionId && !p.IsDelete);
+
+                if (existingPayment != null)
+                {
+                    // 若已存在，更新記錄
+                    var originalPay = existingPayment.Pay;
+                    var originalDiscount = existingPayment.DiscountAmount;
+                    var originalRemark = existingPayment.Remark;
+
+                    existingPayment.Pay = dto.Pay;
+                    existingPayment.DiscountAmount = (int)(dto.DiscountAmount ?? 0);
+                    existingPayment.Remark = dto.Remark;
+                    existingPayment.ModifiedUserId = operatorId.Value;
+                    existingPayment.ModifiedTime = DateTime.Now;
+
+                    ctx.TblPayment.Update(existingPayment);
+                    await ctx.SaveChangesAsync();
+
+                    // 寫入稽核紀錄
+                    auditLog.WriteAuditLog(AuditActType.Modify, 
+                        $"Update Payment: StudentPermissionId={dto.StudentPermissionId}, Amount:{originalPay}→{dto.Pay}, Discount:{originalDiscount}→{existingPayment.DiscountAmount}", 
+                        operatorUsername);
+
+                    res.result = APIResultCode.success;
+                    res.msg = "updated";
+                    return Ok(res);
+                }
+                else
+                {
+                    // 若不存在，新增記錄
+                    // 系統產生收據編號
+                    string receiptNumber = await GenerateReceiptNumber();
+
+                    // 取得當前 UTC+8 時間作為繳費日期
+                    var nowUtc8 = DateTime.UtcNow.AddHours(8);
+                    string payDate = nowUtc8.ToString("yyyy/MM/dd");
+
+                    // 建立繳費記錄
+                    var payment = new TblPayment
+                    {
+                        StudentPermissionId = dto.StudentPermissionId,
+                        PayDate = payDate,
+                        Pay = dto.Pay,
+                        DiscountAmount = (int)(dto.DiscountAmount ?? 0),
+                        ReceiptNumber = receiptNumber,
+                        Remark = dto.Remark,
+                        ModifiedUserId = operatorId.Value,
+                        CreatedTime = DateTime.Now,
+                        ModifiedTime = DateTime.Now,
+                        IsDelete = false
+                    };
+
+                    ctx.TblPayment.Add(payment);
+                    await ctx.SaveChangesAsync();
+
+                    // 寫入稽核紀錄
+                    auditLog.WriteAuditLog(AuditActType.Create, 
+                        $"Create Payment: StudentPermissionId={dto.StudentPermissionId}, Amount={dto.Pay}, ReceiptNumber={receiptNumber}", 
+                        operatorUsername);
+
+                    res.result = APIResultCode.success;
+                    res.msg = "created";
+                    return Ok(res);
+                }
             }
             catch (Exception ex)
             {
+                log.LogError(ex, $"[{Request.Path}] CreatePayment Error: {ex.Message}");
                 res.result = APIResultCode.unknow_error;
                 res.msg = ex.Message;
                 return Ok(res);
@@ -246,6 +292,11 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
+                // 記錄修改前的值用於審計
+                var originalPay = payment.Pay;
+                var originalDiscount = payment.DiscountAmount;
+                var originalRemark = payment.Remark;
+
                 if (dto?.Pay.HasValue == true && dto.Pay > 0)
                     payment.Pay = dto.Pay.Value;
 
@@ -260,12 +311,22 @@ namespace DoorWebApp.Controllers
                 ctx.TblPayment.Update(payment);
                 await ctx.SaveChangesAsync();
 
+                // 查詢操作者
+                var user = await ctx.TblUsers.FirstOrDefaultAsync(u => u.Id == operatorId.Value);
+                string operatorUsername = user?.Username ?? $"UserId:{operatorId}";
+
+                // 寫入稽核紀錄
+                auditLog.WriteAuditLog(AuditActType.Modify, 
+                    $"Update Payment: Id={paymentId}, Amount:{originalPay}→{payment.Pay}, Discount:{originalDiscount}→{payment.DiscountAmount}, Remark:{originalRemark}→{payment.Remark}", 
+                    operatorUsername);
+
                 res.result = APIResultCode.success;
                 res.msg = "ok";
                 return Ok(res);
             }
             catch (Exception ex)
             {
+                log.LogError(ex, $"[{Request.Path}] UpdatePayment Error: {ex.Message}");
                 res.result = APIResultCode.unknow_error;
                 res.msg = ex.Message;
                 return Ok(res);

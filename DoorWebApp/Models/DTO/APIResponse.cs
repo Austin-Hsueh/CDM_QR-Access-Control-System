@@ -86,6 +86,8 @@
         invalid_course_mode = 1304,
         parameter_error = 1305,
         data_not_found = 1306,
+
+        duplicate_data = 2000
     }
 
 

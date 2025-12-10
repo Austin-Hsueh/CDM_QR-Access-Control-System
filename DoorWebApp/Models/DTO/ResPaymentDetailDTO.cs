@@ -18,7 +18,9 @@ namespace DoorWebApp.Models.DTO
         public string CourseName { get; set; } = string.Empty;
         /// <summary>課程分類</summary>
         public string Category { get; set; } = string.Empty;
-        
+        /// <summary>課程編號</summary>
+        public string FeeCode { get; set; } = string.Empty;
+
         /// <summary>老師編號</summary>
         public int? TeacherId { get; set; }
 

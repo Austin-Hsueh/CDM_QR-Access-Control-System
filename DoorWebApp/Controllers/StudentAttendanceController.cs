@@ -9,6 +9,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using DoorDB.Enums;
+using DoorWebApp.Models;
 
 namespace DoorWebApp.Controllers
 {
@@ -19,11 +21,13 @@ namespace DoorWebApp.Controllers
     {
         private readonly DoorDbContext ctx;
         private readonly ILogger<StudentAttendanceController> log;
+        private readonly AuditLogWritter auditLog;
 
-        public StudentAttendanceController(DoorDbContext ctx, ILogger<StudentAttendanceController> log)
+        public StudentAttendanceController(DoorDbContext ctx, ILogger<StudentAttendanceController> log, AuditLogWritter auditLog)
         {
             this.ctx = ctx;
             this.log = log;
+            this.auditLog = auditLog;
         }
 
         /// <summary>
@@ -76,6 +80,11 @@ namespace DoorWebApp.Controllers
 
                 int defaultAmount = (int)Math.Round((totalAmount * (1 - minSplitRatio)) / totalHours, MidpointRounding.AwayFromZero);
 
+                // 記錄修改前的值用於審計
+                var originalHours = attendance.AttendanceFee?.Hours;
+                var originalAmount = attendance.AttendanceFee?.Amount;
+                var originalAdjustment = attendance.AttendanceFee?.AdjustmentAmount;
+
                 var fee = attendance.AttendanceFee ?? new TblAttendanceFee
                 {
                     AttendanceId = attendance.Id,
@@ -93,6 +102,12 @@ namespace DoorWebApp.Controllers
                 }
 
                 await ctx.SaveChangesAsync();
+
+                // 寫入稽核紀錄
+                string operatorUsername = User.Identity?.Name ?? "N/A";
+                auditLog.WriteAuditLog(AuditActType.Modify, 
+                    $"Update Attendance Fee: AttendanceId={dto.AttendanceId}, Hours:{originalHours}→{fee.Hours}, Amount:{originalAmount}→{fee.Amount}, Adjustment:{originalAdjustment}→{fee.AdjustmentAmount}", 
+                    operatorUsername);
 
                 res.result = APIResultCode.success;
                 res.msg = "success";
@@ -337,6 +352,7 @@ namespace DoorWebApp.Controllers
                     CourseId = permission.Course?.Id ?? 0,
                     CourseName = permission.Course?.Name ?? string.Empty,
                     Category = permission.Course?.CourseFee?.Category ?? string.Empty,
+                    FeeCode = permission.Course?.CourseFee?.FeeCode ?? string.Empty,
                     TeacherId = permission.Teacher?.Id,
                     TeacherName = permission.Teacher?.DisplayName,
                     Hours = permission.Course?.CourseFee?.Hours ?? 0,
