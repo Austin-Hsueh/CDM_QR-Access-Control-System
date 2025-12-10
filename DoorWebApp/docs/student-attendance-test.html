@@ -95,6 +95,7 @@
                 <div class="tab" onclick="switchTab('permission')">🔑 新增門禁時間</div>
                 <div class="tab" onclick="switchTab('addattend')">✅ 學生簽到</div>
                 <div class="tab" onclick="switchTab('attendance')">📝 上課紀錄查詢</div>
+                <div class="tab" onclick="switchTab('payment')">💳 繳費管理</div>
                 <div class="tab" onclick="switchTab('docs')">📖 API 文檔</div>
             </div>
 
@@ -134,13 +135,24 @@
                 <div style="padding: 16px 0;">
                     <div style="margin-bottom: 12px;">
                         <label>學生 ID: </label>
-                        <input type="number" id="permissionUserId" min="1" placeholder="輸入學生 ID" style="width: 200px;" />
+                        <input list="studentsDatalist" id="permissionUserId" inputmode="numeric" placeholder="輸入學生 ID" style="width: 260px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                        <datalist id="studentsDatalist">
+                            <option value="">請先載入學生列表</option>
+                        </datalist>
                     </div>
                     <div style="margin-bottom: 12px;">
                         <label>課程: </label>
-                        <select id="permissionCourseId" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px;">
-                            <option value="">-- 請先載入課程列表 --</option>
-                        </select>
+                        <input list="coursesDatalist" id="permissionCourseId" placeholder="-- 請選擇課程 --" style="width: 260px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                        <datalist id="coursesDatalist">
+                            <option value="">請先載入課程列表</option>
+                        </datalist>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <label>老師 ID: </label>
+                        <input list="teachersDatalist" id="permissionTeacherId" inputmode="numeric" placeholder="可留空，預設 0" style="width: 260px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                        <datalist id="teachersDatalist">
+                            <option value="0">0 (預設)</option>
+                        </datalist>
                     </div>
                     <div style="margin-bottom: 12px;">
                         <label>開始日期: </label>
@@ -279,6 +291,73 @@
                 </div>
             </div>
 
+            <!-- 繳費管理 Tab -->
+            <div id="payment" class="tab-content">
+                <div class="card">
+                    <h3>查詢學生繳費資訊</h3>
+                    <div style="padding: 16px 0;">
+                        <input type="number" id="paymentStudentPermissionId" value="1661" min="1" placeholder="輸入學生權限 ID (StudentPermissionId)" />
+                        <button class="btn-primary" onclick="getStudentPaymentInfo()">查詢</button>
+                        <button class="btn-default" onclick="clearPaymentInfo()">清除</button>
+                    </div>
+                    <div id="paymentContent"></div>
+                    <div id="paymentError" class="error" style="display:none;"></div>
+                </div>
+
+                <div class="card">
+                    <h3>新增繳費記錄</h3>
+                    <div style="padding: 16px 0; background: #f5f7fa; border-radius: 4px; padding: 12px;">
+                        <div style="margin-bottom: 12px;">
+                            <label>學生權限 ID: <input type="number" id="createPaymentPermissionId" value="1661" min="1" style="width: 150px;" /></label>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label>繳費金額: <input type="number" id="createPaymentAmount" value="1000" min="1" style="width: 150px;" /></label>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label>折扣金額: <input type="number" id="createPaymentDiscount" value="0" min="0" style="width: 150px;" /></label>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label>備註: <input type="text" id="createPaymentRemark" placeholder="選填" style="width: 250px;" /></label>
+                        </div>
+                        <div style="color: #67c23a; font-size: 13px; margin-bottom: 8px;">
+                            ℹ️ 繳費日期、收據編號與操作者 ID 將自動產生
+                        </div>
+                        <button class="btn-primary" onclick="createPaymentRecord()">新增記錄</button>
+                    </div>
+                    <div id="createPaymentResult" style="margin-top: 12px;"></div>
+                    <div id="createPaymentError" class="error" style="display:none;"></div>
+                </div>
+
+                <div class="card">
+                    <h3>編輯繳費記錄</h3>
+                    <div style="padding: 16px 0; background: #f5f7fa; border-radius: 4px; padding: 12px;">
+                        <div style="margin-bottom: 12px;">
+                            <label>繳費 ID: <input type="number" id="editPaymentId" min="1" style="width: 150px;" placeholder="輸入繳費ID" /></label>
+                            <button class="btn-default btn-small" onclick="loadPaymentForEdit()">載入</button>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label>繳費日期: <input type="text" id="editPaymentDate" placeholder="YYYY/MM/DD (選填)" style="width: 150px;" /></label>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label>繳費金額: <input type="number" id="editPaymentAmount" min="1" style="width: 150px;" placeholder="選填" /></label>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label>折扣金額: <input type="number" id="editPaymentDiscount" min="0" style="width: 150px;" placeholder="選填" /></label>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label>備註: <input type="text" id="editPaymentRemark" placeholder="選填" style="width: 250px;" /></label>
+                        </div>
+                        <div style="color: #67c23a; font-size: 13px; margin-bottom: 8px;">
+                            ℹ️ 收據編號與操作者 ID 將自動產生
+                        </div>
+                        <button class="btn-primary" onclick="updatePaymentRecord()">更新記錄</button>
+                        <button class="btn-primary" style="background: #f56c6c;" onclick="deletePaymentRecord()">刪除記錄</button>
+                    </div>
+                    <div id="editPaymentResult" style="margin-top: 12px;"></div>
+                    <div id="editPaymentError" class="error" style="display:none;"></div>
+                </div>
+            </div>
+
             <!-- API 文檔 Tab -->
             <div id="docs" class="tab-content">
                 <div style="display: grid; grid-template-columns: 250px 1fr; gap: 20px;">
@@ -290,6 +369,9 @@
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceList')">📝 上課紀錄列表</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('paymentDetail')">💰 繳費細項</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceFee')">✏️ 單堂老師費用修改</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('getPaymentInfo')">💳 取得學生繳費資訊</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createPayment')">💵 建立繳費記錄</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('updatePayment')">✏️ 更新繳費記錄</button>
                         </div>
                     </div>
 
@@ -473,14 +555,28 @@
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 teachers = data.content || data || [];
+
+                // 填充老師可搜尋選單
+                const teacherList = document.getElementById('teachersDatalist');
+                teacherList.innerHTML = '<option value="0">0 (預設)</option>';
+                teachers.forEach(t => {
+                    const id = t.teacherId || t.id;
+                    if (id) {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.label = `${t.teacherName || t.displayName || ''} (ID: ${id})`;
+                        teacherList.appendChild(option);
+                    }
+                });
                 
                 if (teachers.length === 0) {
                     contentDiv.innerHTML = '<div class="empty">沒有老師資料</div>';
                 } else {
-                    let html = '<table><thead><tr><th>ID</th><th>名稱</th><th>操作</th></tr></thead><tbody>';
+                    let html = '<table><thead><tr><th>ID</th><th>帳號</th><th>名稱</th><th>操作</th></tr></thead><tbody>';
                     teachers.forEach((teacher, index) => {
                         html += `<tr>
                             <td>${teacher.teacherId || teacher.id || '-'}</td>
+                            <td>${teacher.userName || '-'}</td>
                             <td>${teacher.teacherName || teacher.displayName || '-'}</td>
                             <td><button class="btn-primary btn-small" onclick="selectTeacher(${index})">選擇</button></td>
                         </tr>`;
@@ -506,6 +602,19 @@
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 students = data.content || data || [];
+
+                // 填充學生可搜尋選單
+                const studentList = document.getElementById('studentsDatalist');
+                studentList.innerHTML = '<option value="">請選擇學生</option>';
+                students.forEach(s => {
+                    const id = s.studentId || s.id;
+                    if (id) {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.label = `${s.studentName || s.displayName || ''} (ID: ${id}, 帳號: ${s.userName || s.username || ''})`;
+                        studentList.appendChild(option);
+                    }
+                });
                 
                 if (students.length === 0) {
                     contentDiv.innerHTML = '<div class="empty">沒有學生資料</div>';
@@ -541,14 +650,17 @@
                 const data = await res.json();
                 const courses = data.content || data || [];
                 
-                // 更新下拉選單
-                const courseSelect = document.getElementById('permissionCourseId');
-                courseSelect.innerHTML = '<option value="">-- 請選擇課程 --</option>';
+                // 更新可搜尋課程清單
+                const courseList = document.getElementById('coursesDatalist');
+                courseList.innerHTML = '<option value="">-- 請選擇課程 --</option>';
                 courses.forEach(course => {
-                    const option = document.createElement('option');
-                    option.value = course.id || course.courseId;
-                    option.textContent = `${course.name || course.courseName} (ID: ${course.id || course.courseId})`;
-                    courseSelect.appendChild(option);
+                    const id = course.id || course.courseId;
+                    if (id) {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.label = `${course.name || course.courseName || ''} (ID: ${id})`;
+                        courseList.appendChild(option);
+                    }
                 });
                 
                 if (courses.length === 0) {
@@ -622,10 +734,11 @@
                 if (!attendanceData || attendanceData.length === 0) {
                     contentDiv.innerHTML = '<div class="empty">沒有上課紀錄</div>';
                 } else {
-                    let html = '<table><thead><tr><th>序號</th><th>課程名稱</th><th>繳款日</th><th>應收金額</th><th>已收金額</th><th>剩餘欠款</th><th>結帳單號</th><th>課程一</th><th>課程二</th><th>課程三</th><th>課程四</th><th>操作</th></tr></thead><tbody>';
+                    let html = '<table><thead><tr><th>序號</th><th>學生權限ID</th><th>課程名稱</th><th>繳款日</th><th>應收金額</th><th>已收金額</th><th>剩餘欠款</th><th>結帳單號</th><th>課程一</th><th>課程二</th><th>課程三</th><th>課程四</th><th>操作</th></tr></thead><tbody>';
                     attendanceData.forEach(record => {
                         html += `<tr>
                             <td>${record.serialNo || '-'}</td>
+                            <td>${record.studentPermissionId || '-'}</td>
                             <td>${record.courseName || '-'}</td>
                             <td>${record.paymentDate || '-'}</td>
                             <td>${record.receivableAmount || '0'}</td>
@@ -748,20 +861,18 @@
                 </div>
             `;
 
-            // 收款列表
-            if (detail.paymentRecords && detail.paymentRecords.length > 0) {
-                html += '<h4 style="margin-top: 20px; margin-bottom: 10px;">💳 收款記錄列表</h4>';
-                html += '<table><thead><tr><th>繳費日期</th><th>收款結帳單號</th><th>學費金額</th><th>教材金額</th><th>合計</th></tr></thead><tbody>';
-                detail.paymentRecords.forEach(record => {
-                    const total = (record.tuitionAmount || 0) + (record.materialAmount || 0);
-                    html += `<tr>
-                        <td>${record.paymentDate || '-'}</td>
-                        <td>${record.receiptNumber || '-'}</td>
-                        <td>$${(record.tuitionAmount || 0).toLocaleString()}</td>
-                        <td>$${(record.materialAmount || 0).toLocaleString()}</td>
-                        <td><strong>$${total.toLocaleString()}</strong></td>
-                    </tr>`;
-                });
+            // 最近一筆收款記錄
+            if (detail.latestPayment) {
+                const payment = detail.latestPayment;
+                html += '<h4 style="margin-top: 20px; margin-bottom: 10px;">💳 最近收款記錄</h4>';
+                html += '<table><thead><tr><th>繳費日期</th><th>收款結帳單號</th><th>學費金額</th><th>教材金額</th><th>已收金額</th></tr></thead><tbody>';
+                html += `<tr>
+                    <td>${payment.paymentDate || '-'}</td>
+                    <td>${payment.receiptNumber || '-'}</td>
+                    <td>$${(payment.tuitionAmount || 0).toLocaleString()}</td>
+                    <td>$${(payment.materialAmount || 0).toLocaleString()}</td>
+                    <td><strong>$${(payment.receivedAmount || 0).toLocaleString()}</strong></td>
+                </tr>`;
                 html += '</tbody></table>';
             } else {
                 html += '<div class="info" style="margin-top: 20px;">暫無收款記錄</div>';
@@ -852,6 +963,7 @@
         async function createPermission() {
             const userId = document.getElementById('permissionUserId').value;
             const courseId = document.getElementById('permissionCourseId').value;
+            const teacherId = document.getElementById('permissionTeacherId').value || 0;
             const startDate = document.getElementById('permissionStartDate').value;
             const endDate = document.getElementById('permissionEndDate').value;
             const startTime = document.getElementById('permissionStartTime').value;
@@ -889,6 +1001,7 @@
             const requestBody = {
                 userId: parseInt(userId),
                 courseId: parseInt(courseId),
+                teacherId: parseInt(teacherId) || 0,
                 datefrom: startDate.replace(/-/g, '/'),  // 轉換為 YYYY/MM/DD 格式
                 dateto: endDate.replace(/-/g, '/'),      // 轉換為 YYYY/MM/DD 格式
                 days: daysOfWeek,
@@ -917,6 +1030,7 @@
                 let html = '<div class="success"><strong>✅ 新增成功！</strong><br>';
                 html += `學生 ID: ${userId}<br>`;
                 html += `課程 ID: ${courseId}<br>`;
+                html += `老師 ID: ${teacherId || 0}<br>`;
                 html += `期間: ${startDate} ~ ${endDate}<br>`;
                 html += `時間: ${startTime} ~ ${endTime}<br>`;
                 html += `星期: ${daysOfWeek.map(d => ['日','一','二','三','四','五','六'][d]).join(', ')}<br>`;
@@ -950,6 +1064,7 @@
         function clearPermissionForm() {
             document.getElementById('permissionUserId').value = '';
             document.getElementById('permissionCourseId').value = '';
+            document.getElementById('permissionTeacherId').value = '';
             document.getElementById('permissionStartDate').value = '';
             document.getElementById('permissionEndDate').value = '';
             document.getElementById('permissionStartTime').value = '';
@@ -1160,6 +1275,9 @@
                             <h3 style="margin-top: 20px;">🧪 測試 API</h3>
                             <button class="btn-primary" onclick="testStudentsList()">執行測試</button>
                             <div id="testResult-studentsList" style="margin-top: 10px;"></div>
+                            
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-studentsList" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
                         </div>
                     `;
                     break;
@@ -1214,8 +1332,11 @@
 
                             <h3 style="margin-top: 20px;">🧪 測試 API</h3>
                             <label>學生 User ID: <input type="number" id="testUserId" value="51" style="width: 150px; padding: 6px;" /></label>
-                            <button class="btn-primary" onclick="testAttendanceList()">執行測試</button>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testAttendanceList()">執行測試</button>
                             <div id="testResult-attendanceList" style="margin-top: 10px;"></div>
+                            
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-attendanceList" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
                         </div>
                     `;
                     break;
@@ -1264,11 +1385,12 @@
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>teacherSplitRatio</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal</td><td style="padding: 8px; border: 1px solid #ddd;">老師拆帳比例 (0-1)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>totalAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">課程總金額 (學費+教材)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>totalTeacherAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">老師可分得金額</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>paymentRecords</code></td><td style="padding: 8px; border: 1px solid #ddd;">array</td><td style="padding: 8px; border: 1px solid #ddd;">收款列表 (PaymentRecordDTO[])</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>payment</code></td><td style="padding: 8px; border: 1px solid #ddd;">object?</td><td style="padding: 8px; border: 1px solid #ddd;">最近一筆收款記錄 (PaymentRecordDTO)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ paymentDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">繳費日期 (民國年格式: 114/11/06)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ receiptNumber</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">收款結帳單號</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ tuitionAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學費金額</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ materialAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">教材金額</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ receivedAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">已收金額 (付款+折扣)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>attendanceRecords</code></td><td style="padding: 8px; border: 1px solid #ddd;">array</td><td style="padding: 8px; border: 1px solid #ddd;">課程記錄列表 (AttendanceRecordDTO[])</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ attendanceId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">簽到記錄 ID</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ attendanceDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">上課日期</td></tr>
@@ -1281,10 +1403,19 @@
                                 </tbody>
                             </table>
 
+                            <h3 style="margin-top: 20px;">💡 計算邏輯</h3>
+                            <div class="info">
+                                <p><strong>收款記錄：</strong>只返回最近一筆付款（按 ModifiedTime 降序）</p>
+                                <p><strong>已收金額：</strong>付款金額 + 折扣金額</p>
+                            </div>
+
                             <h3 style="margin-top: 20px;">🧪 測試 API</h3>
                             <label>學生權限 ID: <input type="number" id="testPermissionId" value="1661" style="width: 150px; padding: 6px;" /></label>
-                            <button class="btn-primary" onclick="testPaymentDetail()">執行測試</button>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testPaymentDetail()">執行測試</button>
                             <div id="testResult-paymentDetail" style="margin-top: 10px;"></div>
+                            
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-paymentDetail" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
                         </div>
                     `;
                     break;
@@ -1349,6 +1480,220 @@
                             </div>
                             <button class="btn-primary" style="margin-top: 10px;" onclick="testAttendanceFee()">執行測試</button>
                             <div id="testResult-attendanceFee" style="margin-top: 10px;"></div>
+                            
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-attendanceFee" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'getPaymentInfo':
+                    html = `
+                        <h2 style="color: #667eea;">💳 取得學生繳費資訊</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>GET /api/v1/StudentPayment/{studentPermissionId}</code></p>
+                            <p><strong>說明：</strong>取得指定學生權限的繳費摘要資訊</p>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位 (StudentPaymentSummaryDTO)</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">課程 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">課程名稱</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">學生 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">學生姓名</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>currentAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">當筆金額 (學費+教材)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>receivableAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal</td><td style="padding: 8px; border: 1px solid #ddd;">應收金額 (扣除總折扣)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>paidAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">已收金額 (最新一筆付款+折扣)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>outstandingAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal</td><td style="padding: 8px; border: 1px solid #ddd;">欠款金額</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>totalDiscount</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal</td><td style="padding: 8px; border: 1px solid #ddd;">總折扣金額</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>payDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">最新繳費日期</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>receiptNumber</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">最新收據編號 (格式: 114B120001)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>remark</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">備註</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">💡 回應說明</h3>
+                            <div class="info">
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li><strong>已收金額計算：</strong>最新一筆繳費記錄的付款金額 + 折扣金額</li>
+                                    <li><strong>欠款金額：</strong>應收金額 - 已收金額</li>
+                                    <li><strong>收據編號格式：</strong>{民國年:03}B{月份:02}{流水號:04}</li>
+                                </ul>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <label>學生權限 ID: <input type="number" id="testGetPaymentPermissionId" style="width: 150px; padding: 6px;" /></label>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testGetPaymentInfo()">執行測試</button>
+                            <div id="testResult-getPaymentInfo" style="margin-top: 10px;"></div>
+                            
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-getPaymentInfo" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'createPayment':
+                    html = `
+                        <h2 style="color: #667eea;">💵 建立繳費記錄</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>POST /api/v1/StudentPayment</code></p>
+                            <p><strong>說明：</strong>建立新的繳費記錄</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數 (ReqCreatePaymentDTO)</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>pay</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">繳費金額</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>discountAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">折扣金額 (預設0)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>remark</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">備註</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">🤖 自動產生欄位</h3>
+                            <div class="info">
+                                <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background: #48bb78; color: white;">
+                                            <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                            <th style="padding: 8px; border: 1px solid #ddd;">產生規則</th>
+                                            <th style="padding: 8px; border: 1px solid #ddd;">範例</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>繳費日期</strong></td><td style="padding: 8px; border: 1px solid #ddd;">系統自動取得當前 UTC+8 時間</td><td style="padding: 8px; border: 1px solid #ddd;">2025/12/10</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>收據編號</strong></td><td style="padding: 8px; border: 1px solid #ddd;">格式: {民國年:03}B{月份:02}{流水號:04}<br/>查詢當月最新流水號後 +1</td><td style="padding: 8px; border: 1px solid #ddd;">114B120091</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>操作者 ID</strong></td><td style="padding: 8px; border: 1px solid #ddd;">從 JWT Token 的 userId claim 取得</td><td style="padding: 8px; border: 1px solid #ddd;">自動填入</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>result</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">結果代碼 (1=成功)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">訊息</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                                <div><label>學生權限 ID: <input type="number" id="testCreatePermissionId" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>繳費金額: <input type="number" id="testCreatePay" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>折扣金額: <input type="number" step="0.01" id="testCreateDiscount" value="0" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>備註: <input type="text" id="testCreateRemark" style="width: 100%; padding: 6px;" placeholder="可選" /></label></div>
+                            </div>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testCreatePayment()">執行測試</button>
+                            <div id="testResult-createPayment" style="margin-top: 10px;"></div>
+                            
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-createPayment" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'updatePayment':
+                    html = `
+                        <h2 style="color: #667eea;">✏️ 更新繳費記錄</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>PUT /api/v1/StudentPayment/{paymentId}</code></p>
+                            <p><strong>說明：</strong>更新指定繳費記錄（支援部分欄位更新）</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數 (ReqUpdatePaymentDTO)</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>pay</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">繳費金額 (可空=不修改)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>discountAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">折扣金額 (可空=不修改)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>remark</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">備註 (可空=不修改)</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">⚠️ 更新規則</h3>
+                            <div class="info">
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li><strong>部分更新：</strong>所有參數皆為可選，僅更新傳入的非空欄位</li>
+                                    <li><strong>繳款日期：</strong>不可修改（系統產生後即固定）</li>
+                                    <li><strong>收據編號：</strong>不可修改（系統產生後即固定）</li>
+                                    <li><strong>操作者 ID：</strong>自動更新為當前使用者（從 JWT Token 取得）</li>
+                                    <li><strong>修改時間：</strong>自動更新為執行更新的時間</li>
+                                </ul>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>result</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">結果代碼 (1=成功)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">訊息</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">💡 使用範例</h3>
+                            <div class="info">
+                                <p><strong>僅更新繳費金額：</strong></p>
+                                <pre style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 4px; overflow-x: auto;">{
+  "pay": 5000
+}</pre>
+                                <p style="margin-top: 10px;"><strong>同時更新多個欄位：</strong></p>
+                                <pre style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 4px; overflow-x: auto;">{
+  "pay": 5000,
+  "discountAmount": 500,
+  "remark": "已確認收款"
+}</pre>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                                <div><label>繳費 ID: <input type="number" id="testUpdatePaymentId" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>繳費日期: <input type="text" id="testUpdatePayDate" placeholder="2025/12/10 可空" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>繳費金額: <input type="number" id="testUpdatePay" placeholder="可空" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>折扣金額: <input type="number" step="0.01" id="testUpdateDiscount" placeholder="可空" style="width: 100%; padding: 6px;" /></label></div>
+                            </div>
+                            <div style="margin-top: 10px;"><label>備註: <input type="text" id="testUpdateRemark" placeholder="可空" style="width: 100%; padding: 6px;" /></label></div>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testUpdatePayment()">執行測試</button>
+                            <div id="testResult-updatePayment" style="margin-top: 10px;"></div>
+                            
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-updatePayment" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
                         </div>
                     `;
                     break;
@@ -1360,39 +1705,111 @@
         // 測試函數
         async function testStudentsList() {
             const resultDiv = document.getElementById('testResult-studentsList');
-            resultDiv.innerHTML = '<div class="loading">測試中...</div>';
+            resultDiv.innerHTML = '<div class="loading">查詢中...</div>';
+            
             try {
                 const res = await apiFetch('/api/v1/Students');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
-                resultDiv.innerHTML = `<div class="success">✅ 測試成功</div><pre style="background:#f5f5f5; padding:10px; border-radius:4px; max-height:300px; overflow:auto;">${JSON.stringify(data, null, 2)}</pre>`;
+
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '查詢失敗');
+                }
+
+                const students = data.content || [];
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 查詢成功，共 ${students.length} 筆資料</div>
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px; max-height: 200px; overflow-y: auto;">
+                        ${students.slice(0, 5).map(s => `<p><strong>ID ${s.studentId}:</strong> ${s.studentName} (${s.userName})</p>`).join('')}
+                        ${students.length > 5 ? `<p style="color: #718096;">... 及其他 ${students.length - 5} 筆</p>` : ''}
+                    </div>
+                `;
+
+                // 顯示 RAW DATA
+                document.getElementById('rawData-studentsList').textContent = JSON.stringify(data, null, 2);
             } catch(err) {
-                resultDiv.innerHTML = `<div class="error">❌ 測試失敗: ${err.message}</div>`;
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                document.getElementById('rawData-studentsList').textContent = `錯誤: ${err.message}`;
             }
         }
 
         async function testAttendanceList() {
             const userId = document.getElementById('testUserId').value;
+            if (!userId) {
+                alert('請輸入學生 User ID');
+                return;
+            }
+
             const resultDiv = document.getElementById('testResult-attendanceList');
-            resultDiv.innerHTML = '<div class="loading">測試中...</div>';
+            resultDiv.innerHTML = '<div class="loading">查詢中...</div>';
+            
             try {
                 const res = await apiFetch(`/api/v1/StudentAttendance/${userId}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
-                resultDiv.innerHTML = `<div class="success">✅ 測試成功</div><pre style="background:#f5f5f5; padding:10px; border-radius:4px; max-height:300px; overflow:auto;">${JSON.stringify(data, null, 2)}</pre>`;
+
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '查詢失敗');
+                }
+
+                const records = data.content || [];
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 查詢成功，共 ${records.length} 筆記錄</div>
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px; max-height: 200px; overflow-y: auto;">
+                        ${records.slice(0, 3).map(r => `
+                            <div style="border-bottom: 1px solid #e2e8f0; padding: 8px 0;">
+                                <p><strong>課程:</strong> ${r.courseName}</p>
+                                <p><strong>應收:</strong> ￥${r.receivableAmount} | <strong>已收:</strong> ￥${r.receivedAmount} | <strong>欠款:</strong> ￥${r.outstandingAmount}</p>
+                            </div>
+                        `).join('')}
+                        ${records.length > 3 ? `<p style="color: #718096; margin-top: 8px;">... 及其他 ${records.length - 3} 筆</p>` : ''}
+                    </div>
+                `;
+
+                // 顯示 RAW DATA
+                document.getElementById('rawData-attendanceList').textContent = JSON.stringify(data, null, 2);
             } catch(err) {
-                resultDiv.innerHTML = `<div class="error">❌ 測試失敗: ${err.message}</div>`;
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                document.getElementById('rawData-attendanceList').textContent = `錯誤: ${err.message}`;
             }
         }
 
         async function testPaymentDetail() {
             const permissionId = document.getElementById('testPermissionId').value;
+            if (!permissionId) {
+                alert('請輸入學生權限 ID');
+                return;
+            }
+
             const resultDiv = document.getElementById('testResult-paymentDetail');
-            resultDiv.innerHTML = '<div class="loading">測試中...</div>';
+            resultDiv.innerHTML = '<div class="loading">查詢中...</div>';
+            
             try {
                 const res = await apiFetch(`/api/v1/StudentAttendance/Detail/${permissionId}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
-                resultDiv.innerHTML = `<div class="success">✅ 測試成功</div><pre style="background:#f5f5f5; padding:10px; border-radius:4px; max-height:300px; overflow:auto;">${JSON.stringify(data, null, 2)}</pre>`;
+
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '查詢失敗');
+                }
+
+                const detail = data.content;
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 查詢成功</div>
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <p><strong>課程:</strong> ${detail.courseName || '-'}</p>
+                        <p><strong>學生:</strong> ${detail.studentName || '-'}</p>
+                        <p><strong>拆帳比:</strong> 課程 ${(detail.courseSplitRatio * 100).toFixed(0)}% | 老師 ${(detail.teacherSplitRatio * 100).toFixed(0)}%</p>
+                        <p><strong>老師分涤:</strong> ￥${detail.teacherRevenue || 0}</p>
+                        ${detail.latestPayment ? `<p><strong>最新繳費:</strong> ￥${detail.latestPayment.pay} (折扣: ￥${detail.latestPayment.discountAmount})</p>` : '<p>無繳費記錄</p>'}
+                    </div>
+                `;
+
+                // 顯示 RAW DATA
+                document.getElementById('rawData-paymentDetail').textContent = JSON.stringify(data, null, 2);
             } catch(err) {
-                resultDiv.innerHTML = `<div class="error">❌ 測試失敗: ${err.message}</div>`;
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                document.getElementById('rawData-paymentDetail').textContent = `錯誤: ${err.message}`;
             }
         }
 
@@ -1413,16 +1830,434 @@
             if (adjust) body.adjustmentAmount = parseInt(adjust);
 
             const resultDiv = document.getElementById('testResult-attendanceFee');
-            resultDiv.innerHTML = '<div class="loading">測試中...</div>';
+            resultDiv.innerHTML = '<div class="loading">更新中...</div>';
+            
             try {
                 const res = await apiFetch('/api/v1/StudentAttendance/AttendanceFee', {
                     method: 'PATCH',
                     body: body
                 });
+                
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
-                resultDiv.innerHTML = `<div class="success">✅ 測試成功</div><pre style="background:#f5f5f5; padding:10px; border-radius:4px; max-height:300px; overflow:auto;">${JSON.stringify(data, null, 2)}</pre>`;
+
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '更新失敗');
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 更新成功</div>
+                    <div style="padding: 12px; background: #f0fff4; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <p><strong>簽到 ID:</strong> ${attendanceId}</p>
+                        ${hours ? `<p><strong>扣課時數:</strong> ${hours}</p>` : ''}
+                        ${amount ? `<p><strong>單堂學費:</strong> ￥${amount}</p>` : ''}
+                        ${adjust ? `<p><strong>單堂增減:</strong> ￥${adjust}</p>` : ''}
+                    </div>
+                `;
+
+                // 顯示 RAW DATA
+                document.getElementById('rawData-attendanceFee').textContent = JSON.stringify(data, null, 2);
             } catch(err) {
-                resultDiv.innerHTML = `<div class="error">❌ 測試失敗: ${err.message}</div>`;
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                document.getElementById('rawData-attendanceFee').textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        // ========== 繳費管理功能 ==========
+        
+        async function getStudentPaymentInfo() {
+            const permissionId = document.getElementById('paymentStudentPermissionId').value;
+            if (!permissionId) {
+                alert('請輸入學生權限 ID');
+                return;
+            }
+
+            const resultDiv = document.getElementById('paymentContent');
+            const errorDiv = document.getElementById('paymentError');
+            resultDiv.innerHTML = '<div class="loading">載入中...</div>';
+            errorDiv.style.display = 'none';
+
+            try {
+                const res = await apiFetch(`/api/v1/StudentPayment/${permissionId}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '查詢失敗');
+                }
+
+                const payment = data.content;
+                let html = `
+                    <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; border: 1px solid #b3d8ff; margin-bottom: 16px;">
+                        <h4>基本資訊</h4>
+                        <table style="width: 100%; font-size: 14px;">
+                            <tr><th>課程名稱</th><td>${payment.courseName || '無'}</td></tr>
+                            <tr><th>學生姓名</th><td>${payment.studentName || '無'}</td></tr>
+                            <tr><th>當筆金額</th><td style="color: #409eff; font-weight: bold;">¥${payment.currentAmount || 0}</td></tr>
+                            <tr><th>總額折扣</th><td style="color: #f56c6c; font-weight: bold;">-¥${payment.totalDiscount || 0}</td></tr>
+                            <tr><th>應收金額</th><td style="color: #409eff; font-weight: bold;">¥${payment.receivableAmount || 0}</td></tr>
+                            <tr><th>已收金額</th><td style="color: #67c23a; font-weight: bold;">¥${payment.paidAmount || 0}</td></tr>
+                            <tr><th>欠款金額</th><td style="color: #e6a23c; font-weight: bold;">¥${payment.outstandingAmount || 0}</td></tr>
+                            <tr><th>最新繳費日期</th><td>${payment.payDate || '無'}</td></tr>
+                            <tr><th>最新收據編號</th><td>${payment.receiptNumber || '無'}</td></tr>
+                            <tr><th>最新備註</th><td>${payment.remark || '無'}</td></tr>
+                        </table>
+                    </div>
+                `;
+
+                resultDiv.innerHTML = html;
+            } catch(err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+                resultDiv.innerHTML = '';
+            }
+        }
+
+        function clearPaymentInfo() {
+            document.getElementById('paymentContent').innerHTML = '';
+            document.getElementById('paymentError').style.display = 'none';
+            document.getElementById('paymentStudentPermissionId').value = '1661';
+        }
+
+        async function createPaymentRecord() {
+            const permissionId = document.getElementById('createPaymentPermissionId').value;
+            const pay = parseInt(document.getElementById('createPaymentAmount').value);
+            const discount = parseFloat(document.getElementById('createPaymentDiscount').value) || 0;
+            const remark = document.getElementById('createPaymentRemark').value || null;
+
+            if (!permissionId || !pay) {
+                alert('請填寫必填欄位：學生權限ID、金額');
+                return;
+            }
+
+            const resultDiv = document.getElementById('createPaymentResult');
+            const errorDiv = document.getElementById('createPaymentError');
+            resultDiv.innerHTML = '<div class="loading">新增中...</div>';
+            errorDiv.style.display = 'none';
+
+            try {
+                const payload = {
+                    studentPermissionId: parseInt(permissionId),
+                    pay: pay,
+                    discountAmount: discount,
+                    remark: remark
+                };
+
+                const res = await apiFetch('/api/v1/StudentPayment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '新增失敗');
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 新增成功</div>
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <p>繳費ID: ${data.content.paymentId}</p>
+                        <p>繳費日期: ${data.content.payDate}</p>
+                        <p>收據編號: ${data.content.receiptNumber || '-'}</p>
+                        <p>繳費金額: ¥${data.content.pay}</p>
+                    </div>
+                `;
+                
+                // 清空表單
+                document.getElementById('createPaymentAmount').value = '';
+                document.getElementById('createPaymentDiscount').value = '0';
+                document.getElementById('createPaymentRemark').value = '';
+            } catch(err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+                resultDiv.innerHTML = '';
+            }
+        }
+
+        async function loadPaymentForEdit() {
+            const paymentId = document.getElementById('editPaymentId').value;
+            if (!paymentId) {
+                alert('請輸入繳費 ID');
+                return;
+            }
+            // 可以從查詢結果中載入，這裡簡化為直接顯示 ID
+            alert('請輸入要編輯的繳費ID，然後修改欄位');
+        }
+
+        async function updatePaymentRecord() {
+            const paymentId = document.getElementById('editPaymentId').value;
+            if (!paymentId) {
+                alert('請輸入繳費 ID');
+                return;
+            }
+
+            const payload = {};
+            const payDate = document.getElementById('editPaymentDate').value;
+            if (payDate) payload.payDate = payDate;
+            
+            const pay = document.getElementById('editPaymentAmount').value;
+            if (pay) payload.pay = parseInt(pay);
+            
+            const discount = document.getElementById('editPaymentDiscount').value;
+            if (discount !== '') payload.discountAmount = parseFloat(discount);
+            
+            const remark = document.getElementById('editPaymentRemark').value;
+            if (remark) payload.remark = remark;
+
+            if (Object.keys(payload).length === 0) {
+                alert('請至少修改一個欄位');
+                return;
+            }
+
+            const resultDiv = document.getElementById('editPaymentResult');
+            const errorDiv = document.getElementById('editPaymentError');
+            resultDiv.innerHTML = '<div class="loading">更新中...</div>';
+            errorDiv.style.display = 'none';
+
+            try {
+                const res = await apiFetch(`/api/v1/StudentPayment/${paymentId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '更新失敗');
+                }
+
+                resultDiv.innerHTML = '<div class="success">✅ 更新成功</div>';
+                
+                // 清空表單
+                document.getElementById('editPaymentId').value = '';
+                document.getElementById('editPaymentDate').value = '';
+                document.getElementById('editPaymentAmount').value = '';
+                document.getElementById('editPaymentDiscount').value = '';
+                document.getElementById('editPaymentRemark').value = '';
+            } catch(err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+                resultDiv.innerHTML = '';
+            }
+        }
+
+        async function deletePaymentRecord() {
+            const paymentId = document.getElementById('editPaymentId').value;
+            if (!paymentId) {
+                alert('請輸入繳費 ID');
+                return;
+            }
+
+            if (!confirm('確定要刪除此繳費記錄嗎？')) {
+                return;
+            }
+
+            const resultDiv = document.getElementById('editPaymentResult');
+            const errorDiv = document.getElementById('editPaymentError');
+            resultDiv.innerHTML = '<div class="loading">刪除中...</div>';
+            errorDiv.style.display = 'none';
+
+            try {
+                const res = await apiFetch(`/api/v1/StudentPayment/${paymentId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '刪除失敗');
+                }
+
+                resultDiv.innerHTML = '<div class="success">✅ 刪除成功</div>';
+                
+                // 清空表單
+                document.getElementById('editPaymentId').value = '';
+            } catch(err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+                resultDiv.innerHTML = '';
+            }
+        }
+
+        // 測試取得學生繳費資訊
+        async function testGetPaymentInfo() {
+            const permissionId = document.getElementById('testGetPaymentPermissionId').value;
+            if (!permissionId) {
+                alert('請輸入學生權限 ID');
+                return;
+            }
+
+            const resultDiv = document.getElementById('testResult-getPaymentInfo');
+            resultDiv.innerHTML = '<div class="loading">查詢中...</div>';
+
+            try {
+                const res = await apiFetch(`/api/v1/StudentPayment/${permissionId}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '查詢失敗');
+                }
+
+                const payment = data.content;
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 查詢成功</div>
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <p><strong>課程:</strong> ${payment.courseName || '-'}</p>
+                        <p><strong>學生:</strong> ${payment.studentName || '-'}</p>
+                        <p><strong>當筆金額:</strong> ￥${payment.currentAmount}</p>
+                        <p><strong>應收金額:</strong> ￥${payment.receivableAmount}</p>
+                        <p><strong>已收金額:</strong> ￥${payment.paidAmount}</p>
+                        <p><strong>欠款金額:</strong> ￥${payment.outstandingAmount}</p>
+                        <p><strong>繳費日期:</strong> ${payment.payDate || '-'}</p>
+                        <p><strong>收據編號:</strong> ${payment.receiptNumber || '-'}</p>
+                        <p><strong>備註:</strong> ${payment.remark || '-'}</p>
+                    </div>
+                `;
+
+                // 顯示 RAW DATA
+                document.getElementById('rawData-getPaymentInfo').textContent = JSON.stringify(data, null, 2);
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                document.getElementById('rawData-getPaymentInfo').textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        // 測試建立繳費記錄
+        async function testCreatePayment() {
+            const permissionId = document.getElementById('testCreatePermissionId').value;
+            const pay = document.getElementById('testCreatePay').value;
+            
+            if (!permissionId || !pay) {
+                alert('請輸入學生權限 ID 和繳費金額');
+                return;
+            }
+
+            const payload = {
+                studentPermissionId: parseInt(permissionId),
+                pay: parseInt(pay)
+            };
+
+            const discount = document.getElementById('testCreateDiscount').value;
+            if (discount) payload.discountAmount = parseFloat(discount);
+
+            const remark = document.getElementById('testCreateRemark').value;
+            if (remark) payload.remark = remark;
+
+            const resultDiv = document.getElementById('testResult-createPayment');
+            resultDiv.innerHTML = '<div class="loading">建立中...</div>';
+
+            try {
+                const res = await apiFetch('/api/v1/StudentPayment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '建立失敗');
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 建立成功</div>
+                    <div style="padding: 12px; background: #f0fff4; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <p><strong>繳費 ID:</strong> ${data.content?.paymentId || '-'}</p>
+                        <p><strong>繳費日期:</strong> ${data.content?.payDate || '自動產生'}</p>
+                        <p><strong>收據編號:</strong> ${data.content?.receiptNumber || '自動產生'}</p>
+                        <p><strong>繳費金額:</strong> ￥${pay}</p>
+                        <p><strong>折扣金額:</strong> ￥${discount || 0}</p>
+                    </div>
+                `;
+
+                // 清空表單
+                // 顯示 RAW DATA
+                document.getElementById('rawData-createPayment').textContent = JSON.stringify(data, null, 2);
+
+                document.getElementById('testCreatePermissionId').value = '';
+                document.getElementById('testCreatePay').value = '';
+                document.getElementById('testCreateDiscount').value = '0';
+                document.getElementById('testCreateRemark').value = '';
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                document.getElementById('rawData-createPayment').textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        // 測試更新繳費記錄
+        async function testUpdatePayment() {
+            const paymentId = document.getElementById('testUpdatePaymentId').value;
+            if (!paymentId) {
+                alert('請輸入繳費 ID');
+                return;
+            }
+
+            const payload = {};
+            const payDate = document.getElementById('testUpdatePayDate').value;
+            if (payDate) payload.payDate = payDate;
+            
+            const pay = document.getElementById('testUpdatePay').value;
+            if (pay) payload.pay = parseInt(pay);
+            
+            const discount = document.getElementById('testUpdateDiscount').value;
+            if (discount !== '') payload.discountAmount = parseFloat(discount);
+            
+            const remark = document.getElementById('testUpdateRemark').value;
+            if (remark) payload.remark = remark;
+
+            if (Object.keys(payload).length === 0) {
+                alert('請至少修改一個欄位');
+                return;
+            }
+
+            const resultDiv = document.getElementById('testResult-updatePayment');
+            resultDiv.innerHTML = '<div class="loading">更新中...</div>';
+
+            try {
+                const res = await apiFetch(`/api/v1/StudentPayment/${paymentId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '更新失敗');
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 更新成功</div>
+                    <div style="padding: 12px; background: #fffbeb; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <p><strong>已更新的欄位:</strong></p>
+                        ${payDate ? `<p>繳費日期: ${payDate}</p>` : ''}
+                        ${pay ? `<p>繳費金額: ￥${pay}</p>` : ''}
+                        ${discount !== '' ? `<p>折扣金額: ￥${discount}</p>` : ''}
+                        ${remark ? `<p>備註: ${remark}</p>` : ''}
+                    </div>
+                `;
+
+                // 清空表單
+                // 顯示 RAW DATA
+                document.getElementById('rawData-updatePayment').textContent = JSON.stringify(data, null, 2);
+
+                document.getElementById('testUpdatePaymentId').value = '';
+                document.getElementById('testUpdatePayDate').value = '';
+                document.getElementById('testUpdatePay').value = '';
+                document.getElementById('testUpdateDiscount').value = '';
+                document.getElementById('testUpdateRemark').value = '';
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                document.getElementById('rawData-updatePayment').textContent = `錯誤: ${err.message}`;
             }
         }
     </script>

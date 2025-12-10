@@ -40,8 +40,8 @@ namespace DoorWebApp.Models.DTO
         /// <summary>老師計薪總課程金額</summary>
         public int TotalTeacherAmount { get; set; }
 
-        /// <summary>收款列表</summary>
-        public List<PaymentRecordDTO> PaymentRecords { get; set; } = new List<PaymentRecordDTO>();
+        /// <summary>最近一筆收款記錄</summary>
+        public PaymentRecordDTO? Payment { get; set; }
 
         /// <summary>課程記錄列表</summary>
         public List<AttendanceRecordDTO> AttendanceRecords { get; set; } = new List<AttendanceRecordDTO>();
@@ -63,6 +63,9 @@ namespace DoorWebApp.Models.DTO
 
         /// <summary>教材金額</summary>
         public int MaterialAmount { get; set; }
+
+        /// <summary>已收金額（付款 + 折扣）</summary>
+        public int ReceivedAmount { get; set; }
     }
 
     /// <summary>

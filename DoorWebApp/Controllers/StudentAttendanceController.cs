@@ -145,14 +145,23 @@ namespace DoorWebApp.Controllers
                 {
                     var courseFee = sp.Course?.CourseFee;
                     int receivable = (courseFee?.Amount ?? 0) + (courseFee?.MaterialFee ?? 0);
-                    int received = sp.Payments?.Where(p => !p.IsDelete).Sum(p => p.Pay) ?? 0;
+                    
+                    // 只撈取最近一筆付款記錄
+                    var latestPayment = sp.Payments?
+                        .Where(p => !p.IsDelete)
+                        .OrderByDescending(p => p.ModifiedTime)
+                        .FirstOrDefault();
+                    
+                    // 已收 = 付款金額 + 折扣金額
+                    int received = 0;
+                    if (latestPayment != null)
+                    {
+                        received = latestPayment.Pay + latestPayment.DiscountAmount;
+                    }
+                    
                     int outstanding = Math.Max(receivable - received, 0);
 
-                    string? receiptNumber = sp.Payments?
-                        .Where(p => !p.IsDelete && !string.IsNullOrEmpty(p.ReceiptNumber))
-                        .OrderByDescending(p => p.ModifiedTime)
-                        .Select(p => p.ReceiptNumber)
-                        .FirstOrDefault();
+                    string? receiptNumber = latestPayment?.ReceiptNumber;
 
                     var attendances = sp.Attendances?
                         .Where(a => !a.IsDelete)
@@ -261,38 +270,33 @@ namespace DoorWebApp.Controllers
                 // 老師可分得金額 B = T * (1 - r)
                 int totalTeacherAmount = (int)Math.Round(totalAmount * (1 - minSplitRatio), MidpointRounding.AwayFromZero);
 
-                // 5. 組裝收款列表
-                var paymentRecords = new List<PaymentRecordDTO>();
-                var payments = permission.Payments?
+                // 5. 組裝最近一筆收款記錄
+                PaymentRecordDTO? Payment = null;
+                var payment = permission.Payments?
                     .Where(p => !p.IsDelete)
-                    .OrderBy(p => p.ModifiedTime)
-                    .ToList() ?? new List<TblPayment>();
+                    .OrderByDescending(p => p.ModifiedTime)
+                    .FirstOrDefault();
 
-                // 從 StudentPermissionFee 取得繳費日期
-                var permFee = permission.StudentPermissionFee;
-
-                foreach (var payment in payments)
+                if (payment != null)
                 {
-                    // 假設付款金額包含學費和教材費
-                    // 根據課程費用配置來拆分
+                    // 從 StudentPermissionFee 取得繳費日期
+                    var permFee = permission.StudentPermissionFee;
+
+                    // 假設付款金額包含學費和教材費，根據課程費用配置來拆分
                     int paymentTuition = tuitionFee;
                     int paymentMaterial = materialFee;
 
-                    // 如果付款金額不等於總應收，按比例分配
-                    if (totalAmount > 0 && payment.Pay != totalAmount)
-                    {
-                        decimal ratio = (decimal)payment.Pay / totalAmount;
-                        paymentTuition = (int)(tuitionFee * ratio);
-                        paymentMaterial = (int)(materialFee * ratio);
-                    }
+                    // 已收 = 付款 + 折扣
+                    int receivedAmount = payment.Pay + payment.DiscountAmount;
 
-                    paymentRecords.Add(new PaymentRecordDTO
+                    Payment = new PaymentRecordDTO
                     {
                         PaymentDate = FormatRocDate(permFee?.PaymentDate),
                         ReceiptNumber = payment.ReceiptNumber,
                         TuitionAmount = paymentTuition,
-                        MaterialAmount = paymentMaterial
-                    });
+                        MaterialAmount = paymentMaterial,
+                        ReceivedAmount = receivedAmount
+                    };
                 }
 
                 // 6. 組裝課程記錄列表
@@ -340,7 +344,7 @@ namespace DoorWebApp.Controllers
                     TeacherSplitRatio = teacherSplitRatio,
                     TotalAmount = totalAmount,
                     TotalTeacherAmount = totalTeacherAmount,
-                    PaymentRecords = paymentRecords,
+                    Payment = Payment,
                     AttendanceRecords = attendanceRecords
                 };
 

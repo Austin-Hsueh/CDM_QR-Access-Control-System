@@ -3,6 +3,7 @@
     public class ResTeacherDTO
     {
         public int teacherId { get; set; }
+        public string userName { get; set; }
         public string teacherName { get; set; }
     }
 }
