@@ -13,11 +13,14 @@ namespace DoorWebApp.Models.DTO
         /// <summary>學生權限 ID（用於查詢明細）</summary>
         public int StudentPermissionId { get; set; }
 
+        /// <summary>學生權限費用 ID（列出每筆 StudentPermissionFee）</summary>
+        public int StudentPermissionFeeId { get; set; }
+
         /// <summary>課程名稱</summary>
         public string CourseName { get; set; } = string.Empty;
 
-        /// <summary>繳款日（來自學生權限費用，若無則空）</summary>
-        public DateTime? PaymentDate { get; set; }
+        /// <summary>繳款日（字串，民國年格式：114/02/27）</summary>
+        public string? PaymentDate { get; set; }
 
         /// <summary>應收金額（課程費用 + 教材費）</summary>
         public int ReceivableAmount { get; set; }

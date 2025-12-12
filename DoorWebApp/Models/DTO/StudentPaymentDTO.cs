@@ -8,11 +8,11 @@ namespace DoorWebApp.Models.DTO
     /// </summary>
     public class StudentPaymentSummaryDTO
     {
-        /// <summary>序號</summary>
-        public int SerialNo { get; set; }
-
         /// <summary>學生權限 ID</summary>
         public int StudentPermissionId { get; set; }
+
+        /// <summary>學生權限費用 ID</summary>
+        public int StudentPermissionFeeId { get; set; }
 
         /// <summary>課程 ID</summary>
         public int? CourseId { get; set; }

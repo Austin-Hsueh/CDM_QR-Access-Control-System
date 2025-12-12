@@ -46,9 +46,11 @@ namespace DoorWebApp.Controllers
                 .FirstOrDefaultAsync();
 
             int nextNumber = 1;
-            if (!string.IsNullOrEmpty(lastReceipt) && lastReceipt.Length >= 11)
+            if (!string.IsNullOrEmpty(lastReceipt) && lastReceipt.Length >= 10)
             {
-                if (int.TryParse(lastReceipt.Substring(7, 4), out int lastNumber))
+                // 格式: {rocYear:000}B{month:00}{number:0000}
+                // 例如: 114B120001，数字部分在位置 6-9
+                if (int.TryParse(lastReceipt.Substring(6, 4), out int lastNumber))
                 {
                     nextNumber = lastNumber + 1;
                 }
@@ -71,34 +73,39 @@ namespace DoorWebApp.Controllers
         }
 
         /// <summary>
-        /// 取得學生繳費資訊
+        /// 取得學生繳費資訊（針對 StudentPermissionFeeId）
         /// </summary>
-        [HttpGet("StudentPayment/{studentPermissionId}")]
-        public async Task<IActionResult> GetStudentPayment(int studentPermissionId)
+        [HttpGet("StudentPayment/{studentPermissionFeeId}")]
+        public async Task<IActionResult> GetStudentPayment(int studentPermissionFeeId)
         {
             var res = new APIResponse<StudentPaymentSummaryDTO>();
             try
             {
-                // 查詢學生權限資訊
-                var permission = await ctx.TblStudentPermission
-                    .Include(sp => sp.Course)
-                    .ThenInclude(c => c.CourseFee)
-                    .Include(sp => sp.User)
-                    .FirstOrDefaultAsync(sp => sp.Id == studentPermissionId && !sp.IsDelete);
+                // 查詢學生權限費用記錄
+                var permissionFee = await ctx.TblStudentPermissionFee
+                    .Include(spf => spf.StudentPermission)
+                        .ThenInclude(sp => sp.Course)
+                            .ThenInclude(c => c.CourseFee)
+                    .Include(spf => spf.StudentPermission)
+                        .ThenInclude(sp => sp.User)
+                    .Include(spf => spf.Payment)
+                    .ThenInclude(p => p.ModifiedUser)
+                    .FirstOrDefaultAsync(spf => spf.Id == studentPermissionFeeId);
 
-                if (permission == null)
+                if (permissionFee == null)
                 {
-                    res.result = APIResultCode.unknow_error;
-                    res.msg = "permission_not_found";
+                    res.result = APIResultCode.data_not_found;
+                    res.msg = "permission_fee_not_found";
                     return Ok(res);
                 }
 
-                // 查詢所有繳費記錄（預期單筆，但仍取最新一筆以便顯示）
-                var payments = await ctx.TblPayment
-                    .Where(p => p.StudentPermissionId == studentPermissionId && !p.IsDelete)
-                    .Include(p => p.ModifiedUser)
-                    .OrderByDescending(p => p.PayDate)
-                    .ToListAsync();
+                var permission = permissionFee.StudentPermission;
+                if (permission == null || permission.IsDelete)
+                {
+                    res.result = APIResultCode.data_not_found;
+                    res.msg = "permission_not_found";
+                    return Ok(res);
+                }
 
                 // 金額計算
                 int currentAmount = 0;
@@ -107,18 +114,25 @@ namespace DoorWebApp.Controllers
                     currentAmount = permission.Course.CourseFee.Amount + permission.Course.CourseFee.MaterialFee;
                 }
 
-                decimal totalDiscount = payments.Sum(p => p.DiscountAmount);
-                int paidAmount = payments.Sum(p => p.Pay);
+                // 該費用記錄的付款資訊
+                var payment = permissionFee.Payment;
+                int paidAmount = 0;
+                decimal totalDiscount = 0;
+
+                if (payment != null && !payment.IsDelete)
+                {
+                    paidAmount = payment.Pay;
+                    totalDiscount = payment.DiscountAmount;
+                }
+
                 decimal receivableAmount = currentAmount - totalDiscount;
                 decimal outstandingAmount = receivableAmount - paidAmount;
 
-                // 取最新繳費紀錄
-                var latestPayment = payments.FirstOrDefault();
-
-                // 建構回應（扁平化單筆記錄）
+                // 建構回應
                 var paymentInfo = new StudentPaymentSummaryDTO
                 {
-                    StudentPermissionId = studentPermissionId,
+                    StudentPermissionId = permission.Id,
+                    StudentPermissionFeeId = studentPermissionFeeId,
                     CourseId = permission.CourseId,
                     CourseName = permission.Course?.Name ?? string.Empty,
                     StudentId = permission.UserId,
@@ -128,9 +142,9 @@ namespace DoorWebApp.Controllers
                     PaidAmount = paidAmount,
                     OutstandingAmount = outstandingAmount,
                     TotalDiscount = totalDiscount,
-                    Remark = latestPayment?.Remark,
-                    PayDate = latestPayment?.PayDate,
-                    ReceiptNumber = latestPayment?.ReceiptNumber
+                    Remark = payment?.Remark,
+                    PayDate = payment?.PayDate,
+                    ReceiptNumber = payment?.ReceiptNumber
                 };
 
                 res.result = APIResultCode.success;
@@ -151,26 +165,28 @@ namespace DoorWebApp.Controllers
         /// 建立或更新繳費記錄（若無則新增，若有則編輯）
         /// </summary>
         [HttpPost("StudentPayment")]
-        public async Task<IActionResult> CreatePayment([FromBody] ReqCreatePaymentDTO dto)
+        public async Task<IActionResult> CreateOrUpdatePayment([FromBody] ReqCreatePaymentDTO dto)
         {
             var res = new APIResponse();
             try
             {
-                if (dto?.StudentPermissionId <= 0 || dto?.Pay <= 0)
+                if (dto?.StudentPermissionFeeId <= 0 || dto?.Pay <= 0)
                 {
                     res.result = APIResultCode.unknow_error;
                     res.msg = "Missing required fields";
                     return Ok(res);
                 }
 
-                // 驗證學生權限
-                var permission = await ctx.TblStudentPermission
-                    .FirstOrDefaultAsync(sp => sp.Id == dto.StudentPermissionId && !sp.IsDelete);
+                // 驗證學生權限費用
+                var permissionFee = await ctx.TblStudentPermissionFee
+                    .Include(spf => spf.StudentPermission)
+                    .Include(spf => spf.Payment)
+                    .FirstOrDefaultAsync(spf => spf.Id == dto.StudentPermissionFeeId);
 
-                if (permission == null)
+                if (permissionFee == null || permissionFee.StudentPermission == null || permissionFee.StudentPermission.IsDelete)
                 {
                     res.result = APIResultCode.unknow_error;
-                    res.msg = "permission_not_found";
+                    res.msg = "permission_fee_not_found";
                     return Ok(res);
                 }
 
@@ -187,9 +203,8 @@ namespace DoorWebApp.Controllers
                 var user = await ctx.TblUsers.FirstOrDefaultAsync(u => u.Id == operatorId.Value);
                 string operatorUsername = user?.Username ?? $"UserId:{operatorId}";
 
-                // 檢查是否已存在繳費記錄
-                var existingPayment = await ctx.TblPayment
-                    .FirstOrDefaultAsync(p => p.StudentPermissionId == dto.StudentPermissionId && !p.IsDelete);
+                // 檢查是否已存在繳費記錄（一對一關係，從 permissionFee.Payment 檢查）
+                var existingPayment = permissionFee.Payment;
 
                 if (existingPayment != null)
                 {
@@ -209,7 +224,7 @@ namespace DoorWebApp.Controllers
 
                     // 寫入稽核紀錄
                     auditLog.WriteAuditLog(AuditActType.Modify, 
-                        $"Update Payment: StudentPermissionId={dto.StudentPermissionId}, Amount:{originalPay}→{dto.Pay}, Discount:{originalDiscount}→{existingPayment.DiscountAmount}", 
+                        $"Update Payment: StudentPermissionFeeId={dto.StudentPermissionFeeId}, Amount:{originalPay}→{dto.Pay}, Discount:{originalDiscount}→{existingPayment.DiscountAmount}", 
                         operatorUsername);
 
                     res.result = APIResultCode.success;
@@ -229,7 +244,7 @@ namespace DoorWebApp.Controllers
                     // 建立繳費記錄
                     var payment = new TblPayment
                     {
-                        StudentPermissionId = dto.StudentPermissionId,
+                        StudentPermissionFeeId = permissionFee.Id,
                         PayDate = payDate,
                         Pay = dto.Pay,
                         DiscountAmount = (int)(dto.DiscountAmount ?? 0),
@@ -246,7 +261,7 @@ namespace DoorWebApp.Controllers
 
                     // 寫入稽核紀錄
                     auditLog.WriteAuditLog(AuditActType.Create, 
-                        $"Create Payment: StudentPermissionId={dto.StudentPermissionId}, Amount={dto.Pay}, ReceiptNumber={receiptNumber}", 
+                        $"Create Payment: StudentPermissionFeeId={dto.StudentPermissionFeeId}, Amount={dto.Pay}, ReceiptNumber={receiptNumber}", 
                         operatorUsername);
 
                     res.result = APIResultCode.success;
@@ -257,76 +272,6 @@ namespace DoorWebApp.Controllers
             catch (Exception ex)
             {
                 log.LogError(ex, $"[{Request.Path}] CreatePayment Error: {ex.Message}");
-                res.result = APIResultCode.unknow_error;
-                res.msg = ex.Message;
-                return Ok(res);
-            }
-        }
-
-        /// <summary>
-        /// 更新繳費記錄
-        /// </summary>
-        [HttpPut("StudentPayment/{paymentId}")]
-        public async Task<IActionResult> UpdatePayment(int paymentId, [FromBody] ReqUpdatePaymentDTO dto)
-        {
-            var res = new APIResponse();
-            try
-            {
-                var payment = await ctx.TblPayment
-                    .Include(p => p.ModifiedUser)
-                    .FirstOrDefaultAsync(p => p.Id == paymentId && !p.IsDelete);
-
-                if (payment == null)
-                {
-                    res.result = APIResultCode.unknow_error;
-                    res.msg = "payment_not_found";
-                    return Ok(res);
-                }
-
-                // 從 Token 取得操作者 ID
-                var operatorId = GetUserIdFromToken();
-                if (!operatorId.HasValue)
-                {
-                    res.result = APIResultCode.unknow_error;
-                    res.msg = "unauthorized";
-                    return Ok(res);
-                }
-
-                // 記錄修改前的值用於審計
-                var originalPay = payment.Pay;
-                var originalDiscount = payment.DiscountAmount;
-                var originalRemark = payment.Remark;
-
-                if (dto?.Pay.HasValue == true && dto.Pay > 0)
-                    payment.Pay = dto.Pay.Value;
-
-                if (dto?.DiscountAmount.HasValue == true)
-                    payment.DiscountAmount = (int)dto.DiscountAmount.Value;
-
-                if (dto?.Remark != null)
-                    payment.Remark = dto.Remark;
-
-                payment.ModifiedUserId = operatorId.Value;
-                payment.ModifiedTime = DateTime.Now;
-                ctx.TblPayment.Update(payment);
-                await ctx.SaveChangesAsync();
-
-                // 查詢操作者
-                var user = await ctx.TblUsers.FirstOrDefaultAsync(u => u.Id == operatorId.Value);
-                string operatorUsername = user?.Username ?? $"UserId:{operatorId}";
-
-                // 寫入稽核紀錄
-                auditLog.WriteAuditLog(AuditActType.Modify, 
-                    $"Update Payment: Id={paymentId}, Amount:{originalPay}→{payment.Pay}, Discount:{originalDiscount}→{payment.DiscountAmount}, Remark:{originalRemark}→{payment.Remark}", 
-                    operatorUsername);
-
-                res.result = APIResultCode.success;
-                res.msg = "ok";
-                return Ok(res);
-            }
-            catch (Exception ex)
-            {
-                log.LogError(ex, $"[{Request.Path}] UpdatePayment Error: {ex.Message}");
                 res.result = APIResultCode.unknow_error;
                 res.msg = ex.Message;
                 return Ok(res);

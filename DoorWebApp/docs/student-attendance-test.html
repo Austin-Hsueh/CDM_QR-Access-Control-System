@@ -92,9 +92,10 @@
                 <div class="tab active" onclick="switchTab('teachers')">👨‍🏫 老師列表</div>
                 <div class="tab" onclick="switchTab('students')">👨‍🎓 學生列表</div>
                 <div class="tab" onclick="switchTab('courses')">📚 課程列表</div>
+                <div class="tab" onclick="switchTab('classrooms')">🏢 教室列表</div>
                 <div class="tab" onclick="switchTab('permission')">🔑 新增門禁時間</div>
                 <div class="tab" onclick="switchTab('addattend')">✅ 學生簽到</div>
-                <div class="tab" onclick="switchTab('attendance')">📝 上課紀錄查詢</div>
+                <div class="tab" onclick="switchTab('attendance')">📝 查 學生權限</div>
                 <div class="tab" onclick="switchTab('payment')">💳 繳費管理</div>
                 <div class="tab" onclick="switchTab('docs')">📖 API 文檔</div>
             </div>
@@ -123,11 +124,19 @@
             <div id="courses" class="tab-content">
                 <div style="padding: 16px 0;">
                     <button class="btn-primary" onclick="loadCourses()">🔄 載入課程列表</button>
+                    <button class="btn-primary" onclick="loadCourseTypes()">🏷️ 載入課程類型</button>
                     <button class="btn-primary" onclick="showAddCourseDialog()">➕ 新增課程</button>
                     <button class="btn-default" onclick="clearCourses()">清除</button>
                 </div>
                 <div id="coursesContent"></div>
                 <div id="coursesError" class="error" style="display:none;"></div>
+                
+                <!-- 課程類型列表 -->
+                <div id="courseTypesSection" style="display:none; margin-top: 24px; padding: 16px; background: #f0f9ff; border-radius: 8px;">
+                    <h4 style="margin: 0 0 12px 0; color: #333;">課程類型列表</h4>
+                    <div id="courseTypesContent"></div>
+                    <div id="courseTypesError" class="error" style="display:none;"></div>
+                </div>
                 
                 <!-- 課程詳情查詢 -->
                 <div style="margin-top: 24px; padding: 16px; background: #f5f7fa; border-radius: 8px;">
@@ -229,6 +238,10 @@
                         </datalist>
                     </div>
                     <div style="margin-bottom: 12px;">
+                        <label>教室 ID: </label>
+                        <input type="number" id="permissionClassroomId" placeholder="可留空 (產生課表時使用)" style="width: 260px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                    </div>
+                    <div style="margin-bottom: 12px;">
                         <label>開始日期: </label>
                         <input type="date" id="permissionStartDate" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
                     </div>
@@ -261,15 +274,34 @@
                         <input type="time" id="permissionEndTime" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
                     </div>
                     <div style="margin-bottom: 12px;">
-                        <label>類型: </label>
+                        <label>類型 (type): </label>
                         <select id="permissionType" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px;">
-                            <option value="0">一般</option>
-                            <option value="1">試聽</option>
+                            <option value="1">1 = 上課</option>
+                            <option value="2">2 = 租借教室</option>
                         </select>
                     </div>
                     <div style="margin-bottom: 12px;">
-                        <label>啟用: </label>
-                        <input type="checkbox" id="permissionEnabled" checked />
+                        <label>課程模式 (courseMode): </label>
+                        <select id="permissionCourseMode" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px;">
+                            <option value="1">1 = 現場</option>
+                            <option value="2">2 = 視訊</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <label>排課模式 (scheduleMode): </label>
+                        <select id="permissionScheduleMode" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px;">
+                            <option value="1">1 = 每週固定</option>
+                            <option value="2">2 = 每兩週固定</option>
+                            <option value="3">3 = 單次課程</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <label>群組 ID (groupIds): </label>
+                        <input type="text" id="permissionGroupIds" placeholder="多個ID用逗號分隔，如: 1,2,3" style="width: 260px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <label>備註 (remark): </label>
+                        <input type="text" id="permissionRemark" placeholder="可選填" style="width: 260px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
                     </div>
                     <button class="btn-primary" onclick="createPermission()">✅ 新增門禁時間</button>
                     <button class="btn-default" onclick="clearPermissionForm()">清除表單</button>
@@ -336,19 +368,51 @@
                 <div id="feeError" class="error" style="display:none;"></div>
             </div>
 
-            <!-- 上課紀錄查詢 Tab -->
+            <!-- 查 學生權限 Tab -->
             <div id="attendance" class="tab-content">
+                <!-- 依學生ID查詢學生權限 -->
+                <div style="margin-bottom: 24px; padding: 16px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #409eff;">
+                    <h4 style="margin: 0 0 12px 0;">👤 依學生ID查詢學生權限</h4>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <label>學生 ID：
+                            <input type="number" id="queryStudentId" min="1" placeholder="輸入學生 ID" style="width: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                        </label>
+                        <button class="btn-primary" onclick="queryStudentPermissions()">查詢學生權限</button>
+                        <button class="btn-default" onclick="clearStudentPermissions()">清除</button>
+                    </div>
+                    <div id="studentPermissionsContent" style="margin-top: 12px;"></div>
+                    <div id="studentPermissionsError" class="error" style="display:none;"></div>
+                </div>
+
+                <!-- 依學生權限ID查詢費用 -->
                 <div style="padding: 16px 0;">
-                    <input type="number" id="queryUserId" value="51" min="1" placeholder="輸入學生 UserId" />
+                    <h4 style="margin: 0 0 12px 0;">💰 依學生權限ID查詢費用</h4>
+                    <input type="number" id="queryStudentPermissionId" value="1661" min="1" placeholder="輸入學生權限 Id" />
                     <button class="btn-primary" onclick="queryAttendance()">查詢</button>
                     <button class="btn-default" onclick="clearAttendance()">清除</button>
                 </div>
                 <div id="attendanceContent"></div>
                 <div id="attendanceError" class="error" style="display:none;"></div>
                 
+                <!-- 新增費用記錄區域 -->
+                <div style="margin-top: 20px; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #ddd;">
+                    <h4 style="margin-bottom: 12px;">➕ 新增學生權限費用</h4>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <label>學生權限 Id：
+                            <input type="number" id="createFeePermissionId" value="1661" min="1" style="width: 150px; padding: 6px;" placeholder="輸入學生權限 Id" />
+                        </label>
+                        <button class="btn-primary" onclick="createStudentPermissionFee()">新增費用記錄</button>
+                    </div>
+                    <div style="color: #67c23a; font-size: 13px; margin-top: 8px;">
+                        ℹ️ 繳款日將自動設為今天
+                    </div>
+                    <div id="createFeeResult" style="margin-top: 12px;"></div>
+                    <div id="createFeeError" class="error" style="display:none;"></div>
+                </div>
+                
                 <!-- 上課紀錄細項區域 -->
                 <div id="attendanceDetailSection" style="display: none; margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd;">
-                    <h3 style="color: #667eea;">📋 上課紀錄細項</h3>
+                    <h3 style="color: #667eea;">📋 上課紀錄細項（依序號）</h3>
                     <div id="attendanceDetailContent"></div>
                     <div id="attendanceDetailError" class="error" style="display:none;"></div>
                     <div style="margin-top:20px; padding:12px; background:#f9fafb; border:1px solid #ddd; border-radius:8px;">
@@ -365,12 +429,22 @@
                 </div>
             </div>
 
+            <!-- 教室列表 Tab -->
+            <div id="classrooms" class="tab-content">
+                <div style="padding: 16px 0;">
+                    <button class="btn-primary" onclick="loadClassrooms()">🔄 載入教室列表</button>
+                    <button class="btn-default" onclick="clearClassrooms()">清除</button>
+                </div>
+                <div id="classroomsContent"></div>
+                <div id="classroomsError" class="error" style="display:none;"></div>
+            </div>
+
             <!-- 繳費管理 Tab -->
             <div id="payment" class="tab-content">
                 <div class="card">
                     <h3>查詢學生繳費資訊</h3>
                     <div style="padding: 16px 0;">
-                        <input type="number" id="paymentStudentPermissionId" value="1661" min="1" placeholder="輸入學生權限 ID (StudentPermissionId)" />
+                        <input type="number" id="paymentStudentPermissionFeeId" value="1" min="1" placeholder="輸入學生權限費用 ID (StudentPermissionFeeId)" />
                         <button class="btn-primary" onclick="getStudentPaymentInfo()">查詢</button>
                         <button class="btn-default" onclick="clearPaymentInfo()">清除</button>
                     </div>
@@ -379,10 +453,10 @@
                 </div>
 
                 <div class="card">
-                    <h3>新增繳費記錄</h3>
+                    <h3>新增或編輯繳費記錄</h3>
                     <div style="padding: 16px 0; background: #f5f7fa; border-radius: 4px; padding: 12px;">
                         <div style="margin-bottom: 12px;">
-                            <label>學生權限 ID: <input type="number" id="createPaymentPermissionId" value="1661" min="1" style="width: 150px;" /></label>
+                            <label>學生權限費用 ID: <input type="number" id="createPaymentFeeId" value="1" min="1" style="width: 150px;" /></label>
                         </div>
                         <div style="margin-bottom: 12px;">
                             <label>繳費金額: <input type="number" id="createPaymentAmount" value="1000" min="1" style="width: 150px;" /></label>
@@ -400,35 +474,6 @@
                     </div>
                     <div id="createPaymentResult" style="margin-top: 12px;"></div>
                     <div id="createPaymentError" class="error" style="display:none;"></div>
-                </div>
-
-                <div class="card">
-                    <h3>編輯繳費記錄</h3>
-                    <div style="padding: 16px 0; background: #f5f7fa; border-radius: 4px; padding: 12px;">
-                        <div style="margin-bottom: 12px;">
-                            <label>繳費 ID: <input type="number" id="editPaymentId" min="1" style="width: 150px;" placeholder="輸入繳費ID" /></label>
-                            <button class="btn-default btn-small" onclick="loadPaymentForEdit()">載入</button>
-                        </div>
-                        <div style="margin-bottom: 12px;">
-                            <label>繳費日期: <input type="text" id="editPaymentDate" placeholder="YYYY/MM/DD (選填)" style="width: 150px;" /></label>
-                        </div>
-                        <div style="margin-bottom: 12px;">
-                            <label>繳費金額: <input type="number" id="editPaymentAmount" min="1" style="width: 150px;" placeholder="選填" /></label>
-                        </div>
-                        <div style="margin-bottom: 12px;">
-                            <label>折扣金額: <input type="number" id="editPaymentDiscount" min="0" style="width: 150px;" placeholder="選填" /></label>
-                        </div>
-                        <div style="margin-bottom: 12px;">
-                            <label>備註: <input type="text" id="editPaymentRemark" placeholder="選填" style="width: 250px;" /></label>
-                        </div>
-                        <div style="color: #67c23a; font-size: 13px; margin-bottom: 8px;">
-                            ℹ️ 收據編號與操作者 ID 將自動產生
-                        </div>
-                        <button class="btn-primary" onclick="updatePaymentRecord()">更新記錄</button>
-                        <button class="btn-primary" style="background: #f56c6c;" onclick="deletePaymentRecord()">刪除記錄</button>
-                    </div>
-                    <div id="editPaymentResult" style="margin-top: 12px;"></div>
-                    <div id="editPaymentError" class="error" style="display:none;"></div>
                 </div>
             </div>
 
@@ -449,8 +494,7 @@
                             <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">💳 繳費管理</div>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('studentsList')">👨‍🎓 取得學生名單</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('getPaymentInfo')">💳 取得學生繳費資訊</button>
-                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createPayment')">💵 儲存學生繳費</button>
-                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('updatePayment')">✏️ 更新繳費記錄</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createPayment')">💵 新增或編輯繳費記錄</button>
 
                             <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📝 上課紀錄</div>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('studentsList')">👨‍🎓 取得學生名單</button>
@@ -846,6 +890,83 @@
         function clearCourses() {
             document.getElementById('coursesContent').innerHTML = '';
             document.getElementById('coursesError').style.display = 'none';
+            document.getElementById('courseTypesSection').style.display = 'none';
+        }
+
+        // 載入課程類型
+        async function loadCourseTypes() {
+            const sectionDiv = document.getElementById('courseTypesSection');
+            const errorDiv = document.getElementById('courseTypesError');
+            const contentDiv = document.getElementById('courseTypesContent');
+            
+            sectionDiv.style.display = 'block';
+            errorDiv.style.display = 'none';
+            contentDiv.innerHTML = '<div class="loading">載入中...</div>';
+            
+            try {
+                const res = await apiFetch('/api/v1/CourseTypes');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                const courseTypes = data.content || data || [];
+                
+                if (courseTypes.length === 0) {
+                    contentDiv.innerHTML = '<div class="empty">沒有課程類型資料</div>';
+                } else {
+                    let html = '<table><thead><tr><th>類型 ID</th><th>類型名稱</th></tr></thead><tbody>';
+                    courseTypes.forEach((type) => {
+                        html += `<tr>
+                            <td>${type.courseTypeId || '-'}</td>
+                            <td>${type.courseTypeName || '-'}</td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table>';
+                    contentDiv.innerHTML = html;
+                }
+            } catch (err) {
+                errorDiv.textContent = '載入失敗: ' + err.message;
+                errorDiv.style.display = 'block';
+                contentDiv.innerHTML = '';
+            }
+        }
+
+        // ========== 教室管理功能 ==========
+        
+        async function loadClassrooms() {
+            const errorDiv = document.getElementById('classroomsError');
+            const contentDiv = document.getElementById('classroomsContent');
+            errorDiv.style.display = 'none';
+            contentDiv.innerHTML = '<div class="loading">載入中...</div>';
+            
+            try {
+                const res = await apiFetch('/api/v1/Classrooms');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                const classrooms = data.content || data || [];
+                
+                if (classrooms.length === 0) {
+                    contentDiv.innerHTML = '<div class="empty">沒有教室資料</div>';
+                } else {
+                    let html = '<table><thead><tr><th>教室 ID</th><th>教室名稱</th><th>描述</th></tr></thead><tbody>';
+                    classrooms.forEach((classroom) => {
+                        html += `<tr>
+                            <td>${classroom.classroomId || '-'}</td>
+                            <td>${classroom.classroomName || '-'}</td>
+                            <td>${classroom.description || '-'}</td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table>';
+                    contentDiv.innerHTML = html;
+                }
+            } catch (err) {
+                errorDiv.textContent = '載入失敗: ' + err.message;
+                errorDiv.style.display = 'block';
+                contentDiv.innerHTML = '';
+            }
+        }
+
+        function clearClassrooms() {
+            document.getElementById('classroomsContent').innerHTML = '';
+            document.getElementById('classroomsError').style.display = 'none';
         }
 
         // 課程對話框相關函數
@@ -1044,10 +1165,95 @@
             document.getElementById('studentsError').style.display = 'none';
         }
 
+        // ========== 學生權限查詢功能 ==========
+
+        async function queryStudentPermissions() {
+                    const studentId = document.getElementById('queryStudentId').value;
+                    if (!studentId) {
+                        alert('請輸入學生 ID');
+                        return;
+                    }
+            
+                    const errorDiv = document.getElementById('studentPermissionsError');
+                    const contentDiv = document.getElementById('studentPermissionsContent');
+                    errorDiv.style.display = 'none';
+                    contentDiv.innerHTML = '<div class="loading">查詢中...</div>';
+            
+                    try {
+                        const res = await apiFetch(`/api/v1/StudentPermission/${studentId}`);
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        const data = await res.json();
+                
+                        if (data.result !== 1 || !data.content) {
+                            throw new Error(data.msg || '查詢失敗');
+                        }
+
+                        const user = data.content;
+                        const permissions = user.studentPermissions || [];
+                
+                        if (permissions.length === 0) {
+                            contentDiv.innerHTML = '<div class="empty">該學生沒有權限記錄</div>';
+                            return;
+                        }
+
+                        let html = `
+                            <div style="margin-bottom: 12px; padding: 12px; background: #e7f3ff; border-radius: 4px;">
+                                <strong>學生資訊：</strong>ID: ${user.userId}, 帳號: ${user.username || '-'}, 姓名: ${user.displayName || '-'}
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>權限ID</th>
+                                        <th>開始日期</th>
+                                        <th>結束日期</th>
+                                        <th>時間</th>
+                                        <th>星期</th>
+                                        <th>群組ID</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+
+                        permissions.forEach(perm => {
+                            const daysNames = ['日', '一', '二', '三', '四', '五', '六'];
+                            const daysText = perm.days ? perm.days.map(d => daysNames[d]).join(', ') : '-';
+                            const groupIdsText = perm.groupIds && perm.groupIds.length > 0 ? perm.groupIds.join(', ') : '-';
+                    
+                            html += `
+                                <tr>
+                                    <td>${perm.id || '-'}</td>
+                                    <td>${perm.datefrom || '-'}</td>
+                                    <td>${perm.dateto || '-'}</td>
+                                    <td>${perm.timefrom || '-'} ~ ${perm.timeto || '-'}</td>
+                                    <td>${daysText}</td>
+                                    <td>${groupIdsText}</td>
+                                    <td>
+                                        <button class="btn-small btn-primary" onclick="document.getElementById('queryStudentPermissionId').value='${perm.id}'; queryAttendance();" style="margin: 2px;">查詢費用</button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+
+                        html += '</tbody></table>';
+                        contentDiv.innerHTML = html;
+                    } catch (err) {
+                        errorDiv.textContent = '查詢失敗: ' + err.message;
+                        errorDiv.style.display = 'block';
+                        contentDiv.innerHTML = '';
+                    }
+                }
+
+                function clearStudentPermissions() {
+                    document.getElementById('queryStudentId').value = '';
+                    document.getElementById('studentPermissionsContent').innerHTML = '';
+                    document.getElementById('studentPermissionsError').style.display = 'none';
+                }
+
         async function queryAttendance() {
-            const userId = document.getElementById('queryUserId').value;
-            if (!userId) {
-                alert('請輸入學生 UserId');
+            const studentPermissionId = document.getElementById('queryStudentPermissionId').value;
+            if (!studentPermissionId) {
+                alert('請輸入學生權限 Id');
                 return;
             }
             
@@ -1060,7 +1266,7 @@
             document.getElementById('attendanceDetailSection').style.display = 'none';
             
             try {
-                const res = await apiFetch(`/api/v1/StudentAttendance/${userId}`);
+                const res = await apiFetch(`/api/v1/StudentAttendance/${studentPermissionId}`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 
@@ -1076,13 +1282,14 @@
                 attendanceData = arrData;
                 
                 if (!attendanceData || attendanceData.length === 0) {
-                    contentDiv.innerHTML = '<div class="empty">沒有上課紀錄</div>';
+                    contentDiv.innerHTML = '<div class="empty">沒有學生權限或費用紀錄</div>';
                 } else {
-                    let html = '<table><thead><tr><th>序號</th><th>學生權限ID</th><th>課程名稱</th><th>繳款日</th><th>應收金額</th><th>已收金額</th><th>剩餘欠款</th><th>結帳單號</th><th>課程一</th><th>課程二</th><th>課程三</th><th>課程四</th><th>操作</th></tr></thead><tbody>';
+                    let html = '<table><thead><tr><th>序號</th><th>學生權限ID</th><th>StudentPermissionFeeId</th><th>課程名稱</th><th>繳款日</th><th>應收金額</th><th>已收金額</th><th>剩餘欠款</th><th>結帳單號</th><th>課程一</th><th>課程二</th><th>課程三</th><th>課程四</th><th>操作</th></tr></thead><tbody>';
                     attendanceData.forEach(record => {
                         html += `<tr>
                             <td>${record.serialNo || '-'}</td>
                             <td>${record.studentPermissionId || '-'}</td>
+                            <td>${(record.studentPermissionFeeId ?? record.StudentPermissionFeeId) || '-'}</td>
                             <td>${record.courseName || '-'}</td>
                             <td>${record.paymentDate || '-'}</td>
                             <td>${record.receivableAmount || '0'}</td>
@@ -1093,7 +1300,7 @@
                             <td>${record.attendance2 || '-'}</td>
                             <td>${record.attendance3 || '-'}</td>
                             <td>${record.attendance4 || '-'}</td>
-                            <td><button class="btn-primary btn-small" onclick="viewAttendanceDetail(${record.studentPermissionId || 0})">查看細項</button></td>
+                            <td><button class="btn-primary btn-small" onclick="viewAttendanceDetail(${(record.studentPermissionFeeId ?? record.StudentPermissionFeeId) || 0})">查看細項</button></td>
                         </tr>`;
                     });
                     html += '</tbody></table>';
@@ -1106,13 +1313,13 @@
             }
         }
 
-        async function viewAttendanceDetail(studentPermissionId) {
-            if (!studentPermissionId || studentPermissionId <= 0) {
-                alert('無效的學生權限 ID');
+        async function viewAttendanceDetail(studentPermissionFeeId) {
+            if (!studentPermissionFeeId || studentPermissionFeeId <= 0) {
+                alert('無效的學生權限費用 ID');
                 return;
             }
 
-            lastDetailPermissionId = studentPermissionId;
+            lastDetailPermissionId = studentPermissionFeeId;
 
             const detailSection = document.getElementById('attendanceDetailSection');
             const detailContent = document.getElementById('attendanceDetailContent');
@@ -1123,7 +1330,7 @@
             detailError.style.display = 'none';
 
             try {
-                const res = await apiFetch(`/api/v1/StudentAttendance/Detail/${studentPermissionId}`);
+                const res = await apiFetch(`/api/v1/StudentAttendance/Detail/${studentPermissionFeeId}`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 
@@ -1136,6 +1343,44 @@
                 detailError.textContent = '載入細項失敗: ' + err.message;
                 detailError.style.display = 'block';
                 detailContent.innerHTML = '';
+            }
+        }
+
+        async function createStudentPermissionFee() {
+            const studentPermissionId = parseInt(document.getElementById('createFeePermissionId').value || '0');
+            if (!studentPermissionId) {
+                alert('請輸入學生權限 Id');
+                return;
+            }
+
+            const resultDiv = document.getElementById('createFeeResult');
+            const errorDiv = document.getElementById('createFeeError');
+            resultDiv.innerHTML = '<div class="loading">新增中...</div>';
+            errorDiv.style.display = 'none';
+
+            try {
+                const res = await apiFetch('/api/v1/StudentPermissionFee', {
+                    method: 'POST',
+                    body: { studentPermissionId: studentPermissionId }
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result === 1) {
+                    resultDiv.innerHTML = `<div class="success">✅ 新增成功！費用 ID: ${data.content?.feeId || '-'}，繳款日: ${data.content?.paymentDate || '-'}</div>`;
+                    // 自動重新查詢
+                    const queryId = document.getElementById('queryStudentPermissionId').value;
+                    if (queryId == studentPermissionId) {
+                        setTimeout(() => queryAttendance(), 500);
+                    }
+                } else {
+                    throw new Error(data.msg || '新增失敗');
+                }
+            } catch (err) {
+                errorDiv.textContent = '新增失敗: ' + err.message;
+                errorDiv.style.display = 'block';
+                resultDiv.innerHTML = '';
             }
         }
 
@@ -1301,20 +1546,26 @@
 
         function clearAttendance() {
             attendanceData = [];
-            document.getElementById('attendanceContent').innerHTML = '<div class="empty">輸入 UserId 並點擊查詢</div>';
+            document.getElementById('attendanceContent').innerHTML = '<div class="empty">輸入學生權限 Id 並點擊查詢</div>';
             document.getElementById('attendanceError').style.display = 'none';
+            document.getElementById('createFeeResult').innerHTML = '';
+            document.getElementById('createFeeError').style.display = 'none';
         }
 
         async function createPermission() {
             const userId = document.getElementById('permissionUserId').value;
             const courseId = document.getElementById('permissionCourseId').value;
             const teacherId = document.getElementById('permissionTeacherId').value || 0;
+            const classroomId = document.getElementById('permissionClassroomId').value;
             const startDate = document.getElementById('permissionStartDate').value;
             const endDate = document.getElementById('permissionEndDate').value;
             const startTime = document.getElementById('permissionStartTime').value;
             const endTime = document.getElementById('permissionEndTime').value;
             const type = parseInt(document.getElementById('permissionType').value);
-            const enabled = document.getElementById('permissionEnabled').checked;
+            const courseMode = parseInt(document.getElementById('permissionCourseMode').value);
+            const scheduleMode = parseInt(document.getElementById('permissionScheduleMode').value);
+            const groupIdsStr = document.getElementById('permissionGroupIds').value;
+            const remark = document.getElementById('permissionRemark').value;
 
             // 驗證必填欄位
             if (!userId || !courseId || !startDate || !endDate || !startTime || !endTime) {
@@ -1337,12 +1588,15 @@
                 return;
             }
 
+            // 處理群組 ID
+            const groupIds = groupIdsStr ? groupIdsStr.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id)) : [];
+
             const errorDiv = document.getElementById('permissionError');
             const resultDiv = document.getElementById('permissionResult');
             errorDiv.style.display = 'none';
             resultDiv.innerHTML = '<div class="loading">新增中...</div>';
 
-            // 組合 request body
+            // 組合 request body (完整的 UserPermissionDTO)
             const requestBody = {
                 userId: parseInt(userId),
                 courseId: parseInt(courseId),
@@ -1353,9 +1607,11 @@
                 timefrom: startTime,
                 timeto: endTime,
                 type: type,
-                groupIds: [],       // 群組IDs (預設空陣列)
-                courseMode: 1,      // 預設現場課程
-                scheduleMode: 1     // 預設每週固定
+                classroomId: classroomId ? parseInt(classroomId) : null,  // 教室ID (可空)
+                courseMode: courseMode,      // 課程模式 1=現場 2=視訊
+                scheduleMode: scheduleMode,  // 排課模式 1=每週固定 2=每兩週固定 3=單次課程
+                groupIds: groupIds,          // 群組IDs
+                remark: remark || null       // 備註
             };
 
             try {
@@ -1376,11 +1632,15 @@
                 html += `學生 ID: ${userId}<br>`;
                 html += `課程 ID: ${courseId}<br>`;
                 html += `老師 ID: ${teacherId || 0}<br>`;
+                html += `教室 ID: ${classroomId || '未指定'}<br>`;
                 html += `期間: ${startDate} ~ ${endDate}<br>`;
                 html += `時間: ${startTime} ~ ${endTime}<br>`;
                 html += `星期: ${daysOfWeek.map(d => ['日','一','二','三','四','五','六'][d]).join(', ')}<br>`;
-                html += `類型: ${type === 0 ? '一般' : '試聽'}<br>`;
-                html += `狀態: ${enabled ? '啟用' : '停用'}`;
+                html += `類型: ${type === 1 ? '上課' : '租借教室'}<br>`;
+                html += `課程模式: ${courseMode === 1 ? '現場' : '視訊'}<br>`;
+                html += `排課模式: ${scheduleMode === 1 ? '每週固定' : scheduleMode === 2 ? '每兩週固定' : '單次課程'}<br>`;
+                if (groupIds.length > 0) html += `群組 ID: ${groupIds.join(', ')}<br>`;
+                if (remark) html += `備註: ${remark}<br>`;
                 html += '</div>';
 
                 // 如果有回傳資料，顯示詳細資訊
@@ -1410,12 +1670,16 @@
             document.getElementById('permissionUserId').value = '';
             document.getElementById('permissionCourseId').value = '';
             document.getElementById('permissionTeacherId').value = '';
+            document.getElementById('permissionClassroomId').value = '';
             document.getElementById('permissionStartDate').value = '';
             document.getElementById('permissionEndDate').value = '';
             document.getElementById('permissionStartTime').value = '';
             document.getElementById('permissionEndTime').value = '';
-            document.getElementById('permissionType').value = '0';
-            document.getElementById('permissionEnabled').checked = true;
+            document.getElementById('permissionType').value = '1';
+            document.getElementById('permissionCourseMode').value = '1';
+            document.getElementById('permissionScheduleMode').value = '1';
+            document.getElementById('permissionGroupIds').value = '';
+            document.getElementById('permissionRemark').value = '';
             
             document.getElementById('permissionMonday').checked = false;
             document.getElementById('permissionTuesday').checked = false;
@@ -1646,7 +1910,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>userId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生 User ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限 ID</td></tr>
                                 </tbody>
                             </table>
 
@@ -1662,8 +1926,9 @@
                                 <tbody>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>serialNo</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">序號</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionFeeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限費用 ID</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">課程名稱</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>paymentDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">DateTime?</td><td style="padding: 8px; border: 1px solid #ddd;">繳款日</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>paymentDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">繳款日 (民國年格式: 114/02/27)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>receivableAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">應收金額 (學費+教材)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>receivedAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">已收金額</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>outstandingAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">欠款金額</td></tr>
@@ -1676,7 +1941,7 @@
                             </table>
 
                             <h3 style="margin-top: 20px;">🧪 測試 API</h3>
-                            <label>學生 User ID: <input type="number" id="testUserId" value="51" style="width: 150px; padding: 6px;" /></label>
+                            <label>學生權限 ID: <input type="number" id="testUserId" value="51" style="width: 150px; padding: 6px;" /></label>
                             <button class="btn-primary" style="margin-top: 10px;" onclick="testAttendanceList()">執行測試</button>
                             <div id="testResult-attendanceList" style="margin-top: 10px;"></div>
                             
@@ -1691,8 +1956,8 @@
                         <h2 style="color: #667eea;">💰 繳費細項</h2>
                         <div style="margin-top: 20px;">
                             <h3>📖 API 概述</h3>
-                            <p><strong>端點：</strong><code>GET /api/v1/StudentAttendance/Detail/{studentPermissionId}</code></p>
-                            <p><strong>說明：</strong>取得學生權限的詳細繳費資訊，包含拆帳比例、老師分潤、課程記錄</p>
+                            <p><strong>端點：</strong><code>GET /api/v1/StudentAttendance/Detail/{studentPermissionFeeId}</code></p>
+                            <p><strong>說明：</strong>取得學生權限費用的詳細繳費資訊，包含拆帳比例、老師分潤、課程記錄</p>
 
                             <h3 style="margin-top: 20px;">📥 請求參數</h3>
                             <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
@@ -1705,7 +1970,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionFeeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限費用 ID</td></tr>
                                 </tbody>
                             </table>
 
@@ -1838,8 +2103,23 @@
                         <h2 style="color: #667eea;">💳 取得學生繳費資訊</h2>
                         <div style="margin-top: 20px;">
                             <h3>📖 API 概述</h3>
-                            <p><strong>端點：</strong><code>GET /api/v1/StudentPayment/{studentPermissionId}</code></p>
-                            <p><strong>說明：</strong>取得指定學生權限的繳費摘要資訊</p>
+                            <p><strong>端點：</strong><code>GET /api/v1/StudentPayment/{studentPermissionFeeId}</code></p>
+                            <p><strong>說明：</strong>取得指定學生權限費用的繳費摘要資訊</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionFeeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限 ID</td></tr>
+                                </tbody>
+                            </table>
 
                             <h3 style="margin-top: 20px;">📤 回應欄位 (StudentPaymentSummaryDTO)</h3>
                             <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
@@ -1851,6 +2131,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionFeeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限費用 ID</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限 ID</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">課程 ID</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">課程名稱</td></tr>
@@ -1877,7 +2158,7 @@
                             </div>
 
                             <h3 style="margin-top: 20px;">🧪 測試 API</h3>
-                            <label>學生權限 ID: <input type="number" id="testGetPaymentPermissionId" style="width: 150px; padding: 6px;" /></label>
+                            <label>學生權限費用 ID: <input type="number" id="testGetPaymentPermissionId" style="width: 150px; padding: 6px;" /></label>
                             <button class="btn-primary" style="margin-top: 10px;" onclick="testGetPaymentInfo()">執行測試</button>
                             <div id="testResult-getPaymentInfo" style="margin-top: 10px;"></div>
                             
@@ -1889,7 +2170,7 @@
 
                 case 'createPayment':
                     html = `
-                        <h2 style="color: #667eea;">💵 儲存學生繳費</h2>
+                        <h2 style="color: #667eea;">💵 新增或編輯繳費記錄</h2>
                         <div style="margin-top: 20px;">
                             <h3>📖 API 概述</h3>
                             <p><strong>端點：</strong><code>POST /api/v1/StudentPayment</code></p>
@@ -1913,7 +2194,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionFeeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限費用 ID</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>pay</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">繳費金額</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>discountAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">折扣金額 (預設0)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>remark</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">備註</td></tr>
@@ -1955,7 +2236,7 @@
 
                             <h3 style="margin-top: 20px;">🧪 測試 API</h3>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
-                                <div><label>學生權限 ID: <input type="number" id="testCreatePermissionId" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>學生權限費用 ID: <input type="number" id="testCreatePermissionId" style="width: 100%; padding: 6px;" /></label></div>
                                 <div><label>繳費金額: <input type="number" id="testCreatePay" style="width: 100%; padding: 6px;" /></label></div>
                                 <div><label>折扣金額: <input type="number" step="0.01" id="testCreateDiscount" value="0" style="width: 100%; padding: 6px;" /></label></div>
                                 <div><label>備註: <input type="text" id="testCreateRemark" style="width: 100%; padding: 6px;" placeholder="可選" /></label></div>
@@ -1965,88 +2246,6 @@
                             
                             <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
                             <pre id="rawData-createPayment" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
-                        </div>
-                    `;
-                    break;
-
-                case 'updatePayment':
-                    html = `
-                        <h2 style="color: #667eea;">✏️ 更新繳費記錄</h2>
-                        <div style="margin-top: 20px;">
-                            <h3>📖 API 概述</h3>
-                            <p><strong>端點：</strong><code>PUT /api/v1/StudentPayment/{paymentId}</code></p>
-                            <p><strong>說明：</strong>更新指定繳費記錄（支援部分欄位更新）</p>
-
-                            <h3 style="margin-top: 20px;">📥 請求參數 (ReqUpdatePaymentDTO)</h3>
-                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
-                                <thead>
-                                    <tr style="background: #667eea; color: white;">
-                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
-                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
-                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
-                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>pay</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">繳費金額 (可空=不修改)</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>discountAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">折扣金額 (可空=不修改)</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>remark</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">備註 (可空=不修改)</td></tr>
-                                </tbody>
-                            </table>
-
-                            <h3 style="margin-top: 20px;">⚠️ 更新規則</h3>
-                            <div class="info">
-                                <ul style="margin-left: 20px; line-height: 1.8;">
-                                    <li><strong>部分更新：</strong>所有參數皆為可選，僅更新傳入的非空欄位</li>
-                                    <li><strong>繳款日期：</strong>不可修改（系統產生後即固定）</li>
-                                    <li><strong>收據編號：</strong>不可修改（系統產生後即固定）</li>
-                                    <li><strong>操作者 ID：</strong>自動更新為當前使用者（從 JWT Token 取得）</li>
-                                    <li><strong>修改時間：</strong>自動更新為執行更新的時間</li>
-                                </ul>
-                            </div>
-
-                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
-                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
-                                <thead>
-                                    <tr style="background: #667eea; color: white;">
-                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
-                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
-                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>result</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">結果代碼 (1=成功)</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">訊息</td></tr>
-                                </tbody>
-                            </table>
-
-                            <h3 style="margin-top: 20px;">💡 使用範例</h3>
-                            <div class="info">
-                                <p><strong>僅更新繳費金額：</strong></p>
-                                <pre style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 4px; overflow-x: auto;">{
-  "pay": 5000
-}</pre>
-                                <p style="margin-top: 10px;"><strong>同時更新多個欄位：</strong></p>
-                                <pre style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 4px; overflow-x: auto;">{
-  "pay": 5000,
-  "discountAmount": 500,
-  "remark": "已確認收款"
-}</pre>
-                            </div>
-
-                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
-                                <div><label>繳費 ID: <input type="number" id="testUpdatePaymentId" style="width: 100%; padding: 6px;" /></label></div>
-                                <div><label>繳費日期: <input type="text" id="testUpdatePayDate" placeholder="2025/12/10 可空" style="width: 100%; padding: 6px;" /></label></div>
-                                <div><label>繳費金額: <input type="number" id="testUpdatePay" placeholder="可空" style="width: 100%; padding: 6px;" /></label></div>
-                                <div><label>折扣金額: <input type="number" step="0.01" id="testUpdateDiscount" placeholder="可空" style="width: 100%; padding: 6px;" /></label></div>
-                            </div>
-                            <div style="margin-top: 10px;"><label>備註: <input type="text" id="testUpdateRemark" placeholder="可空" style="width: 100%; padding: 6px;" /></label></div>
-                            <button class="btn-primary" style="margin-top: 10px;" onclick="testUpdatePayment()">執行測試</button>
-                            <div id="testResult-updatePayment" style="margin-top: 10px;"></div>
-                            
-                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
-                            <pre id="rawData-updatePayment" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
                         </div>
                     `;
                     break;
@@ -2456,9 +2655,9 @@
         // ========== 繳費管理功能 ==========
         
         async function getStudentPaymentInfo() {
-            const permissionId = document.getElementById('paymentStudentPermissionId').value;
-            if (!permissionId) {
-                alert('請輸入學生權限 ID');
+            const permissionFeeId = document.getElementById('paymentStudentPermissionFeeId').value;
+            if (!permissionFeeId) {
+                alert('請輸入學生權限費用 ID');
                 return;
             }
 
@@ -2468,7 +2667,7 @@
             errorDiv.style.display = 'none';
 
             try {
-                const res = await apiFetch(`/api/v1/StudentPayment/${permissionId}`);
+                const res = await apiFetch(`/api/v1/StudentPayment/${permissionFeeId}`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 
@@ -2506,17 +2705,17 @@
         function clearPaymentInfo() {
             document.getElementById('paymentContent').innerHTML = '';
             document.getElementById('paymentError').style.display = 'none';
-            document.getElementById('paymentStudentPermissionId').value = '1661';
+            document.getElementById('paymentStudentPermissionFeeId').value = '1';
         }
 
         async function createPaymentRecord() {
-            const permissionId = document.getElementById('createPaymentPermissionId').value;
+            const feeId = document.getElementById('createPaymentFeeId').value;
             const pay = parseInt(document.getElementById('createPaymentAmount').value);
             const discount = parseFloat(document.getElementById('createPaymentDiscount').value) || 0;
             const remark = document.getElementById('createPaymentRemark').value || null;
 
-            if (!permissionId || !pay) {
-                alert('請填寫必填欄位：學生權限ID、金額');
+            if (!feeId || !pay) {
+                alert('請填寫必填欄位：學生權限費用ID、金額');
                 return;
             }
 
@@ -2527,7 +2726,7 @@
 
             try {
                 const payload = {
-                    studentPermissionId: parseInt(permissionId),
+                    studentPermissionFeeId: parseInt(feeId),
                     pay: pay,
                     discountAmount: discount,
                     remark: remark
@@ -2554,7 +2753,7 @@
                     <div class="success">✅ ${actionText}成功</div>
                     <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px;">
                         <p><strong>操作：</strong>${actionText}</p>
-                        <p><strong>學生權限ID：</strong>${permissionId}</p>
+                        <p><strong>學生權限費用ID：</strong>${feeId}</p>
                         <p><strong>繳費金額：</strong>$${pay}</p>
                         <p><strong>折扣金額：</strong>$${discount}</p>
                         ${remark ? `<p><strong>備註：</strong>${remark}</p>` : ''}

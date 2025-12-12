@@ -9,10 +9,10 @@ namespace DoorWebApp.Models.DTO
     public class ReqCreatePaymentDTO
     {
         /// <summary>
-        /// 學生權限 ID (必填)
+        /// 學生權限費用 ID (必填)
         /// </summary>
         [Required]
-        public int StudentPermissionId { get; set; }
+        public int StudentPermissionFeeId { get; set; }
 
         /// <summary>
         /// 繳費金額 (必填，必須大於 0)
