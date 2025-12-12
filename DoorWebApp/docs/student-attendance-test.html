@@ -1360,7 +1360,7 @@
             errorDiv.style.display = 'none';
 
             try {
-                const res = await apiFetch('/api/v1/StudentPermissionFee', {
+                const res = await apiFetch('/api/v1/StudentAttendance', {
                     method: 'POST',
                     body: { studentPermissionId: studentPermissionId }
                 });
@@ -2037,7 +2037,7 @@
                         <h2 style="color: #667eea;">➕ 新增學生權限費用</h2>
                         <div style="margin-top: 20px;">
                             <h3>📖 API 概述</h3>
-                            <p><strong>端點：</strong><code>POST /api/v1/StudentPermissionFee</code></p>
+                            <p><strong>端點：</strong><code>POST /api/v1/StudentAttendance</code></p>
                             <p><strong>說明：</strong>為指定的學生權限新增一筆費用記錄，繳款日自動設為今天（系統日期）</p>
 
                             <h3 style="margin-top: 20px;">📥 請求參數 (ReqCreateStudentPermissionFeeDTO)</h3>
@@ -2083,7 +2083,7 @@
                             </div>
 
                             <h3 style="margin-top: 20px;">📝 請求範例</h3>
-                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">POST /api/v1/StudentPermissionFee
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">POST /api/v1/StudentAttendance
 Content-Type: application/json
 
 {

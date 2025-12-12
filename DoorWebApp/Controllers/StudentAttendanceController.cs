@@ -449,7 +449,7 @@ namespace DoorWebApp.Controllers
         /// 新增學生權限費用記錄
         /// </summary>
         /// <param name="req">學生權限費用請求</param>
-        [HttpPost("v1/StudentPermissionFee")]
+        [HttpPost("v1/StudentAttendance")]
         public IActionResult CreateStudentPermissionFee([FromBody] ReqCreateStudentPermissionFeeDTO req)
         {
             var res = new APIResponse<object>();
