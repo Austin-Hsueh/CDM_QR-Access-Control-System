@@ -499,6 +499,7 @@
                             <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📝 上課紀錄</div>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('studentsList')">👨‍🎓 取得學生名單</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceList')">📝 顯示上課紀錄(列表)</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createPermissionFee')">➕ 新增學生權限費用</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('paymentDetail')">💰 顯示繳費細項</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceFee')">✏️ 單堂老師費用修改</button>
                         </div>
@@ -2031,6 +2032,77 @@
                     `;
                     break;
 
+                case 'createPermissionFee':
+                    html = `
+                        <h2 style="color: #667eea;">➕ 新增學生權限費用</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>POST /api/v1/StudentPermissionFee</code></p>
+                            <p><strong>說明：</strong>為指定的學生權限新增一筆費用記錄，繳款日自動設為今天（系統日期）</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數 (ReqCreateStudentPermissionFeeDTO)</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限 ID</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>result</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">結果代碼 (1=成功)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">訊息</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>content</code></td><td style="padding: 8px; border: 1px solid #ddd;">object?</td><td style="padding: 8px; border: 1px solid #ddd;">成功時的回傳資料</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ feeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">新建立的費用記錄 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ paymentDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">繳款日 (yyyy/MM/dd 格式)</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">💡 功能說明</h3>
+                            <div class="info">
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li><strong>自動設定繳款日：</strong>系統自動將繳款日設為執行當天（UTC+8 時區）</li>
+                                    <li><strong>費用分組：</strong>每個學生權限可以有多筆費用記錄，每4筆簽到對應一筆費用</li>
+                                    <li><strong>用途：</strong>當學生權限有新的上課週期時，可以新增費用記錄來管理分期繳款</li>
+                                </ul>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">📝 請求範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">POST /api/v1/StudentPermissionFee
+Content-Type: application/json
+
+{
+  "studentPermissionId": 1661
+}</pre>
+
+                            <h3 style="margin-top: 20px;">✅ 成功回應範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">{
+  "result": 1,
+  "msg": "新增成功",
+  "content": {
+    "feeId": 123,
+    "paymentDate": "2025/12/12"
+  }
+}</pre>
+                        </div>
+                    `;
+                    break;
+
                 case 'attendanceFee':
                     html = `
                         <h2 style="color: #667eea;">✏️ 單堂老師費用修改</h2>
@@ -2081,6 +2153,17 @@
                                     <li>單堂學費 = 老師分潤 ÷ 課程總時數</li>
                                 </ol>
                             </div>
+
+                            <h3 style="margin-top: 20px;">📝 請求範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">PATCH /api/v1/StudentAttendance/AttendanceFee
+Content-Type: application/json
+
+{
+  "attendanceId": 456,
+  "hours": 1.5,
+  "amount": 1200,
+  "adjustmentAmount": -100
+}</pre>
 
                             <h3 style="margin-top: 20px;">🧪 測試 API</h3>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
@@ -2218,6 +2301,17 @@
                                     </tbody>
                                 </table>
                             </div>
+
+                            <h3 style="margin-top: 20px;">📝 請求範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">POST /api/v1/StudentPayment
+Content-Type: application/json
+
+{
+  "studentPermissionFeeId": 123,
+  "pay": 12000,
+  "discountAmount": 500,
+  "remark": "第一期繳費"
+}</pre>
 
                             <h3 style="margin-top: 20px;">📤 回應欄位</h3>
                             <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
@@ -2364,6 +2458,23 @@
                                 </tbody>
                             </table>
 
+                            <h3 style="margin-top: 20px;">📝 請求範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">POST /api/v2/Course
+Content-Type: application/json
+
+{
+  "courseName": "小提琴入門班",
+  "courseTypeId": 1,
+  "category": "個別班",
+  "sortOrder": 100,
+  "feeCode": "VIO001",
+  "amount": 12000,
+  "materialFee": 500,
+  "hours": 12,
+  "splitRatio": 0.35,
+  "openCourseAmount": 15000
+}</pre>
+
                             <h3 style="margin-top: 20px;">📤 回應欄位</h3>
                             <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
                                 <thead>
@@ -2415,6 +2526,23 @@
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>openCourseAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">開放課程費用 (可空=不修改)</td></tr>
                                 </tbody>
                             </table>
+
+                            <h3 style="margin-top: 20px;">📝 請求範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">PATCH /api/v2/UpdateCourse
+Content-Type: application/json
+
+{
+  "courseId": 15,
+  "courseName": "小提琴進階班",
+  "courseTypeId": 1,
+  "isDelete": false,
+  "category": "團體班",
+  "sortOrder": 150,
+  "amount": 15000,
+  "materialFee": 800,
+  "hours": 16,
+  "splitRatio": 0.40
+}</pre>
 
                             <h3 style="margin-top: 20px;">📤 回應欄位</h3>
                             <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
@@ -2483,6 +2611,16 @@
                                     <li><strong>新課程名稱：</strong>若留空自動生成為「來源課程名稱 - 副本」</li>
                                 </ul>
                             </div>
+
+                            <h3 style="margin-top: 20px;">📝 請求範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">POST /api/v2/CopyCourse
+Content-Type: application/json
+
+{
+  "sourceCourseId": 15,
+  "newCourseName": "小提琴進階班 - 週末班",
+  "newFeeCode": "VIO002"
+}</pre>
                         </div>
                     `;
                     break;
