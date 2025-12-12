@@ -47,7 +47,7 @@ namespace DoorDB
 
 
                 //optionsBuilder.UseSqlServer(ConnectionStringOnDesing);
-                string ConnectionStringOnDesing = "Server=localhost;Port=3306;Database=door;Uid=ad;Pwd=Aa123456;";
+                string ConnectionStringOnDesing = "Server=localhost;Port=3306;Database=door;Uid=root;Pwd=1qaz@WSX;";
                 optionsBuilder.UseMySql(ConnectionStringOnDesing, ServerVersion.AutoDetect(ConnectionStringOnDesing));
             }
         }
@@ -280,12 +280,12 @@ namespace DoorDB
                 .WithOne(c => c.CourseFee)
                 .HasForeignKey<TblCourseFee>(f => f.CourseId);
 
-            // 設置 TblStudentPermissionFee 與 TblStudentPermission (StudentPermissionId) 一對一關聯
-            // StudentPermissionId 是外鍵,在 TblStudentPermissionFee 端,已設 UNIQUE 約束
-            modelBuilder.Entity<TblStudentPermissionFee>()
-                .HasOne(f => f.StudentPermission)
-                .WithOne(sp => sp.StudentPermissionFee)
-                .HasForeignKey<TblStudentPermissionFee>(f => f.StudentPermissionId);
+            // 設置 TblStudentPermission 與 TblStudentPermissionFee (StudentPermissionId) 一對多關聯
+            // StudentPermissionId 是外鍵,在 TblStudentPermissionFee 端
+            modelBuilder.Entity<TblStudentPermission>()
+                .HasMany(sp => sp.StudentPermissionFees)
+                .WithOne(f => f.StudentPermission)
+                .HasForeignKey(f => f.StudentPermissionId);
 
             // 設置 TblAttendanceFee 與 TblAttendance (AttendanceId) 一對一關聯
             // AttendanceId 是外鍵,在 TblAttendanceFee 端,已設 UNIQUE 約束
@@ -300,11 +300,11 @@ namespace DoorDB
                 .WithOne(a => a.StudentPermission)
                 .HasForeignKey(a => a.StudentPermissionId);
 
-            // 設置 TblStudentPermission 與 TblPayment (StudentPermissionId) 一對多關聯
-            modelBuilder.Entity<TblStudentPermission>()
-                .HasMany(c => c.Payments)
-                .WithOne(a => a.StudentPermission)
-                .HasForeignKey(a => a.StudentPermissionId);
+            // 設置 TblStudentPermissionFee 與 TblPayment (StudentPermissionFeeId) 一對一關聯
+            modelBuilder.Entity<TblStudentPermissionFee>()
+                .HasOne(f => f.Payment)
+                .WithOne(p => p.StudentPermissionFee)
+                .HasForeignKey<TblPayment>(p => p.StudentPermissionFeeId);
 
             // 設置 TblCourseType 與 TblCourse (CourseTypeId) 一對多關聯
             modelBuilder.Entity<TblCourseType>()

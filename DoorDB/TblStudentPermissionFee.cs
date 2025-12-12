@@ -6,10 +6,10 @@ using Microsoft.EntityFrameworkCore;
 namespace DoorDB
 {
     /// <summary>
-    /// 學生權限費用資料表 (一對一關聯到 TblStudentPermission)
+    /// 學生權限費用資料表 (一對多關聯到 TblStudentPermission)
     /// </summary>
     [Table("tblStudentPermissionFee")]
-    [Index(nameof(StudentPermissionId), IsUnique = true)]
+    [Index(nameof(StudentPermissionId))]
     public class TblStudentPermissionFee
     {
         /// <summary>
@@ -47,7 +47,10 @@ namespace DoorDB
         public DateTime ModifiedTime { get; set; }
 
         // Navigation Properties
-        /// <summary>一對一關係: 每個學生權限只有一個費用記錄</summary>
+        /// <summary>多對一關係: 每個費用記錄對應一個學生權限，一個學生權限可有多個費用記錄</summary>
         public virtual TblStudentPermission? StudentPermission { get; set; }
+        
+        /// <summary>一對一關係: 費用記錄的付款記錄</summary>
+        public virtual TblPayment? Payment { get; set; }
     }
 }

@@ -17,8 +17,9 @@ namespace DoorDB
         public int Id { get; set; }
 
         [Required]
-        public int StudentPermissionId { get; set; }
-        public TblStudentPermission StudentPermission { set; get; }
+        [Comment("學生權限費用Id ([tblStudentPermissionFee].[Id])")]
+        public int StudentPermissionFeeId { get; set; }
+        public TblStudentPermissionFee StudentPermissionFee { set; get; }
 
         [Required]
         public string PayDate { get; set; }
