@@ -17,8 +17,9 @@ namespace DoorDB
         public int Id { get; set; }
 
         [Required]
-        public int StudentPermissionId { get; set; }
-        public TblStudentPermission StudentPermission { set; get; }
+        [Comment("學生權限費用Id ([tblStudentPermissionFee].[Id])")]
+        public int StudentPermissionFeeId { get; set; }
+        public TblStudentPermissionFee StudentPermissionFee { set; get; }
 
         [Required]
         public string PayDate { get; set; }
@@ -31,6 +32,18 @@ namespace DoorDB
         /// </summary>
         [Comment("結帳單號")]
         public string? ReceiptNumber { get; set; }
+
+        /// <summary>
+        /// 總額折扣
+        /// </summary>
+        [Comment("總額折扣")]
+        public int DiscountAmount { get; set; } = 0;
+
+        /// <summary>
+        /// 備註
+        /// </summary>
+        [Comment("備註")]
+        public string? Remark { get; set; }
 
         /// <summary>
         /// 操作者帳號Id

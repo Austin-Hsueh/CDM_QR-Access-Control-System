@@ -3,6 +3,7 @@ using System;
 using DoorDB;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DoorWebDB.Migrations
 {
     [DbContext(typeof(DoorDbContext))]
-    partial class DoorDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251209025141_UpdateCourseFeeSplitRatio")]
+    partial class UpdateCourseFeeSplitRatio
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -320,10 +322,6 @@ namespace DoorWebDB.Migrations
                     b.Property<DateTime>("CreatedTime")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("DiscountAmount")
-                        .HasColumnType("int")
-                        .HasComment("總額折扣");
-
                     b.Property<bool>("IsDelete")
                         .HasColumnType("tinyint(1)");
 
@@ -344,20 +342,14 @@ namespace DoorWebDB.Migrations
                         .HasColumnType("longtext")
                         .HasComment("結帳單號");
 
-                    b.Property<string>("Remark")
-                        .HasColumnType("longtext")
-                        .HasComment("備註");
-
-                    b.Property<int>("StudentPermissionFeeId")
-                        .HasColumnType("int")
-                        .HasComment("學生權限費用Id ([tblStudentPermissionFee].[Id])");
+                    b.Property<int>("StudentPermissionId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ModifiedUserId");
 
-                    b.HasIndex("StudentPermissionFeeId")
-                        .IsUnique();
+                    b.HasIndex("StudentPermissionId");
 
                     b.ToTable("tblPayment");
                 });
@@ -546,48 +538,48 @@ namespace DoorWebDB.Migrations
                         {
                             Id = 1,
                             CanDelete = false,
-                            CreatedTime = new DateTime(2025, 12, 12, 11, 41, 47, 346, DateTimeKind.Local).AddTicks(7536),
+                            CreatedTime = new DateTime(2025, 12, 9, 10, 51, 41, 360, DateTimeKind.Local).AddTicks(3203),
                             CreatorUserId = 1,
                             Description = "管理者",
                             IsDelete = false,
                             IsEnable = true,
-                            ModifiedTime = new DateTime(2025, 12, 12, 11, 41, 47, 346, DateTimeKind.Local).AddTicks(7536),
+                            ModifiedTime = new DateTime(2025, 12, 9, 10, 51, 41, 360, DateTimeKind.Local).AddTicks(3203),
                             Name = "Admin"
                         },
                         new
                         {
                             Id = 2,
                             CanDelete = false,
-                            CreatedTime = new DateTime(2025, 12, 12, 11, 41, 47, 346, DateTimeKind.Local).AddTicks(7538),
+                            CreatedTime = new DateTime(2025, 12, 9, 10, 51, 41, 360, DateTimeKind.Local).AddTicks(3205),
                             CreatorUserId = 1,
                             Description = "老師",
                             IsDelete = false,
                             IsEnable = true,
-                            ModifiedTime = new DateTime(2025, 12, 12, 11, 41, 47, 346, DateTimeKind.Local).AddTicks(7538),
+                            ModifiedTime = new DateTime(2025, 12, 9, 10, 51, 41, 360, DateTimeKind.Local).AddTicks(3205),
                             Name = "User"
                         },
                         new
                         {
                             Id = 3,
                             CanDelete = false,
-                            CreatedTime = new DateTime(2025, 12, 12, 11, 41, 47, 346, DateTimeKind.Local).AddTicks(7539),
+                            CreatedTime = new DateTime(2025, 12, 9, 10, 51, 41, 360, DateTimeKind.Local).AddTicks(3206),
                             CreatorUserId = 1,
                             Description = "學生",
                             IsDelete = false,
                             IsEnable = true,
-                            ModifiedTime = new DateTime(2025, 12, 12, 11, 41, 47, 346, DateTimeKind.Local).AddTicks(7540),
+                            ModifiedTime = new DateTime(2025, 12, 9, 10, 51, 41, 360, DateTimeKind.Local).AddTicks(3207),
                             Name = "User"
                         },
                         new
                         {
                             Id = 4,
                             CanDelete = false,
-                            CreatedTime = new DateTime(2025, 12, 12, 11, 41, 47, 346, DateTimeKind.Local).AddTicks(7541),
+                            CreatedTime = new DateTime(2025, 12, 9, 10, 51, 41, 360, DateTimeKind.Local).AddTicks(3208),
                             CreatorUserId = 1,
                             Description = "值班人員",
                             IsDelete = false,
                             IsEnable = true,
-                            ModifiedTime = new DateTime(2025, 12, 12, 11, 41, 47, 346, DateTimeKind.Local).AddTicks(7541),
+                            ModifiedTime = new DateTime(2025, 12, 9, 10, 51, 41, 360, DateTimeKind.Local).AddTicks(3208),
                             Name = "User"
                         });
                 });
@@ -756,7 +748,8 @@ namespace DoorWebDB.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("StudentPermissionId");
+                    b.HasIndex("StudentPermissionId")
+                        .IsUnique();
 
                     b.ToTable("tblStudentPermissionFee");
                 });
@@ -859,6 +852,9 @@ namespace DoorWebDB.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<int?>("TeacherSettlementId")
+                        .HasColumnType("int");
+
                     b.Property<int>("Type")
                         .HasColumnType("int")
                         .HasComment("選課狀態 預設0,1在學,2停課,3約課");
@@ -874,6 +870,8 @@ namespace DoorWebDB.Migrations
 
                     b.HasIndex("ParentId");
 
+                    b.HasIndex("TeacherSettlementId");
+
                     b.ToTable("tblUser");
 
                     b.HasData(
@@ -884,14 +882,14 @@ namespace DoorWebDB.Migrations
                             Address = "",
                             ContactPerson = "",
                             ContactPhone = "",
-                            CreateTime = new DateTime(2025, 12, 12, 11, 41, 47, 346, DateTimeKind.Local).AddTicks(7514),
+                            CreateTime = new DateTime(2025, 12, 9, 10, 51, 41, 360, DateTimeKind.Local).AddTicks(3185),
                             DisplayName = "Administrator",
                             Email = "",
                             IDcard = "",
                             IsDelete = false,
                             IsEnable = true,
                             LastLoginIP = "",
-                            ModifiedTime = new DateTime(2025, 12, 12, 11, 41, 47, 346, DateTimeKind.Local).AddTicks(7526),
+                            ModifiedTime = new DateTime(2025, 12, 9, 10, 51, 41, 360, DateTimeKind.Local).AddTicks(3196),
                             Phone = "0",
                             RelationshipTitle = "",
                             Secret = "1qaz2wsx",
@@ -906,14 +904,14 @@ namespace DoorWebDB.Migrations
                             Address = "",
                             ContactPerson = "",
                             ContactPhone = "",
-                            CreateTime = new DateTime(2025, 12, 12, 11, 41, 47, 346, DateTimeKind.Local).AddTicks(7528),
+                            CreateTime = new DateTime(2025, 12, 9, 10, 51, 41, 360, DateTimeKind.Local).AddTicks(3198),
                             DisplayName = "臨時大門",
                             Email = "",
                             IDcard = "",
                             IsDelete = false,
                             IsEnable = true,
                             LastLoginIP = "",
-                            ModifiedTime = new DateTime(2025, 12, 12, 11, 41, 47, 346, DateTimeKind.Local).AddTicks(7529),
+                            ModifiedTime = new DateTime(2025, 12, 9, 10, 51, 41, 360, DateTimeKind.Local).AddTicks(3199),
                             Phone = "0",
                             RelationshipTitle = "",
                             Secret = "1qaz2wsx",
@@ -1082,15 +1080,15 @@ namespace DoorWebDB.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DoorDB.TblStudentPermissionFee", "StudentPermissionFee")
-                        .WithOne("Payment")
-                        .HasForeignKey("DoorDB.TblPayment", "StudentPermissionFeeId")
+                    b.HasOne("DoorDB.TblStudentPermission", "StudentPermission")
+                        .WithMany("Payments")
+                        .HasForeignKey("StudentPermissionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("ModifiedUser");
 
-                    b.Navigation("StudentPermissionFee");
+                    b.Navigation("StudentPermission");
                 });
 
             modelBuilder.Entity("DoorDB.TblPermission", b =>
@@ -1149,8 +1147,8 @@ namespace DoorWebDB.Migrations
             modelBuilder.Entity("DoorDB.TblStudentPermissionFee", b =>
                 {
                     b.HasOne("DoorDB.TblStudentPermission", "StudentPermission")
-                        .WithMany("StudentPermissionFees")
-                        .HasForeignKey("StudentPermissionId")
+                        .WithOne("StudentPermissionFee")
+                        .HasForeignKey("DoorDB.TblStudentPermissionFee", "StudentPermissionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1160,7 +1158,7 @@ namespace DoorWebDB.Migrations
             modelBuilder.Entity("DoorDB.TblTeacherSettlement", b =>
                 {
                     b.HasOne("DoorDB.TblUser", "Teacher")
-                        .WithOne("TeacherSettlement")
+                        .WithOne()
                         .HasForeignKey("DoorDB.TblTeacherSettlement", "TeacherId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1174,7 +1172,13 @@ namespace DoorWebDB.Migrations
                         .WithMany("Children")
                         .HasForeignKey("ParentId");
 
+                    b.HasOne("DoorDB.TblTeacherSettlement", "TeacherSettlement")
+                        .WithMany()
+                        .HasForeignKey("TeacherSettlementId");
+
                     b.Navigation("Parent");
+
+                    b.Navigation("TeacherSettlement");
                 });
 
             modelBuilder.Entity("TblPermissionGroupTblStudentPermission", b =>
@@ -1263,14 +1267,11 @@ namespace DoorWebDB.Migrations
                 {
                     b.Navigation("Attendances");
 
+                    b.Navigation("Payments");
+
                     b.Navigation("Schedules");
 
-                    b.Navigation("StudentPermissionFees");
-                });
-
-            modelBuilder.Entity("DoorDB.TblStudentPermissionFee", b =>
-                {
-                    b.Navigation("Payment");
+                    b.Navigation("StudentPermissionFee");
                 });
 
             modelBuilder.Entity("DoorDB.TblUser", b =>
@@ -1281,8 +1282,6 @@ namespace DoorWebDB.Migrations
                         .IsRequired();
 
                     b.Navigation("StudentPermissions");
-
-                    b.Navigation("TeacherSettlement");
 
                     b.Navigation("TeacherStudentPermissions");
                 });

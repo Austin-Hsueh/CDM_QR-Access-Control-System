@@ -150,6 +150,14 @@ namespace DoorWebApp
                 {
                     c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
                 });
+
+                // 開發模式下提供 docs 資料夾的靜態檔案
+                app.UseStaticFiles(new StaticFileOptions
+                {
+                    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
+                        System.IO.Path.Combine(Directory.GetCurrentDirectory(), "docs")),
+                    RequestPath = "/docs"
+                });
             }
 
             app.UseStaticFiles();

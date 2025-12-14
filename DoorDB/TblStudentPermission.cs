@@ -117,9 +117,8 @@ namespace DoorDB
         public TblCourse? Course { set; get; }
 
         public virtual List<TblAttendance> Attendances { set; get; }
-        public virtual List<TblPayment> Payments { set; get; }
         public virtual List<TblSchedule> Schedules { set; get; } = new List<TblSchedule>();
-        /// <summary>一對一關係: 學生權限費用</summary>
-        public virtual TblStudentPermissionFee? StudentPermissionFee { set; get; }
+        /// <summary>一對多關係: 學生權限費用列表</summary>
+        public virtual List<TblStudentPermissionFee> StudentPermissionFees { set; get; } = new List<TblStudentPermissionFee>();
     }
 }
