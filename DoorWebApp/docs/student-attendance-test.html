@@ -502,6 +502,12 @@
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createPermissionFee')">➕ 新增學生權限費用</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('paymentDetail')">💰 顯示繳費細項</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceFee')">✏️ 單堂老師費用修改</button>
+
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📄 報表</div>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('salaryReport')">📄 薪資明細表 (實際)</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('salaryReportSample')">📄 薪資明細表 (Sample)</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('companyProfit')">🏢 公司獲利彙總表 (實際)</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('companyProfitSample')">🏢 公司獲利彙總表 (Sample)</button>
                         </div>
                     </div>
 
@@ -1442,10 +1448,12 @@
                         <div><strong>課程名稱:</strong> ${detail.courseName || '-'}</div>
                         <div><strong>課程分類:</strong> ${detail.category || '-'}</div>
                         <div><strong>課程編號:</strong> ${detail.feeCode || '-'}</div>
+                        <div><strong>老師 ID:</strong> ${detail.teacherId || '-'}</div>
                         <div><strong>老師名稱:</strong> ${detail.teacherName || '-'}</div>
                         <div><strong>課程總時數:</strong> ${detail.hours || '0'} </div>
-                        <div><strong>課程拆帳比(小者優先):</strong> ${formatRatio(detail.courseSplitRatio)}</div>
-                        <div><strong>老師拆帳比(小者優先):</strong> ${formatRatio(detail.teacherSplitRatio)}</div>
+                        <div><strong>課程拆帳比:</strong> ${formatRatio(detail.courseSplitRatio)}</div>
+                        <div><strong>老師拆帳比:</strong> ${formatRatio(detail.teacherSplitRatio)}</div>
+                        <div><strong>使用拆帳比:</strong> ${formatRatio(detail.useSplitRatio)}</div>
                         <div><strong>課程總金額:</strong> $${(detail.totalAmount || 0).toLocaleString()}</div>
                         <div><strong>老師可分得:</strong> $${(detail.totalTeacherAmount || 0).toLocaleString()}</div>
                     </div>
@@ -1993,8 +2001,9 @@
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>teacherId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">老師 ID</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>teacherName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">老師名稱</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>hours</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal</td><td style="padding: 8px; border: 1px solid #ddd;">課程總時數</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseSplitRatio</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal</td><td style="padding: 8px; border: 1px solid #ddd;">課程拆帳比例 (0-1)</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>teacherSplitRatio</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal</td><td style="padding: 8px; border: 1px solid #ddd;">老師拆帳比例 (0-1)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseSplitRatio</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal</td><td style="padding: 8px; border: 1px solid #ddd;">課程拆帳比例 (0-1；頁面顯示時×100為%)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>teacherSplitRatio</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal</td><td style="padding: 8px; border: 1px solid #ddd;">老師拆帳比例 (0-1；頁面顯示時×100為%)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>useSplitRatio</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal</td><td style="padding: 8px; border: 1px solid #ddd;">使用的拆帳比 (min(course, teacher)，0-1；頁面顯示時×100為%)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>totalAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">課程總金額 (學費+教材)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>totalTeacherAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">老師可分得金額</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>payment</code></td><td style="padding: 8px; border: 1px solid #ddd;">object?</td><td style="padding: 8px; border: 1px solid #ddd;">最近一筆收款記錄 (PaymentRecordDTO)</td></tr>
@@ -2624,6 +2633,140 @@ Content-Type: application/json
                         </div>
                     `;
                     break;
+
+                case 'salaryReport':
+                    html = `
+                        <h2 style="color: #667eea;">📄 薪資明細表 (實際串接)</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點:</strong><code>GET /api/pdf/v1/SalaryReport?startDate={yyyy-MM-dd}&endDate={yyyy-MM-dd}&teacherId={id}&includePaid={bool}</code></p>
+                            <p><strong>控制器:</strong><code>PDFController</code></p>
+                            <p><strong>說明:</strong>依結算日期區間、老師 ID 產生薪資明細表 PDF，資料來源為簽到(tblAttendance)與簽到費用(tblAttendanceFee)。可選擇是否包含未繳費記錄。</p>
+
+                            <h3 style="margin-top: 20px;">📥 查詢參數</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">startDate</td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">結算日期起始 (格式: yyyy-MM-dd)，例如 2025-12-01</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">endDate</td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">結算日期結束 (格式: yyyy-MM-dd)，例如 2025-12-31</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">teacherId</td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">指定老師 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">includePaid</td><td style="padding: 8px; border: 1px solid #ddd;">bool</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">沒繳學費是否要計薪 (預設 true=包含未繳費; false=僅已繳費)</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                                <div><label>結算日期起始: <input type="date" id="testSalaryStartDate" value="2025-12-01" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>結算日期結束: <input type="date" id="testSalaryEndDate" value="2025-12-31" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>老師 ID: <input type="number" id="testSalaryTeacherId" value="2" style="width: 100%; padding: 6px;" /></label></div>
+                                <div>
+                                    <label>未繳費計薪: 
+                                        <select id="testSalaryIncludePaid" style="width: 100%; padding: 6px;">
+                                            <option value="true">是 (包含)</option>
+                                            <option value="false">否 (排除)</option>
+                                        </select>
+                                    </label>
+                                </div>
+                            </div>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testSalaryReport()">執行測試 (下載 PDF)</button>
+                            <div id="testResult-salaryReport" style="margin-top: 10px;"></div>
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-salaryReport" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示檔案資訊</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'salaryReportSample':
+                    html = `
+                        <h2 style="color: #667eea;">📄 薪資明細表 (Sample)</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點:</strong><code>GET /api/pdf/v1/SalaryReport/Sample</code></p>
+                            <p><strong>控制器:</strong><code>PDFController</code></p>
+                            <p><strong>說明:</strong>產生並回傳 QuestPDF PDF，使用假資料示範版面，下載即可檢視。</p>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testSalaryReportSample()">執行測試 (下載 PDF)</button>
+                            <div id="testResult-salaryReportSample" style="margin-top: 10px;"></div>
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-salaryReportSample" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示檔案資訊</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'companyProfit':
+                    html = `
+                        <h2 style="color: #667eea;">🏢 公司獲利彙總表 (實際串接)</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點:</strong><code>GET /api/pdf/v1/CompanyProfitSummary?startDate={yyyy-MM-dd}&endDate={yyyy-MM-dd}&teacherId={id}&includePaid={bool}</code></p>
+                            <p><strong>控制器:</strong><code>PDFController</code></p>
+                            <p><strong>說明:</strong>依結算日期區間產生公司獲利彙總表 PDF，按老師分組統計。實收學費由薪資回推拆帳比金額，薪資直接加總 tblAttendance，毛利為實收減薪資。</p>
+
+                            <h3 style="margin-top: 20px;">📥 查詢參數</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">startDate</td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">結算日期起始 (格式: yyyy-MM-dd)，例如 2025-10-01</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">endDate</td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">結算日期結束 (格式: yyyy-MM-dd)，例如 2025-10-31</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">teacherId</td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">指定老師 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">includePaid</td><td style="padding: 8px; border: 1px solid #ddd;">bool</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">沒繳學費是否要計薪 (預設 true=包含未繳費; false=僅已繳費)</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                                <div><label>結算日期起始: <input type="date" id="testProfitStartDate" value="2025-12-01" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>結算日期結束: <input type="date" id="testProfitEndDate" value="2025-12-31" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>老師 ID: <input type="number" id="testProfitTeacherId" value="2" style="width: 100%; padding: 6px;" /></label></div>
+                                <div>
+                                    <label>未繳費計薪: 
+                                        <select id="testProfitIncludePaid" style="width: 100%; padding: 6px;">
+                                            <option value="true">是 (包含)</option>
+                                            <option value="false">否 (排除)</option>
+                                        </select>
+                                    </label>
+                                </div>
+                            </div>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testCompanyProfit()">執行測試 (下載 PDF)</button>
+                            <div id="testResult-companyProfit" style="margin-top: 10px;"></div>
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-companyProfit" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示檔案資訊</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'companyProfitSample':
+                    html = `
+                        <h2 style="color: #667eea;">🏢 公司獲利彙總表 (Sample)</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點:</strong><code>GET /api/pdf/v1/CompanyProfitSummary/Sample</code></p>
+                            <p><strong>控制器:</strong><code>PDFController</code></p>
+                            <p><strong>說明:</strong>產生並回傳 QuestPDF PDF，公司獲利彙總樣板（114/10 個別班），包含序號、上課老師、學生數、堂數、學費欠費、實收學費、折帳薪資、應付薪資、補發薪資、公司毛利及百分比等欄位。下載即可檢視。</p>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testCompanyProfitSample()">執行測試 (下載 PDF)</button>
+                            <div id="testResult-companyProfitSample" style="margin-top: 10px;"></div>
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-companyProfitSample" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示檔案資訊</pre>
+                        </div>
+                    `;
+                    break;
             }
 
             docContent.innerHTML = html;
@@ -2726,7 +2869,7 @@ Content-Type: application/json
                     <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px;">
                         <p><strong>課程:</strong> ${detail.courseName || '-'}</p>
                         <p><strong>學生:</strong> ${detail.studentName || '-'}</p>
-                        <p><strong>拆帳比:</strong> 課程 ${(detail.courseSplitRatio * 100).toFixed(0)}% | 老師 ${(detail.teacherSplitRatio * 100).toFixed(0)}%</p>
+                        <p><strong>拆帳比:</strong> 課程 ${(detail.courseSplitRatio * 100).toFixed(0)}% | 老師 ${(detail.teacherSplitRatio * 100).toFixed(0)}% | 使用 ${(detail.useSplitRatio * 100).toFixed(0)}%</p>
                         <p><strong>老師分涤:</strong> ￥${detail.teacherRevenue || 0}</p>
                         ${detail.latestPayment ? `<p><strong>最新繳費:</strong> ￥${detail.latestPayment.pay} (折扣: ￥${detail.latestPayment.discountAmount})</p>` : '<p>無繳費記錄</p>'}
                     </div>
@@ -3262,6 +3405,132 @@ Content-Type: application/json
             } catch(err) {
                 resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
                 document.getElementById('rawData-courseDetail').textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        async function testSalaryReport() {
+            const startDate = document.getElementById('testSalaryStartDate').value;
+            const endDate = document.getElementById('testSalaryEndDate').value;
+            const teacherId = parseInt(document.getElementById('testSalaryTeacherId').value || '0', 10);
+            const includePaid = document.getElementById('testSalaryIncludePaid').value;
+
+            const resultDiv = document.getElementById('testResult-salaryReport');
+            const rawDiv = document.getElementById('rawData-salaryReport');
+            resultDiv.innerHTML = '<div class="loading">生成中...</div>';
+            rawDiv.textContent = '';
+
+            if (!startDate || !endDate || !teacherId) {
+                resultDiv.innerHTML = '<div class="error">❌ 請輸入結算日期與老師 ID</div>';
+                return;
+            }
+
+            try {
+                const res = await apiFetch(`/api/pdf/v1/SalaryReport?startDate=${startDate}&endDate=${endDate}&teacherId=${teacherId}&includePaid=${includePaid}`, {
+                    headers: { 'Accept': 'application/pdf' }
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+
+                resultDiv.innerHTML = `<div class="success">✅ PDF 產生成功 <a href="${url}" download="salary-report-${startDate}-${endDate}.pdf" target="_blank" style="color:#409eff;">下載/預覽</a></div>`;
+                rawDiv.textContent = `type: ${blob.type || 'unknown'}; size: ${blob.size} bytes`;
+
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                rawDiv.textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        async function testSalaryReportSample() {
+            const resultDiv = document.getElementById('testResult-salaryReportSample');
+            const rawDiv = document.getElementById('rawData-salaryReportSample');
+            resultDiv.innerHTML = '<div class="loading">生成中...</div>';
+            rawDiv.textContent = '';
+
+            try {
+                const res = await apiFetch('/api/pdf/v1/SalaryReport/Sample', {
+                    headers: { 'Accept': 'application/pdf' }
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+
+                resultDiv.innerHTML = `<div class="success">✅ PDF 產生成功 <a href="${url}" download="salary-report-sample.pdf" target="_blank" style="color:#409eff;">下載/預覽</a></div>`;
+                rawDiv.textContent = `type: ${blob.type || 'unknown'}; size: ${blob.size} bytes`;
+
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                rawDiv.textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        async function testCompanyProfitSample() {
+            const resultDiv = document.getElementById('testResult-companyProfitSample');
+            const rawDiv = document.getElementById('rawData-companyProfitSample');
+            resultDiv.innerHTML = '<div class="loading">生成中...</div>';
+            rawDiv.textContent = '';
+
+            try {
+                const res = await apiFetch('/api/pdf/v1/CompanyProfitSummary/Sample', {
+                    headers: { 'Accept': 'application/pdf' }
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+
+                resultDiv.innerHTML = `<div class="success">✅ PDF 產生成功 <a href="${url}" download="company-profit-summary-sample.pdf" target="_blank" style="color:#409eff;">下載/預覽</a></div>`;
+                rawDiv.textContent = `type: ${blob.type || 'unknown'}; size: ${blob.size} bytes`;
+
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                rawDiv.textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        async function testCompanyProfit() {
+            const startDate = document.getElementById('testProfitStartDate').value;
+            const endDate = document.getElementById('testProfitEndDate').value;
+            const teacherId = document.getElementById('testProfitTeacherId').value;
+            const includePaid = document.getElementById('testProfitIncludePaid').value;
+
+            const resultDiv = document.getElementById('testResult-companyProfit');
+            const rawDiv = document.getElementById('rawData-companyProfit');
+            resultDiv.innerHTML = '<div class="loading">生成中...</div>';
+            rawDiv.textContent = '';
+
+            if (!startDate || !endDate || !teacherId) {
+                resultDiv.innerHTML = '<div class="error">❌ 請輸入結算日期和老師 ID</div>';
+                return;
+            }
+
+            try {
+                const url = `/api/pdf/v1/CompanyProfitSummary?startDate=${startDate}&endDate=${endDate}&teacherId=${teacherId}&includePaid=${includePaid}`;
+
+                const res = await apiFetch(url, {
+                    headers: { 'Accept': 'application/pdf' }
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const blob = await res.blob();
+                const blobUrl = URL.createObjectURL(blob);
+
+                resultDiv.innerHTML = `<div class="success">✅ PDF 產生成功 <a href="${blobUrl}" download="company-profit-summary-${startDate}-${endDate}-teacher-${teacherId}.pdf" target="_blank" style="color:#409eff;">下載/預覽</a></div>`;
+                rawDiv.textContent = `type: ${blob.type || 'unknown'}; size: ${blob.size} bytes`;
+
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                rawDiv.textContent = `錯誤: ${err.message}`;
             }
         }
     </script>

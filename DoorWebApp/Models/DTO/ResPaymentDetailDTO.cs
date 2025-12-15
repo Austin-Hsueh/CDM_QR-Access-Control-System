@@ -31,10 +31,13 @@ namespace DoorWebApp.Models.DTO
         public decimal Hours { get; set; }
 
         /// <summary>課程拆帳比例（%）</summary>
-        public decimal CourseSplitRatio { get; set; }
+        public decimal? CourseSplitRatio { get; set; }
 
         /// <summary>老師拆帳比例（%）</summary>
-        public decimal TeacherSplitRatio { get; set; }
+        public decimal? TeacherSplitRatio { get; set; }
+
+        /// <summary>使用的拆帳比（%）</summary>
+        public decimal UseSplitRatio { get; set; }
 
         /// <summary>課程教材總應收金額</summary>
         public int TotalAmount { get; set; }

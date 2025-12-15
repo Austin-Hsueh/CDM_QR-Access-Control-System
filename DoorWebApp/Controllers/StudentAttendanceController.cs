@@ -65,12 +65,35 @@ namespace DoorWebApp.Controllers
                 }
 
                 var courseFee = attendance.StudentPermission?.Course?.CourseFee;
-                decimal courseSplitRatio = courseFee?.SplitRatio ?? 0;
-                decimal teacherSplitRatio = attendance.StudentPermission?.Teacher?.TeacherSettlement?.SplitRatio ?? 0;
+                decimal? courseSplitRatio = courseFee?.SplitRatio;
+                decimal? teacherSplitRatio = attendance.StudentPermission?.Teacher?.TeacherSettlement?.SplitRatio;
 
-                decimal normalizedCourseRatio = courseSplitRatio > 1 ? courseSplitRatio / 100 : courseSplitRatio;
-                decimal normalizedTeacherRatio = teacherSplitRatio > 1 ? teacherSplitRatio / 100 : teacherSplitRatio;
-                decimal minSplitRatio = Math.Clamp(Math.Min(normalizedCourseRatio, normalizedTeacherRatio), 0, 1);
+                // 正規化為 0~1
+                decimal? normalizedCourseRatio = courseSplitRatio.HasValue 
+                    ? (courseSplitRatio.Value > 1 ? courseSplitRatio.Value / 100 : courseSplitRatio.Value) 
+                    : null;
+                decimal? normalizedTeacherRatio = teacherSplitRatio.HasValue 
+                    ? (teacherSplitRatio.Value > 1 ? teacherSplitRatio.Value / 100 : teacherSplitRatio.Value) 
+                    : null;
+
+                // 拆帳比處理邏輯：兩個都沒有=0.0，只有一個有=用該值，兩個都有=取小者
+                decimal minSplitRatio;
+                if (!normalizedCourseRatio.HasValue && !normalizedTeacherRatio.HasValue)
+                {
+                    minSplitRatio = 0m;
+                }
+                else if (!normalizedCourseRatio.HasValue)
+                {
+                    minSplitRatio = Math.Clamp(normalizedTeacherRatio.Value, 0, 1);
+                }
+                else if (!normalizedTeacherRatio.HasValue)
+                {
+                    minSplitRatio = Math.Clamp(normalizedCourseRatio.Value, 0, 1);
+                }
+                else
+                {
+                    minSplitRatio = Math.Clamp(Math.Min(normalizedCourseRatio.Value, normalizedTeacherRatio.Value), 0, 1);
+                }
 
                 int tuitionFee = courseFee?.Amount ?? 0;
                 int materialFee = courseFee?.MaterialFee ?? 0;
@@ -78,7 +101,29 @@ namespace DoorWebApp.Controllers
                 decimal totalHours = courseFee?.Hours ?? 1;
                 if (totalHours <= 0) totalHours = 1;
 
-                int defaultAmount = (int)Math.Round((totalAmount * (1 - minSplitRatio)) / totalHours, MidpointRounding.AwayFromZero);
+                // 查找同一學生權限的最近一筆 AttendanceFee（按建立時間排序）
+                decimal sourceHoursTotalAmount;
+                int? currentFeeId = attendance.AttendanceFee?.Id;
+                var latestFee = await ctx.TblAttendanceFee
+                    .Where(af => af.Attendance != null 
+                        && af.Attendance.StudentPermissionId == attendance.StudentPermissionId
+                        && af.SourceHoursTotalAmount > 0
+                        && (!currentFeeId.HasValue || af.Id != currentFeeId.Value))  // 排除當前記錄
+                    .OrderByDescending(af => af.CreatedTime)
+                    .FirstOrDefaultAsync();
+
+                if (latestFee != null)
+                {
+                    // 使用最近一筆的原始時數總金額
+                    sourceHoursTotalAmount = latestFee.SourceHoursTotalAmount;
+                }
+                else
+                {
+                    // 沒有歷史記錄，使用課程費用計算
+                    sourceHoursTotalAmount = totalAmount / totalHours;
+                }
+
+                int defaultAmount = (int)Math.Round((sourceHoursTotalAmount * totalHours * (1 - minSplitRatio)) / totalHours, MidpointRounding.AwayFromZero);
 
                 // 記錄修改前的值用於審計
                 var originalHours = attendance.AttendanceFee?.Hours;
@@ -94,6 +139,8 @@ namespace DoorWebApp.Controllers
                 fee.Hours = dto.Hours ?? (fee.Hours != 0 ? fee.Hours : 1);
                 fee.Amount = dto.Amount ?? defaultAmount;
                 fee.AdjustmentAmount = dto.AdjustmentAmount ?? fee.AdjustmentAmount;
+                fee.SourceHoursTotalAmount = sourceHoursTotalAmount;  // 原始時數總金額（優先使用最近一筆）
+                fee.UseSplitRatio = minSplitRatio;  // 使用的拆帳比
                 fee.ModifiedTime = DateTime.Now;
 
                 if (attendance.AttendanceFee == null)
@@ -159,7 +206,6 @@ namespace DoorWebApp.Controllers
                 foreach (var sp in permissions)
                 {
                     var courseFee = sp.Course?.CourseFee;
-                    int receivable = (courseFee?.Amount ?? 0) + (courseFee?.MaterialFee ?? 0);
 
                     // 取得所有簽到記錄，依日期排序
                     var allAttendances = sp.Attendances?
@@ -219,8 +265,8 @@ namespace DoorWebApp.Controllers
                         var payment = fee.Payment;
                         var hasPayment = payment != null && !payment.IsDelete;
                         int received = hasPayment ? payment.Pay + payment.DiscountAmount : 0;
-                        int outstanding = Math.Max(receivable - received, 0);
-                        string? receiptNumber = hasPayment ? payment.ReceiptNumber : null;
+                        int outstanding = Math.Max(fee.TotalAmount - received, 0);
+                        string? receiptNumber = hasPayment ? payment?.ReceiptNumber : null;
 
                         list.Add(new ResStudentAttendanceDTO
                         {
@@ -229,7 +275,7 @@ namespace DoorWebApp.Controllers
                             StudentPermissionFeeId = fee.Id,
                             CourseName = sp.Course?.Name ?? string.Empty,
                             PaymentDate = fee.PaymentDate?.ToString("yyy/MM/dd"),
-                            ReceivableAmount = receivable,
+                            ReceivableAmount = fee.TotalAmount,
                             ReceivedAmount = received,
                             OutstandingAmount = outstanding,
                             ReceiptNumber = receiptNumber,
@@ -307,24 +353,45 @@ namespace DoorWebApp.Controllers
 
                 // 2. 計算課程拆帳比和老師拆帳比
                 var courseFee = permission.Course?.CourseFee;
-                decimal courseSplitRatio = courseFee?.SplitRatio ?? 0;
-                
-                // 老師拆帳比例（若該老師無 TeacherSettlement 記錄則使用 0）
-                decimal teacherSplitRatio = permission.Teacher?.TeacherSettlement?.SplitRatio ?? 0;
+                decimal? courseSplitRatio = courseFee?.SplitRatio;
+                decimal? teacherSplitRatio = permission.Teacher?.TeacherSettlement?.SplitRatio;
                 
                 if (permission.Teacher != null && permission.Teacher.TeacherSettlement == null)
                 {
-                    log.LogWarning($"[PaymentDetail] Teacher (Id: {permission.Teacher.Id}) has no TeacherSettlement record, using default SplitRatio = 0");
+                    log.LogWarning($"[PaymentDetail] Teacher (Id: {permission.Teacher.Id}) has no TeacherSettlement record");
+                }
+
+                // 正規化為 0~1
+                decimal? normalizedCourseRatio = courseSplitRatio.HasValue 
+                    ? (courseSplitRatio.Value > 1 ? courseSplitRatio.Value / 100 : courseSplitRatio.Value) 
+                    : null;
+                decimal? normalizedTeacherRatio = teacherSplitRatio.HasValue 
+                    ? (teacherSplitRatio.Value > 1 ? teacherSplitRatio.Value / 100 : teacherSplitRatio.Value) 
+                    : null;
+
+                // 拆帳比處理邏輯：兩個都沒有=0.0，只有一個有=用該值，兩個都有=取小者
+                decimal minSplitRatio;
+                if (!normalizedCourseRatio.HasValue && !normalizedTeacherRatio.HasValue)
+                {
+                    minSplitRatio = 0m;
+                }
+                else if (!normalizedCourseRatio.HasValue)
+                {
+                    minSplitRatio = Math.Clamp(normalizedTeacherRatio.Value, 0, 1);
+                }
+                else if (!normalizedTeacherRatio.HasValue)
+                {
+                    minSplitRatio = Math.Clamp(normalizedCourseRatio.Value, 0, 1);
+                }
+                else
+                {
+                    minSplitRatio = Math.Clamp(Math.Min(normalizedCourseRatio.Value, normalizedTeacherRatio.Value), 0, 1);
                 }
 
                 // 3. 計算課程教材總應收金額
                 int tuitionFee = courseFee?.Amount ?? 0;
                 int materialFee = courseFee?.MaterialFee ?? 0;
-                int totalAmount = tuitionFee + materialFee;
-
-                // 拆帳比例取課程與老師中較小者，若值大於1則視為百分比換算
-                decimal minSplitRatio = Math.Min(courseSplitRatio, teacherSplitRatio);
-                minSplitRatio = Math.Clamp(minSplitRatio, 0, 1);
+                int totalAmount = permissionFee.TotalAmount;
 
                 // 4. 計算該費用在所有費用中的索引（用於確定對應的簽到記錄組）
                 var allFees = permission.StudentPermissionFees?
@@ -419,8 +486,9 @@ namespace DoorWebApp.Controllers
                     TeacherId = permission.Teacher?.Id,
                     TeacherName = permission.Teacher?.DisplayName,
                     Hours = permission.Course?.CourseFee?.Hours ?? 0,
-                    CourseSplitRatio = courseSplitRatio,
-                    TeacherSplitRatio = teacherSplitRatio,
+                    CourseSplitRatio = courseSplitRatio ?? null,
+                    TeacherSplitRatio = teacherSplitRatio ?? null,
+                    UseSplitRatio = minSplitRatio,
                     TotalAmount = totalAmount,
                     TotalTeacherAmount = totalTeacherAmount,
                     Payment = Payment,
@@ -461,6 +529,8 @@ namespace DoorWebApp.Controllers
             {
                 // 檢查學生權限是否存在
                 var permission = ctx.TblStudentPermission
+                    .Include(sp => sp.Course)
+                        .ThenInclude(c => c.CourseFee)
                     .FirstOrDefault(sp => sp.Id == req.StudentPermissionId && !sp.IsDelete);
 
                 if (permission == null)
@@ -470,6 +540,10 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
+                // 計算總金額（學費 + 教材費）
+                var courseFee = permission.Course?.CourseFee;
+                int totalAmount = (courseFee?.Amount ?? 0) + (courseFee?.MaterialFee ?? 0);
+
                 // 取得當前 UTC+8 時間作為繳款日期
                 var nowUtc8 = DateTime.UtcNow.AddHours(8);
 
@@ -477,6 +551,8 @@ namespace DoorWebApp.Controllers
                 {
                     StudentPermissionId = req.StudentPermissionId,
                     PaymentDate = nowUtc8, // 繳款日自動設為今天
+                    TotalAmount = totalAmount,
+                    IsDelete = false,
                     CreatedTime = DateTime.Now,
                     ModifiedTime = DateTime.Now
                 };
@@ -486,7 +562,7 @@ namespace DoorWebApp.Controllers
 
                 res.result = APIResultCode.success;
                 res.msg = "新增成功";
-                res.content = new { feeId = fee.Id, paymentDate = fee.PaymentDate };
+                res.content = new { feeId = fee.Id, paymentDate = fee.PaymentDate, totalAmount = fee.TotalAmount };
                 return Ok(res);
             }
             catch (Exception ex)

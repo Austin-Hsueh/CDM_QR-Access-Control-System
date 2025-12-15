@@ -88,6 +88,8 @@ namespace DoorWebApp.Controllers
                             .ThenInclude(c => c.CourseFee)
                     .Include(spf => spf.StudentPermission)
                         .ThenInclude(sp => sp.User)
+                    .Include(spf => spf.StudentPermission)
+                        .ThenInclude(sp => sp.StudentPermissionFees)
                     .Include(spf => spf.Payment)
                     .ThenInclude(p => p.ModifiedUser)
                     .FirstOrDefaultAsync(spf => spf.Id == studentPermissionFeeId);
@@ -108,11 +110,7 @@ namespace DoorWebApp.Controllers
                 }
 
                 // 金額計算
-                int currentAmount = 0;
-                if (permission.Course?.CourseFee != null)
-                {
-                    currentAmount = permission.Course.CourseFee.Amount + permission.Course.CourseFee.MaterialFee;
-                }
+                int currentAmount = permissionFee.TotalAmount;
 
                 // 該費用記錄的付款資訊
                 var payment = permissionFee.Payment;

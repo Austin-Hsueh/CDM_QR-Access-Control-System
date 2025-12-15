@@ -99,12 +99,35 @@ namespace DoorWebApp.Controllers
                 }
 
                 var courseFee = permission.Course?.CourseFee;
-                decimal courseSplitRatio = courseFee?.SplitRatio ?? 0;
-                decimal teacherSplitRatio = permission.Teacher?.TeacherSettlement?.SplitRatio ?? 0;
+                decimal? courseSplitRatio = courseFee?.SplitRatio;
+                decimal? teacherSplitRatio = permission.Teacher?.TeacherSettlement?.SplitRatio;
 
-                decimal normalizedCourseRatio = courseSplitRatio > 1 ? courseSplitRatio / 100 : courseSplitRatio;
-                decimal normalizedTeacherRatio = teacherSplitRatio > 1 ? teacherSplitRatio / 100 : teacherSplitRatio;
-                decimal minSplitRatio = Math.Clamp(Math.Min(normalizedCourseRatio, normalizedTeacherRatio), 0, 1);
+                // 正規化為 0~1
+                decimal? normalizedCourseRatio = courseSplitRatio.HasValue 
+                    ? (courseSplitRatio.Value > 1 ? courseSplitRatio.Value / 100 : courseSplitRatio.Value) 
+                    : null;
+                decimal? normalizedTeacherRatio = teacherSplitRatio.HasValue 
+                    ? (teacherSplitRatio.Value > 1 ? teacherSplitRatio.Value / 100 : teacherSplitRatio.Value) 
+                    : null;
+
+                // 拆帳比處理邏輯：兩個都沒有=0.0，只有一個有=用該值，兩個都有=取小者
+                decimal minSplitRatio;
+                if (!normalizedCourseRatio.HasValue && !normalizedTeacherRatio.HasValue)
+                {
+                    minSplitRatio = 0m;
+                }
+                else if (!normalizedCourseRatio.HasValue)
+                {
+                    minSplitRatio = Math.Clamp(normalizedTeacherRatio.Value, 0, 1);
+                }
+                else if (!normalizedTeacherRatio.HasValue)
+                {
+                    minSplitRatio = Math.Clamp(normalizedCourseRatio.Value, 0, 1);
+                }
+                else
+                {
+                    minSplitRatio = Math.Clamp(Math.Min(normalizedCourseRatio.Value, normalizedTeacherRatio.Value), 0, 1);
+                }
 
                 int tuitionFee = courseFee?.Amount ?? 0;
                 int materialFee = courseFee?.MaterialFee ?? 0;
@@ -112,8 +135,28 @@ namespace DoorWebApp.Controllers
                 decimal totalHours = courseFee?.Hours ?? 1;
                 if (totalHours <= 0) totalHours = 1; // 避免除以 0
 
+                // 查找同一學生權限的最近一筆 AttendanceFee（按建立時間排序）
+                decimal sourceHoursTotalAmount;
+                var latestFee = await ctx.TblAttendanceFee
+                    .Where(af => af.Attendance != null 
+                        && af.Attendance.StudentPermissionId == AttendDTO.studentPermissionId
+                        && af.SourceHoursTotalAmount > 0)
+                    .OrderByDescending(af => af.CreatedTime)
+                    .FirstOrDefaultAsync();
+
+                if (latestFee != null)
+                {
+                    // 使用最近一筆的原始時數總金額
+                    sourceHoursTotalAmount = latestFee.SourceHoursTotalAmount;
+                }
+                else
+                {
+                    // 沒有歷史記錄，使用課程費用計算
+                    sourceHoursTotalAmount = totalAmount / totalHours;
+                }
+
                 int teacherShare = (int)Math.Round(totalAmount * (1 - minSplitRatio), MidpointRounding.AwayFromZero);
-                int SplitHourAmount = (int)Math.Round(teacherShare / totalHours, MidpointRounding.AwayFromZero);
+                int SplitHourAmount = (int)Math.Round((sourceHoursTotalAmount * (1 - minSplitRatio)), MidpointRounding.AwayFromZero);
 
                 // 1. 檢查輸入參數
                 // 1-1 必填欄位缺少
@@ -160,6 +203,8 @@ namespace DoorWebApp.Controllers
                     Hours = 1,
                     Amount = SplitHourAmount,
                     AdjustmentAmount = 0,
+                    SourceHoursTotalAmount = sourceHoursTotalAmount,
+                    UseSplitRatio = minSplitRatio,
                     CreatedTime = DateTime.Now,
                     ModifiedTime = DateTime.Now
                 };
