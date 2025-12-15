@@ -170,6 +170,8 @@ namespace DoorWebApp.Controllers
                     var fees = sp.StudentPermissionFees ?? new List<TblStudentPermissionFee>();
                     
                     // 如果沒有費用記錄，按簽到記錄每4筆一組顯示
+                    // 不使用
+                    /*
                     if (!fees.Any())
                     {
                         int groupCount = (int)Math.Ceiling(allAttendances.Count / 4.0);
@@ -202,6 +204,7 @@ namespace DoorWebApp.Controllers
                         }
                         continue;
                     }
+                    */
 
                     // 有費用記錄時，每個費用配對一組簽到記錄（每4筆一組）
                     int feeIndex = 0;
