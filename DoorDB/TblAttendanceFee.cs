@@ -45,6 +45,18 @@ namespace DoorDB
         public int AdjustmentAmount { get; set; }
 
         /// <summary>
+        /// 原始時數總金額
+        /// </summary>
+        [Comment("原始時數總金額")]
+        public decimal SourceHoursTotalAmount { get; set; }
+
+        /// <summary>
+        /// 使用的拆帳比
+        /// </summary>
+        [Comment("使用的拆帳比")]
+        public decimal UseSplitRatio { get; set; }
+
+        /// <summary>
         /// 建立時間
         /// </summary>
         [Required]

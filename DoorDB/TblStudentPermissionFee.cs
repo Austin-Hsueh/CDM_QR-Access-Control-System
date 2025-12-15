@@ -33,6 +33,12 @@ namespace DoorDB
         public DateTime? PaymentDate { get; set; }
 
         /// <summary>
+        /// 總金額
+        /// </summary>
+        [Comment("總金額")]
+        public int TotalAmount { get; set; }
+
+        /// <summary>
         /// 建立時間
         /// </summary>
         [Required]
