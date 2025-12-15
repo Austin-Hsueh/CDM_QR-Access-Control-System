@@ -132,7 +132,7 @@ namespace DoorWebApp.Controllers
                 int tuitionFee = courseFee?.Amount ?? 0;
                 int materialFee = courseFee?.MaterialFee ?? 0;
                 int totalAmount = tuitionFee + materialFee;
-                decimal totalHours = 4
+                decimal totalHours = 4;
 
                 // 查找同一學生權限的最近一筆 AttendanceFee（按建立時間排序）
                 decimal sourceHoursTotalAmount;
