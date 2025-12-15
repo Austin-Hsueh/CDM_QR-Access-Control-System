@@ -39,6 +39,13 @@ namespace DoorDB
         public int TotalAmount { get; set; }
 
         /// <summary>
+        /// 是否刪除
+        /// </summary>
+        [Required]
+        [Comment("是否刪除")]
+        public bool IsDelete { get; set; }
+
+        /// <summary>
         /// 建立時間
         /// </summary>
         [Required]
