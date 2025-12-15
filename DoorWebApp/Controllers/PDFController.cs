@@ -275,6 +275,12 @@ namespace DoorWebApp.Controllers
 
             var rowsByStudent = new Dictionary<int, SalaryRowBuilder>();
 
+            // 對每個 StudentPermission 的 Attendance 進行分組處理
+            var attendancesByPermission = attendances
+                .Where(a => ParseDate(a.AttendanceDate) != null)
+                .GroupBy(a => a.StudentPermissionId)
+                .ToDictionary(g => g.Key, g => g.OrderBy(a => a.AttendanceDate).ToList());
+
             foreach (var att in attendances)
             {
                 var attendanceDate = ParseDate(att.AttendanceDate);
@@ -289,9 +295,22 @@ namespace DoorWebApp.Controllers
                     continue;
                 }
 
+                // 找出當前 attendance 在該 StudentPermission 中的索引（依日期排序）
+                var spAttendances = attendancesByPermission.GetValueOrDefault(att.StudentPermissionId) ?? new List<TblAttendance>();
+                var attendanceIndex = spAttendances.FindIndex(a => a.Id == att.Id);
+                if (attendanceIndex < 0) attendanceIndex = 0;
+
+                // 計算屬於第幾組（每4筆一組）
+                int feeGroupIndex = attendanceIndex / 4;
+
+                // 取得該組對應的 StudentPermissionFee
+                var sortedFees = sp.StudentPermissionFees?.OrderBy(f => f.Id).ToList() ?? new List<TblStudentPermissionFee>();
+                var correspondingFee = feeGroupIndex < sortedFees.Count ? sortedFees[feeGroupIndex] : null;
+
                 if (!includePaid)
                 {
-                    var hasPaidFee = sp.StudentPermissionFees?.Any(spf => spf.Payment != null && spf.Payment.Pay > 0) ?? false;
+                    // 檢查該組的 StudentPermissionFee 是否有繳款
+                    var hasPaidFee = correspondingFee?.Payment != null && correspondingFee.Payment.Pay > 0;
                     if (!hasPaidFee) continue;
                 }
 
@@ -506,6 +525,12 @@ namespace DoorWebApp.Controllers
 
             var teacherGroups = new Dictionary<int, TeacherProfitBuilder>();
 
+            // 對每個 StudentPermission 的 Attendance 進行分組處理
+            var attendancesByPermission = attendances
+                .Where(a => ParseDate(a.AttendanceDate) != null)
+                .GroupBy(a => a.StudentPermissionId)
+                .ToDictionary(g => g.Key, g => g.OrderBy(a => a.AttendanceDate).ToList());
+
             foreach (var att in attendances)
             {
                 var attendanceDate = ParseDate(att.AttendanceDate);
@@ -520,9 +545,22 @@ namespace DoorWebApp.Controllers
                     continue;
                 }
 
+                // 找出當前 attendance 在該 StudentPermission 中的索引（依日期排序）
+                var spAttendances = attendancesByPermission.GetValueOrDefault(att.StudentPermissionId) ?? new List<TblAttendance>();
+                var attendanceIndex = spAttendances.FindIndex(a => a.Id == att.Id);
+                if (attendanceIndex < 0) attendanceIndex = 0;
+
+                // 計算屬於第幾組（每4筆一組）
+                int feeGroupIndex = attendanceIndex / 4;
+
+                // 取得該組對應的 StudentPermissionFee
+                var sortedFees = sp.StudentPermissionFees?.OrderBy(f => f.Id).ToList() ?? new List<TblStudentPermissionFee>();
+                var correspondingFee = feeGroupIndex < sortedFees.Count ? sortedFees[feeGroupIndex] : null;
+
                 if (!includePaid)
                 {
-                    var hasPaidFee = sp.StudentPermissionFees?.Any(spf => spf.Payment != null && spf.Payment.Pay > 0) ?? false;
+                    // 檢查該組的 StudentPermissionFee 是否有繳款
+                    var hasPaidFee = correspondingFee?.Payment != null && correspondingFee.Payment.Pay > 0;
                     if (!hasPaidFee) continue;
                 }
 
@@ -540,12 +578,13 @@ namespace DoorWebApp.Controllers
                 var salaryAmount = (fee?.Amount ?? 0) + (fee?.AdjustmentAmount ?? 0);
                 var sourceHoursTotalAmount = fee?.SourceHoursTotalAmount ?? 0m;
 
-                var spHasPayment = sp.StudentPermissionFees?.Any(spf => spf.Payment != null && spf.Payment.Pay > 0) ?? false;
+                // 使用對應組的 StudentPermissionFee 判斷是否有付款
+                var spHasPayment = correspondingFee?.Payment != null && correspondingFee.Payment.Pay > 0;
 
                 // 每筆課程的欠費只計算一次
                 var receivableTotal = (sp.Course?.CourseFee?.Amount ?? 0) + (sp.Course?.CourseFee?.MaterialFee ?? 0);
                 var receivedTotal = sp.StudentPermissionFees?
-                    .Where(spf => spf.Payment != null)
+                    .Where(spf => spf.Payment != null && !spf.IsDelete)
                     .Sum(spf => (spf.Payment!.Pay) + (spf.Payment!.DiscountAmount)) ?? 0;
                 var arrearsAmount = Math.Max(receivableTotal - receivedTotal, 0);
                 builder.AddArrears(sp.Id, arrearsAmount);
