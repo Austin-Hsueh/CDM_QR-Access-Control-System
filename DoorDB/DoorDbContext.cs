@@ -34,8 +34,8 @@ namespace DoorDB
         public virtual DbSet<TblSchedule> TblSchedule { get; set; } = null!;
         public virtual DbSet<TblCourseFee> TblCourseFee { get; set; } = null!;
         public virtual DbSet<TblTeacherSettlement> TblTeacherSettlement { get; set; } = null!;
-        public virtual DbSet<TblStudentPermissionFee> TblStudentPermissionFee { get; set; } = null!;
-
+        public virtual DbSet<TblStudentPermissionFee> TblStudentPermissionFee { get; set; } = null!;        public virtual DbSet<TblCloseAccount> TblCloseAccount { get; set; } = null!;
+        public virtual DbSet<TblRefund> TblRefund { get; set; } = null!;
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
