@@ -84,6 +84,70 @@
                     <li><strong>查詢</strong>：使用下方接口檢視學生上課紀錄總覽</li>
                 </ol>
             </div>
+
+            <h3 style="margin-top: 20px;">📊 整體流程資料流</h3>
+            <div style="background: #fffbf0; border-left: 4px solid #ff9800; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                <h4 style="color: #ff9800; margin-bottom: 10px;">1️⃣ 初始化階段</h4>
+                <ul style="margin-left: 20px; color: #333;">
+                    <li><strong>建立老師/學生/課程:</strong> 透過後台管理界面或 API 在 tblUsers (角色為教師/學生)、tblCourse、tblCourseType、tblCourseFee 等表中新增基本資料。</li>
+                    <li><strong>設定課程收費:</strong> 在 tblCourseFee 中定義課程金額、材料費、拆帳比 (SplitRatio)。</li>
+                </ul>
+
+                <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">2️⃣ 權限授予階段</h4>
+                <ul style="margin-left: 20px; color: #333;">
+                    <li><strong>新增學生權限 (tblStudentPermission):</strong> 指定學生、老師、課程、教室、上課日期/時間、課表模式 (Schedule Mode)、上課模式 (Course Mode)。系統自動根據週期設定在 tblSchedule 中生成課程表。</li>
+                    <li><strong>建立學生權限費用 (tblStudentPermissionFee):</strong> 每筆 StudentPermission 在新增時或手動建立對應的費用記錄，記錄該期課程的「定額」與「繳款」狀態。一個 StudentPermission 可對應多筆 StudentPermissionFee (按課程週期分組)。</li>
+                </ul>
+
+                <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">3️⃣ 簽到紀錄階段</h4>
+                <ul style="margin-left: 20px; color: #333;">
+                    <li><strong>建立上課紀錄 (tblAttendance):</strong> 老師或管理員為每堂課建立簽到記錄，記錄上課日期、類型 (出席/病假/事假)、修改者。</li>
+                    <li><strong>記錄簽到費用 (tblAttendanceFee):</strong> 對應每筆 Attendance，記錄該堂課的「實際上課時數」(Hours)、「單堂學費」(Amount)、「增減金額」(AdjustmentAmount)，以及「來源實收」(SourceHoursTotalAmount)。</li>
+                    <li><strong>分組對應:</strong> 系統依 StudentPermission 的所有 Attendance 日期排序，每 4 筆簽到對應一筆 StudentPermissionFee，用以判斷該組簽到是否已繳款。</li>
+                </ul>
+
+                <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">4️⃣ 繳款管理階段</h4>
+                <ul style="margin-left: 20px; color: #333;">
+                    <li><strong>建立繳款記錄 (tblPayment):</strong> 當學生繳款時，在 tblPayment 中建立一筆記錄，記錄「繳款日期」(PayDate)、「繳款金額」(Pay)、「折扣」(DiscountAmount)、「備註」(Remark)，並與對應的 StudentPermissionFee 關聯 (一對一)。</li>
+                    <li><strong>更新費用狀態:</strong> StudentPermissionFee 記錄繳款後，其 Payment 欄位被填充，系統以此判斷該組課程是否「已繳費」。</li>
+                </ul>
+
+                <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">5️⃣ 查詢與報表階段</h4>
+                <ul style="margin-left: 20px; color: #333;">
+                    <li><strong>學生權限列表查詢 (tblStudentPermission):</strong> 查詢特定學生的所有已授予權限及其簽到摘要，包括「簽到次數」、「未繳費次數」等，透過 GET /api/v1/StudentAttendance/{userId}。</li>
+                    <li><strong>簽到詳細查詢 (tblAttendance + tblAttendanceFee + tblPayment):</strong> 查詢特定 StudentPermission 的所有簽到記錄及最近繳款資訊，透過 GET /api/v1/StudentAttendance/Detail/{studentPermissionId}。</li>
+                    <li><strong>薪資明細表 (PDF):</strong> 依老師與日期統計所有簽到金額、時數，聚合成每位老師的薪資表，透過 GET /api/pdf/v1/SalaryReport。</li>
+                    <li><strong>公司獲利彙總表 (PDF):</strong> 按老師分組統計實收學費、折帳薪資、毛利，透過 GET /api/pdf/v1/CompanyProfitSummary。</li>
+                </ul>
+
+                <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">6️⃣ 軟刪除與審計</h4>
+                <ul style="margin-left: 20px; color: #333;">
+                    <li><strong>軟刪除機制:</strong> tblStudentPermission、tblAttendance、tblStudentPermissionFee 等核心表都使用 IsDelete 欄位而非物理刪除，確保資料可溯源。</li>
+                    <li><strong>審計日誌 (tblAuditLog):</strong> 重要操作 (新增、編輯、刪除課程、建立/修改費用等) 會被記錄在審計表中，包括操作時間、操作人、操作類型、影響的記錄 ID 等。</li>
+                </ul>
+
+                <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">💾 核心資料表關係圖</h4>
+                <div style="background: white; padding: 12px; border-radius: 4px; border: 1px solid #ddd; margin-top: 10px; font-family: monospace; font-size: 12px; overflow-x: auto;">
+<pre>tblUser (老師/學生)
+    ↓ 1:N
+tblStudentPermission (學生授課權限)
+    ├─ 1:N → tblAttendance (簽到記錄)
+    │           ↓ 1:1
+    │       tblAttendanceFee (簽到費用)
+    │
+    └─ 1:N → tblStudentPermissionFee (權限費用)
+                    ↓ 1:1
+                tblPayment (繳款記錄)
+
+tblCourse (課程)
+    ↓ 1:1
+tblCourseFee (課程收費)
+
+tblSchedule (課表，由權限自動產生)
+
+tblAuditLog (審計日誌)</pre>
+                </div>
+            </div>
         </div>
 
         <!-- Tab 菜單 -->
@@ -528,9 +592,9 @@
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('getPaymentInfo')">💳 取得學生繳費資訊</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createPayment')">💵 新增或編輯繳費記錄</button>
 
-                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📝 上課紀錄</div>
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📝 學生權限記錄</div>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('studentsList')">👨‍🎓 取得學生名單</button>
-                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceList')">📝 顯示上課紀錄(列表)</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceList')">📝 學生權限記錄列表</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createPermissionFee')">➕ 新增學生權限費用</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('updatePermissionFee')">✏️ 修改學生權限費用</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('paymentDetail')">💰 顯示繳費細項</button>
@@ -1991,11 +2055,11 @@
 
                 case 'attendanceList':
                     html = `
-                        <h2 style="color: #667eea;">📝 上課紀錄列表</h2>
+                        <h2 style="color: #667eea;">📝 學生權限記錄列表</h2>
                         <div style="margin-top: 20px;">
                             <h3>📖 API 概述</h3>
                             <p><strong>端點：</strong><code>GET /api/v1/StudentAttendance/{userId}</code></p>
-                            <p><strong>說明：</strong>取得指定學生的所有上課紀錄，包含課程資訊、繳款狀態、出席記錄</p>
+                            <p><strong>說明：</strong>取得指定學生的所有學生權限記錄，包含課程資訊、繳款狀態、出席紀錄摘要</p>
 
                             <h3 style="margin-top: 20px;">📥 請求參數</h3>
                             <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
@@ -2031,10 +2095,10 @@
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>receivedAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">已收金額</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>outstandingAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">欠款金額</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>receiptNumber</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">結帳單號</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>attendance1</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">第一筆上課紀錄</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>attendance2</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">第二筆上課紀錄</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>attendance3</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">第三筆上課紀錄</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>attendance4</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">第四筆上課紀錄</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>attendance1</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">第一筆簽到紀錄摘要</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>attendance2</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">第二筆簽到紀錄摘要</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>attendance3</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">第三筆簽到紀錄摘要</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>attendance4</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">第四筆簽到紀錄摘要</td></tr>
                                 </tbody>
                             </table>
 
@@ -2714,6 +2778,17 @@ Content-Type: application/json
                                 </tbody>
                             </table>
 
+                                    <h3 style="margin-top: 20px;">💡 操作邏輯</h3>
+                                    <div class="info">
+                                        <p><strong>修改流程：</strong></p>
+                                        <ol style="margin-left: 20px; line-height: 1.8;">
+                                            <li>若 <code>isDelete = true</code>，執行假刪除（標記為已刪除）</li>
+                                            <li>否則，更新 <code>PaymentDate</code>（若提供）和 <code>TotalAmount</code>（若提供）</li>
+                                            <li>記錄修改時間 (<code>ModifiedTime</code>)</li>
+                                            <li>寫入稽核紀錄</li>
+                                        </ol>
+                                    </div>
+
                             <h3 style="margin-top: 20px;">📝 請求範例</h3>
                             <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">PATCH /api/v2/UpdateCourse
 Content-Type: application/json
@@ -2855,6 +2930,27 @@ Content-Type: application/json
                             </div>
                             <button class="btn-primary" style="margin-top: 10px;" onclick="testSalaryReport()">執行測試 (下載 PDF)</button>
                             <div id="testResult-salaryReport" style="margin-top: 10px;"></div>
+
+                            <h3 style="margin-top: 20px;">💡 操作邏輯</h3>
+                            <div style="background: #f0f9ff; border-left: 4px solid #667eea; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                                <ol style="margin-left: 20px; color: #333;">
+                                    <li><strong>查詢簽到資料:</strong> 根據 teacherId 和日期區間 [startDate, endDate] 查詢 tblAttendance，帶出 AttendanceFee、StudentPermission、Course、StudentPermissionFees 及 Payment。</li>
+                                    <li><strong>篩選條件:</strong>
+                                        <ul style="margin-left: 20px;">
+                                            <li>排除 IsDelete=true 的出勤、權限、費用記錄</li>
+                                            <li>簽到日期必須在查詢區間內</li>
+                                            <li>該 StudentPermission 必須有至少一筆未刪除的 StudentPermissionFee</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>分組計算:</strong> 每個 StudentPermission 的簽到記錄依日期排序，按每 4 筆為一組 (feeGroupIndex = attendanceIndex / 4) 對應該組的 StudentPermissionFee。</li>
+                                    <li><strong>繳費篩選:</strong> 若 includePaid=false，則只保留該組 StudentPermissionFee 有繳款 (Payment.Pay &gt; 0) 的記錄。</li>
+                                    <li><strong>金額計算:</strong> 薪資金額 = AttendanceFee.Amount + AttendanceFee.AdjustmentAmount；時數預設 1 小時（若 AttendanceFee.Hours &gt; 0 則用其值）。</li>
+                                    <li><strong>學生聚合:</strong> 依 StudentPermission.UserId 聚合，統計該學生的堂數、總時數、總金額。</li>
+                                    <li><strong>期間格式:</strong> 轉換為民國年月 (ROC year) 格式，例如 "115/12" 代表 2025 年 12 月。</li>
+                                    <li><strong>PDF 生成:</strong> 調用 QuestPDF 依老師名稱、期間、學生清單（序號、姓名、樂器、各堂金額/時數、合計）生成表格，最後加上老師拆帳比、小計、總時數、總堂數資訊。</li>
+                                </ol>
+                            </div>
+
                             <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
                             <pre id="rawData-salaryReport" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示檔案資訊</pre>
                         </div>
@@ -2904,6 +3000,39 @@ Content-Type: application/json
                             </div>
                             <button class="btn-primary" style="margin-top: 10px;" onclick="testCompanyProfit()">執行測試 (下載 PDF)</button>
                             <div id="testResult-companyProfit" style="margin-top: 10px;"></div>
+
+                            <h3 style="margin-top: 20px;">💡 操作邏輯</h3>
+                            <div style="background: #f0f9ff; border-left: 4px solid #667eea; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                                <ol style="margin-left: 20px; color: #333;">
+                                    <li><strong>查詢出勤資料:</strong> 根據 teacherId 和日期區間 [startDate, endDate] 查詢 tblAttendance，帶出 AttendanceFee、StudentPermission、Teacher、TeacherSettlement、Course、StudentPermissionFees 及 Payment。</li>
+                                    <li><strong>篩選條件:</strong>
+                                        <ul style="margin-left: 20px;">
+                                            <li>排除 IsDelete=true 的出勤、權限、費用記錄</li>
+                                            <li>出勤日期必須在查詢區間內</li>
+                                            <li>該 StudentPermission 必須有至少一筆未刪除的 StudentPermissionFee</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>分組對應:</strong> 同薪資明細，每 StudentPermission 的簽到依日期排序，按每 4 筆分為一組去對應該組的 StudentPermissionFee。</li>
+                                    <li><strong>繳費判定:</strong> 若 includePaid=false，只計算有繳款 (StudentPermissionFee.Payment.Pay &gt; 0) 的出勤。</li>
+                                    <li><strong>實收學費計算:</strong> 使用 AttendanceFee.SourceHoursTotalAmount 作為該筆出勤的「實收學費」。</li>
+                                    <li><strong>薪資類型區分:</strong> 若對應組有付款，該筆薪資 (Amount + AdjustmentAmount) 計入「應付薪資」；否則計入「補發薪資」。</li>
+                                    <li><strong>欠費計算:</strong> 課程定價 = Course.CourseFee.Amount + Course.CourseFee.MaterialFee；實收 = 該 StudentPermission 所有有付款 (Payment) 的 StudentPermissionFee 的 Pay + DiscountAmount 之和；欠費 = Max(定價 - 實收, 0)，每個 StudentPermission 只計算一次。</li>
+                                    <li><strong>老師聚合:</strong> 依 TeacherId 分組統計:
+                                        <ul style="margin-left: 20px;">
+                                            <li>學生數 = 不重複的 StudentIds 數量</li>
+                                            <li>堂數 = 累計 AttendanceFee.Hours（預設 1）</li>
+                                            <li>實收學費 = 累計 SourceHoursTotalAmount</li>
+                                            <li>折帳薪資 = 累計 Amount + AdjustmentAmount（全部）</li>
+                                            <li>應付薪資 = 有付款組的薪資總和</li>
+                                            <li>補發薪資 = 未付款組的薪資總和</li>
+                                            <li>學費欠費 = 累計各 StudentPermission 的欠費</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>毛利計算:</strong> 公司毛利 = 實收學費 - 折帳薪資；毛利率 = (毛利 / 實收學費) × 100%。</li>
+                                    <li><strong>PDF 生成:</strong> 調用 QuestPDF 生成表格，欄位包括序號、老師名稱、學生數、堂數、學費欠費、實收學費、折帳薪資、應付薪資、補發薪資、公司毛利、毛利率，最後加上合計行。</li>
+                                </ol>
+                            </div>
+
                             <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
                             <pre id="rawData-companyProfit" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示檔案資訊</pre>
                         </div>
