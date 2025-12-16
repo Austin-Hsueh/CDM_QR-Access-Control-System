@@ -152,21 +152,22 @@ namespace DoorWebApp.Controllers
                                 for (var i = 0; i < 8; i++)
                                 {
                                     var lesson = i < row.Lessons.Count ? row.Lessons[i] : null;
-                                    var text = lesson == null ? string.Empty : $"{lesson.Date}\n{lesson.Amount:0}";
+                                    var text = lesson == null ? string.Empty : $"{lesson.Date}\n{lesson.Amount:0.00}";
                                     table.Cell().Element(BodyCell).Text(text);
                                 }
 
-                                var special = row.SpecialBonus.HasValue ? $"{row.SpecialBonus:0}" : string.Empty;
+                                var special = row.SpecialBonus.HasValue ? $"{row.SpecialBonus:0.00}" : string.Empty;
                                 table.Cell().Element(BodyCell).Text(special);
 
-                                var totalText = $"{row.Lessons.Count} ({row.TotalHours:0.0}H)\n${row.TotalAmount:N0}";
+                                var totalText = $"{row.Lessons.Count} ({row.TotalHours:0.0}H)\n${row.TotalAmount:0.00}";
                                 table.Cell().Element(BodyCell).Text(totalText);
 
                                 index++;
                             }
                         });
 
-                        col.Item().PaddingTop(8).Text($"老師基本折帳比: {sample.BaseRatio:0.00}    跳級人數: {sample.PromotionCount}    跳級折帳比: {sample.PromotionRatio:0.00}    小計: ${sample.TotalAmount:N0}");
+                        var subtotalCeil = Math.Ceiling(sample.TotalAmount);
+                        col.Item().PaddingTop(8).Text($"老師基本折帳比: {sample.BaseRatio:0.00}    跳級人數: {sample.PromotionCount}    跳級折帳比: {sample.PromotionRatio:0.00}    小計: ${subtotalCeil:N0}");
 
                         col.Item().PaddingTop(4).Row(row =>
                         {

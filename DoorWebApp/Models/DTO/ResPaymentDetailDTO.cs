@@ -43,7 +43,7 @@ namespace DoorWebApp.Models.DTO
         public int TotalAmount { get; set; }
 
         /// <summary>老師計薪總課程金額</summary>
-        public int TotalTeacherAmount { get; set; }
+        public decimal TotalTeacherAmount { get; set; }
 
         /// <summary>最近一筆收款記錄</summary>
         public PaymentRecordDTO? Payment { get; set; }
@@ -100,9 +100,9 @@ namespace DoorWebApp.Models.DTO
         public decimal Hours { get; set; }
 
         /// <summary>單堂學費</summary>
-        public int Amount { get; set; }
+        public decimal Amount { get; set; }
 
         /// <summary>單堂增減</summary>
-        public int AdjustmentAmount { get; set; }
+        public decimal AdjustmentAmount { get; set; }
     }
 }

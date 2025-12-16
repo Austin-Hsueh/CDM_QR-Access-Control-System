@@ -418,8 +418,8 @@ namespace DoorWebApp.Controllers
                     .Where(a => a.AttendanceType == 1) // 只計算出席的記錄
                     .ToList();
 
-                // 老師可分得金額 B = T * (1 - r)
-                int totalTeacherAmount = (int)Math.Round(totalAmount * (1 - minSplitRatio), MidpointRounding.AwayFromZero);
+                // 老師可分得金額 B = T * (1 - r)（保留兩位小數）
+                decimal totalTeacherAmount = Math.Round(totalAmount * (1 - minSplitRatio), 2, MidpointRounding.AwayFromZero);
 
                 // 6. 組裝收款記錄（使用當前 StudentPermissionFee 對應的 Payment）
                 PaymentRecordDTO? Payment = null;
@@ -470,8 +470,8 @@ namespace DoorWebApp.Controllers
                         TeacherId = teacher?.Id,
                         TeacherName = teacher?.DisplayName,
                         Hours = attFee?.Hours ?? 0,
-                        Amount = (int)(attFee?.Amount ?? 0),
-                        AdjustmentAmount = (int)(attFee?.AdjustmentAmount ?? 0)
+                        Amount = attFee?.Amount ?? 0,
+                        AdjustmentAmount = attFee?.AdjustmentAmount ?? 0
                     });
                 }
 
