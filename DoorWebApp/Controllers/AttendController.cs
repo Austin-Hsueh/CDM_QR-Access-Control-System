@@ -72,8 +72,14 @@ namespace DoorWebApp.Controllers
         [HttpPost("v1/Attend")]
         public async Task<IActionResult> AddAttend(ReqNewAttendDTO AttendDTO)
         {
-            int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault(51);
+            int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
             string OperatorUsername = User.Identity?.Name?? "N/A";
+
+            // 檢查操作者 ID 是否有效
+            if (OperatorId <= 0)
+            {
+                return Unauthorized(new { result = APIResultCode.unknow_error, msg = "無效的操作者身份" });
+            }
 
             log.LogInformation($"[{Request.Path}] Insert AddAttend. OperatorId:{OperatorId}");
 
@@ -134,6 +140,18 @@ namespace DoorWebApp.Controllers
                 int totalAmount = tuitionFee + materialFee;
                 decimal totalHours = 4;
 
+                // 優先查找最近一筆 StudentPermissionFee 的 TotalAmount
+                var latestPermissionFee = await ctx.TblStudentPermissionFee
+                    .Where(spf => spf.StudentPermissionId == AttendDTO.studentPermissionId
+                        && !spf.IsDelete)
+                    .OrderByDescending(spf => spf.PaymentDate)
+                    .FirstOrDefaultAsync();
+
+                if (latestPermissionFee != null && latestPermissionFee.TotalAmount > 0)
+                {
+                    totalAmount = latestPermissionFee.TotalAmount;
+                }
+
                 // 查找同一學生權限的最近一筆 AttendanceFee（按建立時間排序）
                 decimal sourceHoursTotalAmount;
                 var latestFee = await ctx.TblAttendanceFee
@@ -155,7 +173,7 @@ namespace DoorWebApp.Controllers
                 }
 
                 int teacherShare = (int)Math.Round(totalAmount * (1 - minSplitRatio), MidpointRounding.AwayFromZero);
-                int SplitHourAmount = (int)Math.Round((sourceHoursTotalAmount * (1 - minSplitRatio)), MidpointRounding.AwayFromZero);
+                decimal SplitHourAmount = Math.Round((sourceHoursTotalAmount * (1 - minSplitRatio)), 2, MidpointRounding.AwayFromZero);
 
                 // 1. 檢查輸入參數
                 // 1-1 必填欄位缺少
@@ -201,7 +219,7 @@ namespace DoorWebApp.Controllers
                     AttendanceId = NewAttend.Id,
                     Hours = 1,
                     Amount = SplitHourAmount,
-                    AdjustmentAmount = 0,
+                    AdjustmentAmount = 0M,
                     SourceHoursTotalAmount = sourceHoursTotalAmount,
                     UseSplitRatio = minSplitRatio,
                     CreatedTime = DateTime.Now,

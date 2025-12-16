@@ -470,8 +470,8 @@ namespace DoorWebApp.Controllers
                         TeacherId = teacher?.Id,
                         TeacherName = teacher?.DisplayName,
                         Hours = attFee?.Hours ?? 0,
-                        Amount = attFee?.Amount ?? 0,
-                        AdjustmentAmount = attFee?.AdjustmentAmount ?? 0
+                        Amount = (int)(attFee?.Amount ?? 0),
+                        AdjustmentAmount = (int)(attFee?.AdjustmentAmount ?? 0)
                     });
                 }
 

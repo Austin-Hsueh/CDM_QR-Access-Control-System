@@ -159,6 +159,7 @@ tblAuditLog (審計日誌)</pre>
                 <div class="tab" onclick="switchTab('classrooms')">🏢 教室列表</div>
                 <div class="tab" onclick="switchTab('permission')">🔑 新增門禁時間</div>
                 <div class="tab" onclick="switchTab('addattend')">✅ 學生簽到</div>
+                <div class="tab" onclick="switchTab('closeaccount')">📋 關帳管理</div>
                 <div class="tab" onclick="switchTab('attendance')">📝 查 學生權限</div>
                 <div class="tab" onclick="switchTab('payment')">💳 繳費管理</div>
                 <div class="tab" onclick="switchTab('docs')">📖 API 文檔</div>
@@ -405,6 +406,113 @@ tblAuditLog (審計日誌)</pre>
                 <div id="attendError" class="error" style="display:none;"></div>
             </div>
 
+            <!-- 關帳管理 Tab -->
+            <div id="closeaccount" class="tab-content">
+                <h3 style="margin-bottom: 16px;">📋 關帳管理 - 查詢課表與簽到狀態</h3>
+
+                <!-- 全校課表查詢 -->
+                <div style="margin-bottom: 24px; padding: 16px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #409eff;">
+                    <h4 style="margin: 0 0 12px 0; color: #0066cc;">🏫 全校課表與簽到狀態</h4>
+                    <p style="margin: 0 0 12px 0; color: #666; font-size: 13px;">查詢指定日期的全校課表，顯示每堂課是否已簽到</p>
+                    <div style="display: flex; gap: 12px; align-items: flex-end;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 4px; font-weight: bold; font-size: 14px;">查詢日期:</label>
+                            <input type="date" id="closeAccountDate" value="2025-12-16" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;" />
+                        </div>
+                        <button class="btn-primary" onclick="getCloseAccountDailyStatus()">🔍 查詢全校課表</button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-weight: bold; font-size: 14px;">全部簽到日期:</label>
+                            <input type="date" id="checkInAllDate" value="2025-12-16" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;" />
+                        </div>
+                        <div style="display: flex; align-items: flex-end;">
+                            <button class="btn-primary" style="width: 100%; background-color: #ff9800;" onclick="checkInAll()">✅ 全部簽到</button>
+                        </div>
+                    </div>
+                    <div id="checkInAllResult" style="margin-top: 12px;"></div>
+                    <div id="closeAccountDailyStatus" style="margin-top: 16px;"></div>
+                    <div id="closeAccountError" class="error" style="display:none; margin-top: 12px;"></div>
+                </div>
+
+                <!-- 取得關帳資料 -->
+                <div style="margin-bottom: 24px; padding: 16px; background: #f3e5f5; border-radius: 8px; border-left: 4px solid #9c27b0;">
+                    <h4 style="margin: 0 0 12px 0; color: #6a1b9a;">💰 取得關帳資料</h4>
+                    <p style="margin: 0 0 12px 0; color: #666; font-size: 13px;">查詢指定日期的關帳記錄，若未全部簽到則提示需完成簽到</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-weight: bold; font-size: 14px;">查詢日期:</label>
+                            <input type="date" id="getCloseAccountDate" value="2025-12-16" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;" />
+                        </div>
+                        <div style="display: flex; align-items: flex-end;">
+                            <button class="btn-primary" style="width: 100%; background-color: #9c27b0;" onclick="getCloseAccountData()">🔍 取得關帳資料</button>
+                        </div>
+                    </div>
+                    <div id="getCloseAccountResult" style="margin-top: 12px;"></div>
+                </div>
+
+                <!-- 新增或編輯關帳 -->
+                <div style="margin-bottom: 24px; padding: 16px; background: #e8f5e9; border-radius: 8px; border-left: 4px solid #4caf50;">
+                    <h4 style="margin: 0 0 12px 0; color: #2e7d32;">💾 新增或編輯關帳</h4>
+                    <p style="margin: 0 0 12px 0; color: #666; font-size: 13px;">輸入提存金額，系統自動計算零用金結餘並儲存關帳記錄（若無記錄則新增，若有則更新）</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-weight: bold; font-size: 14px;">關帳日期:</label>
+                            <input type="date" id="saveCloseAccountDate" value="2025-12-16" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;" />
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-weight: bold; font-size: 14px;">提存金額:</label>
+                            <input type="number" id="saveDepositAmount" min="0" value="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;" />
+                        </div>
+                        <div style="display: flex; align-items: flex-end;">
+                            <button class="btn-primary" style="width: 100%; background-color: #4caf50;" onclick="saveCloseAccount()">💾 儲存關帳</button>
+                        </div>
+                    </div>
+                    <div id="saveCloseAccountResult" style="margin-top: 12px;"></div>
+                </div>
+
+                <!-- 關帳列表查詢 -->
+                <div style="margin-bottom: 24px; padding: 16px; background: #fce4ec; border-radius: 8px; border-left: 4px solid #e91e63;">
+                    <h4 style="margin: 0 0 12px 0; color: #c2185b;">📋 關帳列表查詢</h4>
+                    <p style="margin: 0 0 12px 0; color: #666; font-size: 13px;">查詢指定日期範圍內的所有關帳記錄（若未指定日期，預設查詢最近 30 天）</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-weight: bold; font-size: 14px;">開始日期（可選）:</label>
+                            <input type="date" id="listStartDate" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;" />
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-weight: bold; font-size: 14px;">結束日期（可選）:</label>
+                            <input type="date" id="listEndDate" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;" />
+                        </div>
+                        <div style="display: flex; align-items: flex-end;">
+                            <button class="btn-primary" style="width: 100%; background-color: #e91e63;" onclick="getCloseAccountList()">🔍 查詢列表</button>
+                        </div>
+                    </div>
+                    <div id="closeAccountListResult" style="margin-top: 12px;"></div>
+                </div>
+
+                <!-- 營業日總表 PDF -->
+                <div style="margin-bottom: 24px; padding: 16px; background: #fff3e0; border-radius: 8px; border-left: 4px solid #ff9800;">
+                    <h4 style="margin: 0 0 12px 0; color: #e65100;">📄 營業日總表 PDF（假數據版本）</h4>
+                    <p style="margin: 0 0 12px 0; color: #666; font-size: 13px;">生成指定日期的營業日總表 PDF，包含統計摘要與學生簽到明細</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-weight: bold; font-size: 14px;">查詢日期:</label>
+                            <input type="date" id="dailyReportDate" value="2025-12-16" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;" />
+                        </div>
+                        <div style="display: flex; align-items: flex-end;">
+                            <button class="btn-primary" style="width: 100%;" onclick="getDailyReportPdf()">📥 下載營業日總表 PDF</button>
+                        </div>
+                    </div>
+                    <div id="dailyReportStatus" style="margin-top: 16px;"></div>
+                    <div id="dailyReportError" class="error" style="display:none; margin-top: 12px;"></div>
+                </div>
+            </div>
+
+                <div id="attendResult" style="margin-top: 16px;"></div>
+                <div id="attendError" class="error" style="display:none;"></div>
+            </div>
+
             <!-- 添加費用記錄 Tab（可選）-->
             <div id="addfee" class="tab-content" style="display: none;">
                 <h3 style="margin-bottom: 16px;">💰 簽到費用記錄（建立 TblAttendanceFee 記錄）</h3>
@@ -600,7 +708,14 @@ tblAuditLog (審計日誌)</pre>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('paymentDetail')">💰 顯示繳費細項</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceFee')">✏️ 單堂老師費用修改</button>
 
-                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📄 報表</div>
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">� 關帳管理</div>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('dailyStatus')">🔍 取得簽到清單</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('checkInAll')">✅ 全部簽到</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('getCloseAccount')">💰 取得關帳資料</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('saveCloseAccount')">💾 新增或編輯關帳</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('listCloseAccount')">📋 取得關帳列表</button>
+
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">�📄 報表</div>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('salaryReport')">📄 薪資明細表</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('companyProfit')">🏢 公司獲利彙總表</button>
                         </div>
@@ -1931,6 +2046,594 @@ tblAuditLog (審計日誌)</pre>
             document.getElementById('attendError').style.display = 'none';
         }
 
+        // ========== 關帳管理功能 ==========
+
+        async function getCloseAccountDailyStatus() {
+            const date = document.getElementById('closeAccountDate').value;
+            if (!date) {
+                alert('請選擇查詢日期');
+                return;
+            }
+
+            const resultDiv = document.getElementById('closeAccountDailyStatus');
+            const errorDiv = document.getElementById('closeAccountError');
+            resultDiv.innerHTML = '<div class="loading">載入中...</div>';
+            errorDiv.style.display = 'none';
+
+            try {
+                const res = await apiFetch(`/api/v1/CloseAccount/DailyStatus/${date}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    errorDiv.textContent = data.msg || '查詢失敗';
+                    errorDiv.style.display = 'block';
+                    resultDiv.innerHTML = '';
+                    return;
+                }
+
+                const content = data.content;
+                let html = `
+                    <div style="background: white; padding: 12px; border-radius: 4px; margin-bottom: 12px;">
+                        <p style="margin: 0 0 8px 0; color: #666;"><strong>查詢日期:</strong> ${content.queryDate}</p>
+                        <p style="margin: 0 0 8px 0; color: #666;"><strong>總課堂數:</strong> <span style="color: #0066cc; font-weight: bold;">${content.totalSchedules}</span></p>
+                        <p style="margin: 0 0 8px 0; color: #666;"><strong>已簽到:</strong> <span style="color: #28a745; font-weight: bold;">${content.checkedInCount}</span> | <strong>未簽到:</strong> <span style="color: #dc3545; font-weight: bold;">${content.notCheckedInCount}</span></p>
+                        <p style="margin: 0 0 0 0; color: #666;"><strong>可以關帳:</strong> <span style="color: ${content.canCloseAccount ? '#28a745' : '#dc3545'}; font-weight: bold;">${content.canCloseAccount ? '✅ 可以' : '❌ 不可以'}</span></p>
+                    </div>
+                `;
+
+                // 已簽到課程表格
+                if (content.checkedInSchedules && content.checkedInSchedules.length > 0) {
+                    html += `
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: #28a745; margin-bottom: 10px;">✅ 已簽到 (${content.checkedInSchedules.length})</h4>
+                            <table style="width: 100%; border-collapse: collapse; background: white;">
+                                <thead>
+                                    <tr style="background: #f0f8f5;">
+                                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">學生編號</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">學生名稱</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">課程名稱</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">教室</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">時間</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    content.checkedInSchedules.forEach(schedule => {
+                        html += `
+                            <tr style="background: #f9fff9;">
+                                <td style="padding: 8px; border: 1px solid #ddd;">${schedule.username}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${schedule.studentName}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${schedule.courseName}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${schedule.classroomName}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${schedule.startTime} ~ ${schedule.endTime}</td>
+                            </tr>
+                        `;
+                    });
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+
+                // 未簽到課程表格
+                if (content.notCheckedInSchedules && content.notCheckedInSchedules.length > 0) {
+                    html += `
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: #dc3545; margin-bottom: 10px;">❌ 未簽到 (${content.notCheckedInSchedules.length})</h4>
+                            <table style="width: 100%; border-collapse: collapse; background: white;">
+                                <thead>
+                                    <tr style="background: #fef5f5;">
+                                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">學生編號</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">學生名稱</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">課程名稱</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">教室</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">時間</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    content.notCheckedInSchedules.forEach(schedule => {
+                        html += `
+                            <tr style="background: #fffbfb;">
+                                <td style="padding: 8px; border: 1px solid #ddd;">${schedule.username}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${schedule.studentName}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${schedule.courseName}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${schedule.classroomName}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${schedule.startTime} ~ ${schedule.endTime}</td>
+                            </tr>
+                        `;
+                    });
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+
+                resultDiv.innerHTML = html;
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+                resultDiv.innerHTML = '';
+            }
+        }
+
+        async function getCloseAccountByClassroom() {
+            const classroomId = document.getElementById('closeAccountClassroomId').value;
+            const date = document.getElementById('closeAccountClassroomDate').value;
+
+            if (!classroomId || !date) {
+                alert('請輸入教室ID和查詢日期');
+                return;
+            }
+
+            const resultDiv = document.getElementById('closeAccountByClassroomStatus');
+            const errorDiv = document.getElementById('closeAccountByClassroomError');
+            resultDiv.innerHTML = '<div class="loading">載入中...</div>';
+            errorDiv.style.display = 'none';
+
+            try {
+                const res = await apiFetch(`/api/v1/CloseAccount/Classroom/${classroomId}/DailyStatus/${date}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    errorDiv.textContent = data.msg || '查詢失敗';
+                    errorDiv.style.display = 'block';
+                    resultDiv.innerHTML = '';
+                    return;
+                }
+
+                const content = data.content;
+                let html = `
+                    <div style="background: white; padding: 12px; border-radius: 4px; margin-bottom: 12px;">
+                        <p style="margin: 0 0 8px 0; color: #666;"><strong>教室:</strong> ${content.classroomName}</p>
+                        <p style="margin: 0 0 8px 0; color: #666;"><strong>查詢日期:</strong> ${content.queryDate}</p>
+                        <p style="margin: 0 0 8px 0; color: #666;"><strong>總課堂數:</strong> <span style="color: #0066cc; font-weight: bold;">${content.totalSchedules}</span></p>
+                        <p style="margin: 0 0 8px 0; color: #666;"><strong>已簽到:</strong> <span style="color: #28a745; font-weight: bold;">${content.checkedInCount}</span> | <strong>未簽到:</strong> <span style="color: #dc3545; font-weight: bold;">${content.notCheckedInCount}</span></p>
+                    </div>
+
+                    <table style="width: 100%; border-collapse: collapse; background: white;">
+                        <thead>
+                            <tr style="background: #f5f7fa;">
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">學生名稱</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">課程名稱</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">時間</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">簽到狀態</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                content.scheduleStatuses.forEach(schedule => {
+                    const statusColor = schedule.status === '已簽到' ? '#28a745' : '#dc3545';
+                    html += `
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${schedule.studentName}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${schedule.courseName}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${schedule.startTime} ~ ${schedule.endTime}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: ${statusColor}; font-weight: bold;">${schedule.status}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                        </tbody>
+                    </table>
+                `;
+                resultDiv.innerHTML = html;
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+                resultDiv.innerHTML = '';
+            }
+        }
+
+        async function getCloseAccountTeacherStatus() {
+            const teacherId = document.getElementById('closeAccountTeacherId').value;
+            const date = document.getElementById('closeAccountTeacherDate').value;
+
+            if (!teacherId || !date) {
+                alert('請輸入教師ID和查詢日期');
+                return;
+            }
+
+            const resultDiv = document.getElementById('closeAccountTeacherStatus');
+            const errorDiv = document.getElementById('closeAccountTeacherError');
+            resultDiv.innerHTML = '<div class="loading">載入中...</div>';
+            errorDiv.style.display = 'none';
+
+            try {
+                const res = await apiFetch(`/api/v1/CloseAccount/Teacher/${teacherId}/DailyStatus/${date}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    errorDiv.textContent = data.msg || '查詢失敗';
+                    errorDiv.style.display = 'block';
+                    resultDiv.innerHTML = '';
+                    return;
+                }
+
+                const content = data.content;
+                let html = `
+                    <div style="background: white; padding: 12px; border-radius: 4px; margin-bottom: 12px;">
+                        <p style="margin: 0 0 8px 0; color: #666;"><strong>教師:</strong> ${content.teacherName}</p>
+                        <p style="margin: 0 0 8px 0; color: #666;"><strong>查詢日期:</strong> ${content.queryDate}</p>
+                        <p style="margin: 0 0 8px 0; color: #666;"><strong>總課堂數:</strong> <span style="color: #0066cc; font-weight: bold;">${content.totalSchedules}</span> | <strong>已簽到:</strong> <span style="color: #28a745; font-weight: bold;">${content.checkedInCount}</span> | <strong>未簽到:</strong> <span style="color: #dc3545; font-weight: bold;">${content.notCheckedInCount}</span></p>
+                        <p style="margin: 0 0 0 0; color: #666;"><strong>實收金額:</strong> <span style="color: #ff9800; font-weight: bold;">$${content.totalAmount.toLocaleString()}</span> | <strong>總時數:</strong> <span style="color: #ff9800; font-weight: bold;">${content.totalHours.toFixed(1)}小時</span></p>
+                    </div>
+
+                    <table style="width: 100%; border-collapse: collapse; background: white;">
+                        <thead>
+                            <tr style="background: #f5f7fa;">
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">學生名稱</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">課程名稱</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">時間</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">學費</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">時數</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">簽到狀態</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                content.scheduleStatuses.forEach(schedule => {
+                    const statusColor = schedule.isCheckedIn === '已簽到' ? '#28a745' : '#dc3545';
+                    html += `
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${schedule.studentName}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${schedule.courseName}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${schedule.startTime} ~ ${schedule.endTime}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">$${schedule.amount.toLocaleString()}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${schedule.hours.toFixed(1)}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: ${statusColor}; font-weight: bold;">${schedule.isCheckedIn}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                        </tbody>
+                    </table>
+                `;
+                resultDiv.innerHTML = html;
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+                resultDiv.innerHTML = '';
+            }
+        }
+
+        async function checkInAll() {
+            const date = document.getElementById('checkInAllDate').value;
+            if (!date) {
+                alert('請選擇全部簽到日期');
+                return;
+            }
+
+            const resultDiv = document.getElementById('checkInAllResult');
+            resultDiv.innerHTML = '<div class="loading">處理中...</div>';
+
+            try {
+                const res = await apiFetch(`/api/v1/CloseAccount/CheckInAll/${date}`, {
+                    method: 'POST'
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    resultDiv.innerHTML = `<div class="error">${data.msg || '操作失敗'}</div>`;
+                    return;
+                }
+
+                const content = data.content;
+                let html = `
+                    <div class="success">
+                        <strong>✅ 全部簽到完成！</strong><br>
+                        <strong>日期:</strong> ${content.date}<br>
+                        <strong>總課程數:</strong> ${content.totalSchedules}<br>
+                        <strong>成功簽到:</strong> <span style="color: #28a745; font-weight: bold;">${content.successfulCheckins}</span><br>
+                        <strong>已簽到總人數:</strong> ${content.checkedInCount}
+                    </div>
+                `;
+                resultDiv.innerHTML = html;
+            } catch (err) {
+                resultDiv.innerHTML = `<div class="error">操作失敗: ${err.message}</div>`;
+            }
+        }
+
+        async function getCloseAccountData() {
+            const date = document.getElementById('getCloseAccountDate').value;
+            if (!date) {
+                alert('請選擇查詢日期');
+                return;
+            }
+
+            const resultDiv = document.getElementById('getCloseAccountResult');
+            resultDiv.innerHTML = '<div class="loading">查詢中...</div>';
+
+            try {
+                const res = await apiFetch(`/api/v1/CloseAccount/Detail/${date}`, {
+                    method: 'GET'
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    resultDiv.innerHTML = `<div class="error">${data.msg || '查詢失敗'}</div>`;
+                    return;
+                }
+
+                const content = data.content;
+                
+                if (!content) {
+                    resultDiv.innerHTML = `
+                        <div class="info">
+                            <strong>ℹ️ ${data.msg}</strong><br>
+                            該日期尚無關帳記錄
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = `
+                    <div class="success">
+                        <strong>✅ ${data.msg}</strong><br><br>
+                        <table style="width: 100%; margin-top: 8px;">
+                            <tr>
+                                <th style="width: 40%; text-align: left;">項目</th>
+                                <th style="width: 60%; text-align: right;">金額 (元)</th>
+                            </tr>
+                            <tr>
+                                <td>關帳日期</td>
+                                <td style="text-align: right;">${new Date(content.closeDate).toLocaleDateString('zh-TW')}</td>
+                            </tr>
+                            <tr>
+                                <td>昨日零用金結餘</td>
+                                <td style="text-align: right; font-weight: bold;">${content.yesterdayPettyIncome.toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <td>營業收入 (學生學費)</td>
+                                <td style="text-align: right; color: #28a745; font-weight: bold;">${content.businessIncome.toLocaleString()}</td>
+                            </tr>
+                            <tr style="background: #e7f3ff;">
+                                <td style="font-weight: bold;">關帳結算金額</td>
+                                <td style="text-align: right; color: #0066cc; font-weight: bold; font-size: 16px;">${content.closeAccountAmount.toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <td>提存金額</td>
+                                <td style="text-align: right; color: #dc3545; font-weight: bold;">${content.depositAmount.toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <td>零用金結餘</td>
+                                <td style="text-align: right; font-weight: bold;">${content.pettyIncome.toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <td>建立時間</td>
+                                <td style="text-align: right;">${new Date(content.createdTime).toLocaleString('zh-TW')}</td>
+                            </tr>
+                            <tr>
+                                <td>修改時間</td>
+                                <td style="text-align: right;">${new Date(content.modifiedTime).toLocaleString('zh-TW')}</td>
+                            </tr>
+                        </table>
+                    </div>
+                `;
+                resultDiv.innerHTML = html;
+            } catch (err) {
+                resultDiv.innerHTML = `<div class="error">查詢失敗: ${err.message}</div>`;
+            }
+        }
+
+        async function saveCloseAccount() {
+            const date = document.getElementById('saveCloseAccountDate').value;
+            const depositAmount = parseInt(document.getElementById('saveDepositAmount').value);
+
+            if (!date) {
+                alert('請選擇關帳日期');
+                return;
+            }
+
+            if (isNaN(depositAmount) || depositAmount < 0) {
+                alert('請輸入有效的提存金額');
+                return;
+            }
+
+            const resultDiv = document.getElementById('saveCloseAccountResult');
+            resultDiv.innerHTML = '<div class="loading">儲存中...</div>';
+
+            try {
+                const res = await apiFetch('/api/v1/CloseAccount', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        date: date,
+                        depositAmount: depositAmount
+                    })
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    resultDiv.innerHTML = `<div class="error">${data.msg || '儲存失敗'}</div>`;
+                    return;
+                }
+
+                const content = data.content;
+                let html = `
+                    <div class="success">
+                        <strong>✅ ${data.msg}</strong><br><br>
+                        <table style="width: 100%; margin-top: 8px;">
+                            <tr>
+                                <th style="width: 40%; text-align: left;">項目</th>
+                                <th style="width: 60%; text-align: right;">金額 (元)</th>
+                            </tr>
+                            <tr>
+                                <td>關帳日期</td>
+                                <td style="text-align: right;">${new Date(content.closeDate).toLocaleDateString('zh-TW')}</td>
+                            </tr>
+                            <tr>
+                                <td>昨日零用金結餘</td>
+                                <td style="text-align: right; font-weight: bold;">${content.yesterdayPettyIncome.toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <td>營業收入 (學生學費)</td>
+                                <td style="text-align: right; color: #28a745; font-weight: bold;">${content.businessIncome.toLocaleString()}</td>
+                            </tr>
+                            <tr style="background: #e7f3ff;">
+                                <td style="font-weight: bold;">關帳結算金額</td>
+                                <td style="text-align: right; color: #0066cc; font-weight: bold; font-size: 16px;">${content.closeAccountAmount.toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <td>提存金額</td>
+                                <td style="text-align: right; color: #dc3545; font-weight: bold;">${content.depositAmount.toLocaleString()}</td>
+                            </tr>
+                            <tr style="background: #fff3cd;">
+                                <td style="font-weight: bold;">零用金結餘</td>
+                                <td style="text-align: right; color: #856404; font-weight: bold; font-size: 16px;">${content.pettyIncome.toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <td>建立時間</td>
+                                <td style="text-align: right;">${new Date(content.createdTime).toLocaleString('zh-TW')}</td>
+                            </tr>
+                            <tr>
+                                <td>修改時間</td>
+                                <td style="text-align: right;">${new Date(content.modifiedTime).toLocaleString('zh-TW')}</td>
+                            </tr>
+                        </table>
+                    </div>
+                `;
+                resultDiv.innerHTML = html;
+
+                // 更新 getCloseAccountDate 的日期，方便連續操作
+                document.getElementById('getCloseAccountDate').value = date;
+            } catch (err) {
+                resultDiv.innerHTML = `<div class="error">儲存失敗: ${err.message}</div>`;
+            }
+        }
+
+        async function getCloseAccountList() {
+            const startDate = document.getElementById('listStartDate').value;
+            const endDate = document.getElementById('listEndDate').value;
+
+            const resultDiv = document.getElementById('closeAccountListResult');
+            resultDiv.innerHTML = '<div class="loading">查詢中...</div>';
+
+            try {
+                let url = '/api/v1/CloseAccount';
+                const params = new URLSearchParams();
+                
+                if (startDate) params.append('startDate', startDate);
+                if (endDate) params.append('endDate', endDate);
+                
+                if (params.toString()) {
+                    url += '?' + params.toString();
+                }
+
+                const res = await apiFetch(url, {
+                    method: 'GET'
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    resultDiv.innerHTML = `<div class="error">${data.msg || '查詢失敗'}</div>`;
+                    return;
+                }
+
+                const content = data.content;
+                
+                if (!content || content.length === 0) {
+                    resultDiv.innerHTML = `
+                        <div class="info">
+                            <strong>ℹ️ 查無關帳記錄</strong><br>
+                            指定日期範圍內沒有關帳記錄
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = `
+                    <div class="success">
+                        <strong>✅ ${data.msg}</strong>
+                    </div>
+                    <table style="width: 100%; margin-top: 12px;">
+                        <tr>
+                            <th style="text-align: center;">關帳日期</th>
+                            <th style="text-align: right;">昨日零用金</th>
+                            <th style="text-align: right;">營業收入</th>
+                            <th style="text-align: right;">關帳結算</th>
+                            <th style="text-align: right;">提存金額</th>
+                            <th style="text-align: right;">零用金結餘</th>
+                            <th style="text-align: center;">修改時間</th>
+                        </tr>
+                `;
+
+                content.forEach(record => {
+                    html += `
+                        <tr>
+                            <td style="text-align: center; font-weight: bold;">${new Date(record.closeDate).toLocaleDateString('zh-TW')}</td>
+                            <td style="text-align: right;">${record.yesterdayPettyIncome.toLocaleString()}</td>
+                            <td style="text-align: right; color: #28a745; font-weight: bold;">${record.businessIncome.toLocaleString()}</td>
+                            <td style="text-align: right; color: #0066cc; font-weight: bold;">${record.closeAccountAmount.toLocaleString()}</td>
+                            <td style="text-align: right; color: #dc3545;">${record.depositAmount.toLocaleString()}</td>
+                            <td style="text-align: right; color: #856404; font-weight: bold;">${record.pettyIncome.toLocaleString()}</td>
+                            <td style="text-align: center; font-size: 12px;">${new Date(record.modifiedTime).toLocaleDateString('zh-TW')} ${new Date(record.modifiedTime).toLocaleTimeString('zh-TW', {hour: '2-digit', minute: '2-digit'})}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `</table>`;
+                resultDiv.innerHTML = html;
+            } catch (err) {
+                resultDiv.innerHTML = `<div class="error">查詢失敗: ${err.message}</div>`;
+            }
+        }
+
+        async function getDailyReportPdf() {
+            const date = document.getElementById('dailyReportDate').value;
+            if (!date) {
+                alert('請選擇查詢日期');
+                return;
+            }
+
+            const resultDiv = document.getElementById('dailyReportStatus');
+            const errorDiv = document.getElementById('dailyReportError');
+            resultDiv.innerHTML = '<div class="loading">生成 PDF 中...</div>';
+            errorDiv.style.display = 'none';
+
+            try {
+                const res = await apiFetch(`/api/v1/CloseAccount/DailyReport/${date}`, {
+                    method: 'GET'
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `daily-report-${date}.pdf`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                resultDiv.innerHTML = `<div class="success">✅ PDF 已生成並下載 <a href="${url}" target="_blank" style="color:#409eff;">預覽</a></div>`;
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+                resultDiv.innerHTML = '';
+            }
+        }
+
         // 費用記錄函數（可選）
         async function createAttendanceFee() {
             const attendanceId = document.getElementById('feeAttendanceId').value;
@@ -3035,6 +3738,260 @@ Content-Type: application/json
 
                             <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
                             <pre id="rawData-companyProfit" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示檔案資訊</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'dailyStatus':
+                    html = `
+                        <h2 style="color: #667eea;">🔍 取得簽到清單（包含檢查可以關帳）</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>GET /api/v1/CloseAccount/DailyStatus/{date}</code></p>
+                            <p><strong>說明：</strong>查詢指定日期的全校課表，顯示每堂課的簽到狀態，並檢查是否可以關帳</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead><tr style="background: #667eea; color: white;">
+                                    <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                </tr></thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>date</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">查詢日期 (格式: yyyy-MM-dd)</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead><tr style="background: #667eea; color: white;">
+                                    <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                </tr></thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>queryDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">查詢日期</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>totalSchedules</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">總課堂數</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>checkedInCount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">已簽到數</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>notCheckedInCount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">未簽到數</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>canCloseAccount</code></td><td style="padding: 8px; border: 1px solid #ddd;">bool</td><td style="padding: 8px; border: 1px solid #ddd;">是否可以關帳 (全部簽到時為 true)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>checkedInSchedules[]</code></td><td style="padding: 8px; border: 1px solid #ddd;">object[]</td><td style="padding: 8px; border: 1px solid #ddd;">已簽到課程列表</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>notCheckedInSchedules[]</code></td><td style="padding: 8px; border: 1px solid #ddd;">object[]</td><td style="padding: 8px; border: 1px solid #ddd;">未簽到課程列表</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">💡 說明</h3>
+                            <div class="info">
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li>查詢指定日期的全校課表（只查學生類型的課表）</li>
+                                    <li>對每堂課查詢是否有簽到記錄</li>
+                                    <li>若全部課程都已簽到，則 <code>canCloseAccount = true</code></li>
+                                    <li>課程列表包含學生編號、學生名稱、課程名稱、教室、上下課時間</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 'checkInAll':
+                    html = `
+                        <h2 style="color: #667eea;">✅ 全部簽到</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>POST /api/v1/CloseAccount/CheckInAll/{date}</code></p>
+                            <p><strong>說明：</strong>為指定日期的所有未簽到課程一鍵簽到，並同時建立對應的 AttendanceFee 記錄</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead><tr style="background: #667eea; color: white;">
+                                    <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                </tr></thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>date</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">簽到日期 (格式: yyyy-MM-dd)</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead><tr style="background: #667eea; color: white;">
+                                    <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                </tr></thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>date</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">簽到日期</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>totalSchedules</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">總課堂數</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>successfulCheckins</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">成功簽到數</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>checkedInCount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">已簽到總人數</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">💡 說明</h3>
+                            <div class="info">
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li>自動為所有未簽到的課程建立簽到記錄（類型為"出席"）</li>
+                                    <li>同時為每筆簽到建立對應的 AttendanceFee 記錄</li>
+                                    <li>追踪最近一筆 StudentPermissionFee 的 totalAmount 進行費用計算</li>
+                                    <li>操作後可立即進行關帳</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 'getCloseAccount':
+                    html = `
+                        <h2 style="color: #667eea;">💰 取得關帳資料</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>GET /api/v1/CloseAccount/Detail/{date}</code></p>
+                            <p><strong>說明：</strong>獲取指定日期的關帳資料，包含簽到檢查和自動計算的關帳金額</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead><tr style="background: #667eea; color: white;">
+                                    <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                </tr></thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>date</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">查詢日期 (格式: yyyy-MM-dd)</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead><tr style="background: #667eea; color: white;">
+                                    <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                </tr></thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>closeDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">datetime</td><td style="padding: 8px; border: 1px solid #ddd;">關帳日期</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>yesterdayPettyIncome</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">昨日零用金結餘</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>businessIncome</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">營業收入（學生學費）</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>closeAccountAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">關帳結算金額</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>depositAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">提存金額</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>pettyIncome</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">零用金結餘</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">💡 卡控邏輯</h3>
+                            <div class="info">
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li><strong>前一日關帳檢查：</strong>若查詢非今日則前一日必須已關帳</li>
+                                    <li><strong>簽到狀態檢查：</strong>檢查該日期所有課程是否都已簽到</li>
+                                    <li><strong>自動計算：</strong>若無關帳記錄則自動計算；若有則返回已存檔記錄</li>
+                                    <li><strong>營業收入計算：</strong>所有該日期 tblPayment 的 Pay + DiscountAmount 之和</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 'saveCloseAccount':
+                    html = `
+                        <h2 style="color: #667eea;">💾 新增或編輯關帳</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>POST /api/v1/CloseAccount</code></p>
+                            <p><strong>說明：</strong>輸入提存金額，系統自動計算零用金結餘並儲存關帳記錄</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead><tr style="background: #667eea; color: white;">
+                                    <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                </tr></thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>date</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">關帳日期 (格式: yyyy-MM-dd)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>depositAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">提存金額（元）</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <p>同取得關帳資料的回應欄位</p>
+
+                            <h3 style="margin-top: 20px;">💡 邏輯流程</h3>
+                            <div class="info">
+                                <ol style="margin-left: 20px; line-height: 1.8;">
+                                    <li>檢查前一日是否有關帳記錄（若非今日則必須有）</li>
+                                    <li>取得該日期的關帳資料（包含計算的金額）</li>
+                                    <li>接收提存金額</li>
+                                    <li>計算零用金結餘：PettyIncome = CloseAccountAmount - DepositAmount</li>
+                                    <li>若無記錄則新增；若有則更新</li>
+                                </ol>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">📝 請求範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">POST /api/v1/CloseAccount
+Content-Type: application/json
+
+{
+  "date": "2025-12-16",
+  "depositAmount": 5000
+}</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'listCloseAccount':
+                    html = `
+                        <h2 style="color: #667eea;">📋 取得關帳列表</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>GET /api/v1/CloseAccount?startDate={date}&endDate={date}</code></p>
+                            <p><strong>說明：</strong>查詢日期範圍內的所有關帳記錄，按日期降序排列</p>
+
+                            <h3 style="margin-top: 20px;">📥 查詢參數（皆為選填）</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead><tr style="background: #667eea; color: white;">
+                                    <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                </tr></thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>startDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">開始日期 (格式: yyyy-MM-dd，可選)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>endDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">結束日期 (格式: yyyy-MM-dd，可選)</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <p>TblCloseAccount[] 的陣列，每筆記錄包含：</p>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead><tr style="background: #667eea; color: white;">
+                                    <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                </tr></thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>closeDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">datetime</td><td style="padding: 8px; border: 1px solid #ddd;">關帳日期</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>yesterdayPettyIncome</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">昨日零用金結餘</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>businessIncome</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">營業收入</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>closeAccountAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">關帳結算金額</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>depositAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">提存金額</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>pettyIncome</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">零用金結餘</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">💡 邏輯說明</h3>
+                            <div class="info">
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li><strong>預設行為：</strong>若未指定任何日期，則查詢最近 30 天的記錄</li>
+                                    <li><strong>單一日期查詢：</strong>只指定開始或結束日期也支援</li>
+                                    <li><strong>排序順序：</strong>結果按關帳日期降序排列（最新的在前）</li>
+                                </ul>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">📝 查詢範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">GET /api/v1/CloseAccount?startDate=2025-12-01&endDate=2025-12-31
+
+# 或只查詢最近 30 天（不帶參數）
+GET /api/v1/CloseAccount</pre>
                         </div>
                     `;
                     break;

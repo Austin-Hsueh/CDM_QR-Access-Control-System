@@ -36,13 +36,13 @@ namespace DoorDB
         /// 單堂學費
         /// </summary>
         [Comment("單堂學費")]
-        public int Amount { get; set; }
+        public decimal Amount { get; set; }
 
         /// <summary>
         /// 單堂增減金額 (正數為增加,負數為減少)
         /// </summary>
         [Comment("單堂增減金額")]
-        public int AdjustmentAmount { get; set; }
+        public decimal AdjustmentAmount { get; set; }
 
         /// <summary>
         /// 原始時數總金額
