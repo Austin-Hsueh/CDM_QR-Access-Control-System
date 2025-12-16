@@ -25,15 +25,6 @@ namespace DoorWebApp.Controllers
             _ctx = ctx;
         }
 
-        [HttpGet("v1/SalaryReport/Sample")]
-        public IActionResult GetSalarySample()
-        {
-            EnsureQuestPdfLicense();
-            var sample = BuildSalarySampleData();
-            var pdfBytes = RenderSalaryPdf(sample);
-            return File(pdfBytes, "application/pdf", "salary-report-sample.pdf");
-        }
-
         [HttpGet("v1/SalaryReport")]
         public IActionResult GetSalaryReport(
             [FromQuery] string startDate,
@@ -54,14 +45,6 @@ namespace DoorWebApp.Controllers
             var pdfBytes = RenderSalaryPdf(data);
             var fileName = $"salary-report-{start:yyyyMMdd}-{end:yyyyMMdd}-teacher-{teacherId}.pdf";
             return File(pdfBytes, "application/pdf", fileName);
-        }
-
-        [HttpGet("v1/CompanyProfitSummary/Sample")]
-        public IActionResult GetCompanyProfitSample()
-        {
-            EnsureQuestPdfLicense();
-            var pdf = RenderCompanyProfitSample();
-            return File(pdf, "application/pdf", "company-profit-summary-sample.pdf");
         }
 
         [HttpGet("v1/CompanyProfitSummary")]
@@ -195,64 +178,6 @@ namespace DoorWebApp.Controllers
             }).GeneratePdf();
         }
 
-        private SalaryReportSample BuildSalarySampleData()
-        {
-            var rows = new List<SalaryRow>
-            {
-                new(
-                    "陳品諒",
-                    "A02",
-                    new List<LessonItem>
-                    {
-                        new("10/04", 630, 1),
-                        new("10/30", 630, 1)
-                    }
-                ),
-                new(
-                    "梁承翰",
-                    "A01",
-                    new List<LessonItem>
-                    {
-                        new("10/05", 560, 1),
-                        new("10/11", 560, 1),
-                        new("10/18", 560, 1),
-                        new("10/25", 560, 1)
-                    }
-                ),
-                new(
-                    "范書瑋",
-                    "A02",
-                    new List<LessonItem>
-                    {
-                        new("10/03", 490, 1),
-                        new("10/10", 490, 1),
-                        new("10/30", 490, 1)
-                    }
-                )
-            };
-
-            var baseRatio = 0.70m;
-            var promotionCount = 0;
-            var promotionRatio = 0m;
-
-            var totalLessons = rows.Sum(r => r.Lessons.Count);
-            var totalHours = rows.Sum(r => r.TotalHours);
-            var totalAmount = rows.Sum(r => r.TotalAmount + (r.SpecialBonus ?? 0));
-
-            return new SalaryReportSample
-            {
-                TeacherName = "鄭元 2",
-                Period = "114/10",
-                BaseRatio = baseRatio,
-                PromotionCount = promotionCount,
-                PromotionRatio = promotionRatio,
-                Rows = rows,
-                TotalLessons = totalLessons,
-                TotalHours = totalHours,
-                TotalAmount = totalAmount
-            };
-        }
-
         private SalaryReportSample BuildSalaryReportData(DateTime start, DateTime end, int teacherId, bool includePaid)
         {
             var teacher = _ctx.TblUsers.FirstOrDefault(t => t.Id == teacherId && !t.IsDelete);
@@ -289,7 +214,8 @@ namespace DoorWebApp.Controllers
                 var sp = att.StudentPermission;
                 if (sp == null || sp.IsDelete) continue;
 
-                var hasStudentPermissionFee = sp.StudentPermissionFees?.Any() ?? false;
+                // 檢查是否有未刪除的學生權限費用記錄
+                var hasStudentPermissionFee = sp.StudentPermissionFees?.Any(f => !f.IsDelete) ?? false;
                 if (!hasStudentPermissionFee)
                 {
                     continue;
@@ -303,8 +229,8 @@ namespace DoorWebApp.Controllers
                 // 計算屬於第幾組（每4筆一組）
                 int feeGroupIndex = attendanceIndex / 4;
 
-                // 取得該組對應的 StudentPermissionFee
-                var sortedFees = sp.StudentPermissionFees?.OrderBy(f => f.Id).ToList() ?? new List<TblStudentPermissionFee>();
+                // 取得該組對應的 StudentPermissionFee（排除已刪除的記錄）
+                var sortedFees = sp.StudentPermissionFees?.Where(f => !f.IsDelete).OrderBy(f => f.Id).ToList() ?? new List<TblStudentPermissionFee>();
                 var correspondingFee = feeGroupIndex < sortedFees.Count ? sortedFees[feeGroupIndex] : null;
 
                 if (!includePaid)
@@ -424,86 +350,6 @@ namespace DoorWebApp.Controllers
             public decimal TotalAmount { get; set; }
         }
 
-        // ======== Company Profit Summary (Sample) ========
-        private static byte[] RenderCompanyProfitSample()
-        {
-            var headers = new[]
-            {
-                "序號", "上課老師", "學生數", "堂數", "學費欠費",
-                "實收學費", "折帳薪資", "應付薪資", "補發薪資", "公司毛利", "%"
-            };
-
-            var rows = new[]
-            {
-                new object[] { "1", "T00056 鄭元 2", "3", "9.00", "0", "7,100", "4,970", "4,970", "2,130", "30.00%" },
-            };
-
-            return Document.Create(doc =>
-            {
-                doc.Page(page =>
-                {
-                    page.Size(QuestPDF.Helpers.PageSizes.A4);
-                    page.Margin(20);
-                    page.DefaultTextStyle(x => x.FontFamily("Microsoft JhengHei").FontSize(10));
-
-                    page.Content().Column(col =>
-                    {
-                        col.Item().Row(row =>
-                        {
-                            row.RelativeItem().Text("VMS-POS").SemiBold().FontSize(12);
-                            row.RelativeItem().AlignCenter().Text("私立樂光音樂短期補習班").Bold().FontSize(12);
-                            row.RelativeItem().AlignRight().Text("Page:1").FontSize(10);
-                        });
-
-                        col.Item().AlignCenter().Text("114/10 個別班－公司獲利彙總表").Bold().FontSize(12);
-
-                        col.Item().Table(table =>
-                        {
-                            table.ColumnsDefinition(columns =>
-                            {
-                                columns.ConstantColumn(36);
-                                columns.RelativeColumn(2.2f);
-                                columns.RelativeColumn(0.9f);
-                                columns.RelativeColumn(0.9f);
-                                columns.RelativeColumn(1.0f);
-                                columns.RelativeColumn(1.2f);
-                                columns.RelativeColumn(1.2f);
-                                columns.RelativeColumn(1.2f);
-                                columns.RelativeColumn(1.2f);
-                                columns.RelativeColumn(1.2f);
-                                columns.ConstantColumn(48);
-                            });
-
-                            table.Header(header =>
-                            {
-                                foreach (var h in headers)
-                                    header.Cell().Element(HeaderCell).Text(h).SemiBold();
-                            });
-
-                            foreach (var r in rows)
-                            {
-                                foreach (var cell in r)
-                                {
-                                    table.Cell().Element(BodyCell).Text(cell?.ToString() ?? string.Empty);
-                                }
-                            }
-
-                            table.Cell().Element(BodyCell).Text("合計:");
-                            table.Cell().Element(BodyCell).Text("");
-                            table.Cell().Element(BodyCell).Text("3");
-                            table.Cell().Element(BodyCell).Text("9.00");
-                            table.Cell().Element(BodyCell).Text("0");
-                            table.Cell().Element(BodyCell).Text("7,100");
-                            table.Cell().Element(BodyCell).Text("4,970");
-                            table.Cell().Element(BodyCell).Text("4,970");
-                            table.Cell().Element(BodyCell).Text("2,130");
-                            table.Cell().Element(BodyCell).Text("30.00%");
-                        });
-                    });
-                });
-            }).GeneratePdf();
-        }
-
         private CompanyProfitData BuildCompanyProfitData(DateTime start, DateTime end, int teacherId, bool includePaid)
         {
             var query = _ctx.TblAttendance
@@ -539,7 +385,8 @@ namespace DoorWebApp.Controllers
                 var sp = att.StudentPermission;
                 if (sp == null || sp.IsDelete) continue;
 
-                var hasStudentPermissionFee = sp.StudentPermissionFees?.Any() ?? false;
+                // 檢查是否有未刪除的學生權限費用記錄
+                var hasStudentPermissionFee = sp.StudentPermissionFees?.Any(f => !f.IsDelete) ?? false;
                 if (!hasStudentPermissionFee)
                 {
                     continue;
@@ -553,8 +400,8 @@ namespace DoorWebApp.Controllers
                 // 計算屬於第幾組（每4筆一組）
                 int feeGroupIndex = attendanceIndex / 4;
 
-                // 取得該組對應的 StudentPermissionFee
-                var sortedFees = sp.StudentPermissionFees?.OrderBy(f => f.Id).ToList() ?? new List<TblStudentPermissionFee>();
+                // 取得該組對應的 StudentPermissionFee（排除已刪除的記錄）
+                var sortedFees = sp.StudentPermissionFees?.Where(f => !f.IsDelete).OrderBy(f => f.Id).ToList() ?? new List<TblStudentPermissionFee>();
                 var correspondingFee = feeGroupIndex < sortedFees.Count ? sortedFees[feeGroupIndex] : null;
 
                 if (!includePaid)

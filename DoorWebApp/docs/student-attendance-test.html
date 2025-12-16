@@ -409,6 +409,38 @@
                     <div id="createFeeResult" style="margin-top: 12px;"></div>
                     <div id="createFeeError" class="error" style="display:none;"></div>
                 </div>
+
+                <!-- 修改/刪除費用記錄區域 -->
+                <div style="margin-top: 20px; padding: 16px; background: #fff5e6; border-radius: 8px; border: 1px solid #ffe4b5;">
+                    <h4 style="margin-bottom: 12px;">✏️ 修改/刪除學生權限費用</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                        <div>
+                            <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">學生權限費用 ID：</label>
+                            <input type="number" id="updateFeeId" min="1" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" placeholder="輸入費用 ID" />
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">繳款日期：</label>
+                            <input type="date" id="updateFeePaymentDate" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" />
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">總金額：</label>
+                            <input type="number" id="updateFeeTotalAmount" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" placeholder="留空不改" />
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <label style="display: flex; align-items: center; gap: 6px;">
+                            <input type="checkbox" id="updateFeeIsDelete" />
+                            <span style="color: #f56c6c;">刪除此費用記錄</span>
+                        </label>
+                        <button class="btn-primary" onclick="updateStudentPermissionFee()">更新記錄</button>
+                        <button class="btn-default" onclick="clearUpdateFeeForm()">清除</button>
+                    </div>
+                    <div style="color: #e6a23c; font-size: 13px; margin-top: 8px;">
+                        ℹ️ 勾選「刪除」時，系統會執行假刪除，不會真正刪除記錄
+                    </div>
+                    <div id="updateFeeResult" style="margin-top: 12px;"></div>
+                    <div id="updateFeeError" class="error" style="display:none;"></div>
+                </div>
                 
                 <!-- 上課紀錄細項區域 -->
                 <div id="attendanceDetailSection" style="display: none; margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd;">
@@ -500,14 +532,13 @@
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('studentsList')">👨‍🎓 取得學生名單</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceList')">📝 顯示上課紀錄(列表)</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createPermissionFee')">➕ 新增學生權限費用</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('updatePermissionFee')">✏️ 修改學生權限費用</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('paymentDetail')">💰 顯示繳費細項</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceFee')">✏️ 單堂老師費用修改</button>
 
                             <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📄 報表</div>
-                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('salaryReport')">📄 薪資明細表 (實際)</button>
-                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('salaryReportSample')">📄 薪資明細表 (Sample)</button>
-                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('companyProfit')">🏢 公司獲利彙總表 (實際)</button>
-                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('companyProfitSample')">🏢 公司獲利彙總表 (Sample)</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('salaryReport')">📄 薪資明細表</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('companyProfit')">🏢 公司獲利彙總表</button>
                         </div>
                     </div>
 
@@ -1430,6 +1461,64 @@
             }
         }
 
+        // ===== 修改/刪除學生權限費用記錄 =====
+        async function updateStudentPermissionFee() {
+            const feeId = parseInt(document.getElementById('updateFeeId').value || '0');
+            if (!feeId) {
+                alert('請輸入學生權限費用 ID');
+                return;
+            }
+
+            const paymentDate = document.getElementById('updateFeePaymentDate').value;
+            const totalAmount = document.getElementById('updateFeeTotalAmount').value;
+            const isDelete = document.getElementById('updateFeeIsDelete').checked;
+
+            const payload = { studentPermissionFeeId: feeId, IsDelete: isDelete };
+            if (paymentDate) payload.paymentDate = paymentDate;
+            if (totalAmount !== '') payload.totalAmount = parseInt(totalAmount);
+
+            const resultDiv = document.getElementById('updateFeeResult');
+            const errorDiv = document.getElementById('updateFeeError');
+            resultDiv.innerHTML = '<div class="loading">處理中...</div>';
+            errorDiv.style.display = 'none';
+
+            try {
+                const res = await apiFetch('/api/v2/StudentAttendance', {
+                    method: 'PATCH',
+                    body: payload
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result === 0) {
+                    const action = isDelete ? '刪除' : '更新';
+                    resultDiv.innerHTML = `<div class="success">✅ ${action}成功！${data.msg || ''}</div>`;
+                    clearUpdateFeeForm();
+                    // 自動重新查詢
+                    const queryId = document.getElementById('queryStudentPermissionId').value;
+                    if (queryId) {
+                        setTimeout(() => queryAttendance(), 500);
+                    }
+                } else {
+                    throw new Error(data.msg || '操作失敗');
+                }
+            } catch (err) {
+                errorDiv.textContent = '操作失敗: ' + err.message;
+                errorDiv.style.display = 'block';
+                resultDiv.innerHTML = '';
+            }
+        }
+
+        function clearUpdateFeeForm() {
+            document.getElementById('updateFeeId').value = '';
+            document.getElementById('updateFeePaymentDate').value = '';
+            document.getElementById('updateFeeTotalAmount').value = '';
+            document.getElementById('updateFeeIsDelete').checked = false;
+            document.getElementById('updateFeeResult').innerHTML = '';
+            document.getElementById('updateFeeError').style.display = 'none';
+        }
+
         function displayAttendanceDetail(detail) {
             const detailContent = document.getElementById('attendanceDetailContent');
             const formatRatio = (r) => {
@@ -2190,6 +2279,95 @@ Content-Type: application/json
                     `;
                     break;
 
+                case 'updatePermissionFee':
+                    html = `
+                        <h2 style="color: #667eea;">✏️ 修改/刪除 學生權限費用記錄</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>PATCH /api/v2/StudentAttendance</code></p>
+                            <p><strong>說明：</strong>修改或刪除學生權限費用記錄（可編輯繳款日期、總金額、刪除狀態），方式同 /api/v2/UpdateCourse</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數 (ReqUpdateStudentPermissionFeeDTO)</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionFeeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限費用 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>paymentDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">繳款日期（格式: yyyy-MM-dd，可空不改）</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>totalAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">總金額（可空不改）</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>IsDelete</code></td><td style="padding: 8px; border: 1px solid #ddd;">bool</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">刪除標記（true=假刪除，預設 false）</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>result</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">結果代碼 (0=成功)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">訊息</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">💡 操作邏輯</h3>
+                            <div class="info">
+                                <p><strong>修改流程：</strong></p>
+                                <ol style="margin-left: 20px; line-height: 1.8;">
+                                    <li>若 <code>IsDelete = true</code>，執行假刪除（標記為已刪除）</li>
+                                    <li>否則，更新 <code>PaymentDate</code>（若提供）和 <code>TotalAmount</code>（若提供）</li>
+                                    <li>記錄修改時間 (<code>ModifiedTime</code>)</li>
+                                    <li>寫入稽核紀錄</li>
+                                </ol>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">📝 請求範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">// 修改繳款日期和金額
+PATCH /api/v2/StudentAttendance
+Content-Type: application/json
+
+{
+  "studentPermissionFeeId": 123,
+  "paymentDate": "2025-12-15",
+  "totalAmount": 5000,
+  "IsDelete": false
+}
+
+// 刪除費用記錄
+PATCH /api/v2/StudentAttendance
+Content-Type: application/json
+
+{
+  "studentPermissionFeeId": 123,
+  "IsDelete": true
+}</pre>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                                <div><label>費用 ID: <input type="number" id="testUpdateFeeId" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>繳款日期: <input type="date" id="testUpdatePaymentDate" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>總金額: <input type="number" id="testUpdateTotalAmount" style="width: 100%; padding: 6px;" placeholder="可空" /></label></div>
+                                <div><label>是否刪除: <select id="testUpdateIsDelete" style="width: 100%; padding: 6px;"><option value="false">否</option><option value="true">是</option></select></label></div>
+                            </div>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testUpdateStudentPermissionFee()">執行測試</button>
+                            <div id="testResult-updatePermissionFee" style="margin-top: 10px;"></div>
+                            
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-updatePermissionFee" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
+                        </div>
+                    `;
+                    break;
+
                 case 'getPaymentInfo':
                     html = `
                         <h2 style="color: #667eea;">💳 取得學生繳費資訊</h2>
@@ -2636,7 +2814,7 @@ Content-Type: application/json
 
                 case 'salaryReport':
                     html = `
-                        <h2 style="color: #667eea;">📄 薪資明細表 (實際串接)</h2>
+                        <h2 style="color: #667eea;">📄 薪資明細表 </h2>
                         <div style="margin-top: 20px;">
                             <h3>📖 API 概述</h3>
                             <p><strong>端點:</strong><code>GET /api/pdf/v1/SalaryReport?startDate={yyyy-MM-dd}&endDate={yyyy-MM-dd}&teacherId={id}&includePaid={bool}</code></p>
@@ -2683,27 +2861,9 @@ Content-Type: application/json
                     `;
                     break;
 
-                case 'salaryReportSample':
-                    html = `
-                        <h2 style="color: #667eea;">📄 薪資明細表 (Sample)</h2>
-                        <div style="margin-top: 20px;">
-                            <h3>📖 API 概述</h3>
-                            <p><strong>端點:</strong><code>GET /api/pdf/v1/SalaryReport/Sample</code></p>
-                            <p><strong>控制器:</strong><code>PDFController</code></p>
-                            <p><strong>說明:</strong>產生並回傳 QuestPDF PDF，使用假資料示範版面，下載即可檢視。</p>
-
-                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
-                            <button class="btn-primary" style="margin-top: 10px;" onclick="testSalaryReportSample()">執行測試 (下載 PDF)</button>
-                            <div id="testResult-salaryReportSample" style="margin-top: 10px;"></div>
-                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
-                            <pre id="rawData-salaryReportSample" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示檔案資訊</pre>
-                        </div>
-                    `;
-                    break;
-
                 case 'companyProfit':
                     html = `
-                        <h2 style="color: #667eea;">🏢 公司獲利彙總表 (實際串接)</h2>
+                        <h2 style="color: #667eea;">🏢 公司獲利彙總表 </h2>
                         <div style="margin-top: 20px;">
                             <h3>📖 API 概述</h3>
                             <p><strong>端點:</strong><code>GET /api/pdf/v1/CompanyProfitSummary?startDate={yyyy-MM-dd}&endDate={yyyy-MM-dd}&teacherId={id}&includePaid={bool}</code></p>
@@ -2750,23 +2910,6 @@ Content-Type: application/json
                     `;
                     break;
 
-                case 'companyProfitSample':
-                    html = `
-                        <h2 style="color: #667eea;">🏢 公司獲利彙總表 (Sample)</h2>
-                        <div style="margin-top: 20px;">
-                            <h3>📖 API 概述</h3>
-                            <p><strong>端點:</strong><code>GET /api/pdf/v1/CompanyProfitSummary/Sample</code></p>
-                            <p><strong>控制器:</strong><code>PDFController</code></p>
-                            <p><strong>說明:</strong>產生並回傳 QuestPDF PDF，公司獲利彙總樣板（114/10 個別班），包含序號、上課老師、學生數、堂數、學費欠費、實收學費、折帳薪資、應付薪資、補發薪資、公司毛利及百分比等欄位。下載即可檢視。</p>
-
-                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
-                            <button class="btn-primary" style="margin-top: 10px;" onclick="testCompanyProfitSample()">執行測試 (下載 PDF)</button>
-                            <div id="testResult-companyProfitSample" style="margin-top: 10px;"></div>
-                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
-                            <pre id="rawData-companyProfitSample" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示檔案資訊</pre>
-                        </div>
-                    `;
-                    break;
             }
 
             docContent.innerHTML = html;
@@ -2930,6 +3073,58 @@ Content-Type: application/json
             } catch(err) {
                 resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
                 document.getElementById('rawData-attendanceFee').textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        async function testUpdateStudentPermissionFee() {
+            const feeId = document.getElementById('testUpdateFeeId').value;
+            const paymentDate = document.getElementById('testUpdatePaymentDate').value;
+            const totalAmount = document.getElementById('testUpdateTotalAmount').value;
+            const isDelete = document.getElementById('testUpdateIsDelete').value === 'true';
+            
+            if (!feeId) {
+                alert('請輸入費用 ID');
+                return;
+            }
+
+            const body = { 
+                studentPermissionFeeId: parseInt(feeId),
+                IsDelete: isDelete
+            };
+            if (paymentDate) body.paymentDate = paymentDate;
+            if (totalAmount) body.totalAmount = parseInt(totalAmount);
+
+            const resultDiv = document.getElementById('testResult-updatePermissionFee');
+            resultDiv.innerHTML = '<div class="loading">處理中...</div>';
+            
+            try {
+                const res = await apiFetch('/api/v2/StudentAttendance', {
+                    method: 'PATCH',
+                    body: body
+                });
+                
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 0) {
+                    throw new Error(data.msg || '操作失敗');
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 操作成功</div>
+                    <div style="padding: 12px; background: #f0fff4; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <p><strong>費用 ID:</strong> ${feeId}</p>
+                        ${paymentDate ? `<p><strong>繳款日期:</strong> ${paymentDate}</p>` : ''}
+                        ${totalAmount ? `<p><strong>總金額:</strong> ￥${totalAmount}</p>` : ''}
+                        <p><strong>操作:</strong> ${isDelete ? '刪除記錄' : '更新記錄'}</p>
+                    </div>
+                `;
+
+                // 顯示 RAW DATA
+                document.getElementById('rawData-updatePermissionFee').textContent = JSON.stringify(data, null, 2);
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                document.getElementById('rawData-updatePermissionFee').textContent = `錯誤: ${err.message}`;
             }
         }
 
@@ -3435,58 +3630,6 @@ Content-Type: application/json
                 const url = URL.createObjectURL(blob);
 
                 resultDiv.innerHTML = `<div class="success">✅ PDF 產生成功 <a href="${url}" download="salary-report-${startDate}-${endDate}.pdf" target="_blank" style="color:#409eff;">下載/預覽</a></div>`;
-                rawDiv.textContent = `type: ${blob.type || 'unknown'}; size: ${blob.size} bytes`;
-
-                setTimeout(() => URL.revokeObjectURL(url), 60000);
-            } catch(err) {
-                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
-                rawDiv.textContent = `錯誤: ${err.message}`;
-            }
-        }
-
-        async function testSalaryReportSample() {
-            const resultDiv = document.getElementById('testResult-salaryReportSample');
-            const rawDiv = document.getElementById('rawData-salaryReportSample');
-            resultDiv.innerHTML = '<div class="loading">生成中...</div>';
-            rawDiv.textContent = '';
-
-            try {
-                const res = await apiFetch('/api/pdf/v1/SalaryReport/Sample', {
-                    headers: { 'Accept': 'application/pdf' }
-                });
-
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-                const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
-
-                resultDiv.innerHTML = `<div class="success">✅ PDF 產生成功 <a href="${url}" download="salary-report-sample.pdf" target="_blank" style="color:#409eff;">下載/預覽</a></div>`;
-                rawDiv.textContent = `type: ${blob.type || 'unknown'}; size: ${blob.size} bytes`;
-
-                setTimeout(() => URL.revokeObjectURL(url), 60000);
-            } catch(err) {
-                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
-                rawDiv.textContent = `錯誤: ${err.message}`;
-            }
-        }
-
-        async function testCompanyProfitSample() {
-            const resultDiv = document.getElementById('testResult-companyProfitSample');
-            const rawDiv = document.getElementById('rawData-companyProfitSample');
-            resultDiv.innerHTML = '<div class="loading">生成中...</div>';
-            rawDiv.textContent = '';
-
-            try {
-                const res = await apiFetch('/api/pdf/v1/CompanyProfitSummary/Sample', {
-                    headers: { 'Accept': 'application/pdf' }
-                });
-
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-                const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
-
-                resultDiv.innerHTML = `<div class="success">✅ PDF 產生成功 <a href="${url}" download="company-profit-summary-sample.pdf" target="_blank" style="color:#409eff;">下載/預覽</a></div>`;
                 rawDiv.textContent = `type: ${blob.type || 'unknown'}; size: ${blob.size} bytes`;
 
                 setTimeout(() => URL.revokeObjectURL(url), 60000);

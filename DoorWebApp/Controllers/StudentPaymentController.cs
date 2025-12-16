@@ -81,8 +81,9 @@ namespace DoorWebApp.Controllers
             var res = new APIResponse<StudentPaymentSummaryDTO>();
             try
             {
-                // 查詢學生權限費用記錄
+                // 查詢學生權限費用記錄（排除已刪除的記錄）
                 var permissionFee = await ctx.TblStudentPermissionFee
+                    .Where(spf => !spf.IsDelete)
                     .Include(spf => spf.StudentPermission)
                         .ThenInclude(sp => sp.Course)
                             .ThenInclude(c => c.CourseFee)
@@ -175,8 +176,9 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
-                // 驗證學生權限費用
+                // 驗證學生權限費用（排除已刪除的記錄）
                 var permissionFee = await ctx.TblStudentPermissionFee
+                    .Where(spf => !spf.IsDelete)
                     .Include(spf => spf.StudentPermission)
                     .Include(spf => spf.Payment)
                     .FirstOrDefaultAsync(spf => spf.Id == dto.StudentPermissionFeeId);

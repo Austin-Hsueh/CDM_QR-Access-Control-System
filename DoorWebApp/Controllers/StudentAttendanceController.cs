@@ -212,7 +212,8 @@ namespace DoorWebApp.Controllers
                         .OrderBy(a => a.AttendanceDate)
                         .ToList() ?? new List<TblAttendance>();
 
-                    var fees = sp.StudentPermissionFees ?? new List<TblStudentPermissionFee>();
+                    // 取得未刪除的費用記錄
+                    var fees = sp.StudentPermissionFees?.Where(spf => !spf.IsDelete).ToList() ?? new List<TblStudentPermissionFee>();
                     
                     // 如果沒有費用記錄，按簽到記錄每4筆一組顯示
                     // 不使用
@@ -318,7 +319,7 @@ namespace DoorWebApp.Controllers
 
                 // 1. 查詢學生權限費用記錄
                 var permissionFee = ctx.TblStudentPermissionFee
-                    .Where(spf => spf.Id == studentPermissionFeeId)
+                    .Where(spf => spf.Id == studentPermissionFeeId && !spf.IsDelete)
                     .Include(spf => spf.StudentPermission)             // 學生權限
                         .ThenInclude(sp => sp.Course)                  // 課程
                             .ThenInclude(c => c.CourseFee)             // 課程費用
@@ -588,6 +589,93 @@ namespace DoorWebApp.Controllers
             if (string.IsNullOrWhiteSpace(s)) return null;
             if (DateTime.TryParse(s, out var dt)) return dt;
             return null;
+        }
+
+        /// <summary>
+        /// 修改/刪除 學生權限費用記錄 (可編輯 PaymentDate/TotalAmount/IsDelete)
+        /// </summary>
+        [HttpPatch("v2/StudentAttendance")]
+        public async Task<IActionResult> UpdateStudentPermissionFee([FromBody] ReqUpdateStudentPermissionFeeDTO feeDTO)
+        {
+            var res = new APIResponse();
+            try
+            {
+                int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+                string OperatorUsername = User.Identity?.Name ?? "N/A";
+
+                log.LogInformation($"[{Request.Path}] Update StudentPermissionFee. OperatorId:{OperatorId}, FeeId:{feeDTO.studentPermissionFeeId}");
+
+                // 1. 資料檢核
+                var feeEntity = await ctx.TblStudentPermissionFee
+                    .Where(x => x.Id == feeDTO.studentPermissionFeeId)
+                    .FirstOrDefaultAsync();
+
+                if (feeEntity == null)
+                {
+                    log.LogWarning($"[{Request.Path}] StudentPermissionFee (Id:{feeDTO.studentPermissionFeeId}) not found");
+                    res.result = APIResultCode.unknow_error;
+                    res.msg = "查無學生權限費用記錄";
+                    return Ok(res);
+                }
+
+                // 2. 假刪除費用記錄
+                if (feeDTO.IsDelete)
+                {
+                    feeEntity.IsDelete = true;
+                    await ctx.SaveChangesAsync();
+                    log.LogInformation($"[{Request.Path}] Delete success. FeeId:{feeEntity.Id}");
+
+                    // 寫入稽核紀錄
+                    auditLog.WriteAuditLog(AuditActType.Modify, $"Delete StudentPermissionFee. id: {feeEntity.Id}", OperatorUsername);
+
+                    res.result = APIResultCode.success;
+                    res.msg = "success";
+                    return Ok(res);
+                }
+
+                // 3. 更新費用記錄
+                // 更新繳款日期
+                if (!string.IsNullOrEmpty(feeDTO.paymentDate))
+                {
+                    if (DateTime.TryParse(feeDTO.paymentDate, out var paymentDate))
+                    {
+                        feeEntity.PaymentDate = paymentDate;
+                    }
+                    else
+                    {
+                        log.LogWarning($"[{Request.Path}] Invalid paymentDate format: {feeDTO.paymentDate}");
+                        res.result = APIResultCode.unknow_error;
+                        res.msg = "paymentDate 格式不正確，應為 yyyy-MM-dd";
+                        return Ok(res);
+                    }
+                }
+
+                // 更新總金額
+                if (feeDTO.totalAmount.HasValue && feeDTO.totalAmount.Value >= 0)
+                {
+                    feeEntity.TotalAmount = feeDTO.totalAmount.Value;
+                }
+
+                // 記錄修改時間
+                feeEntity.ModifiedTime = DateTime.Now;
+
+                await ctx.SaveChangesAsync();
+                log.LogInformation($"[{Request.Path}] Update StudentPermissionFee success: Id={feeEntity.Id}");
+
+                // 寫入稽核紀錄
+                auditLog.WriteAuditLog(AuditActType.Modify, $"Update StudentPermissionFee. id: {feeEntity.Id}, PaymentDate: {feeDTO.paymentDate}, TotalAmount: {feeDTO.totalAmount}", OperatorUsername);
+
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "[UpdateStudentPermissionFee] error: {Message}", ex.Message);
+                res.result = APIResultCode.unknow_error;
+                res.msg = ex.Message;
+                return Ok(res);
+            }
         }
 
         // 轉為 HH:mm 字串
