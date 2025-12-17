@@ -43,6 +43,12 @@ namespace DoorDB
         public int RefundAmount { get; set; }
 
         /// <summary>
+        /// 結帳單號（對齊 TblPayment 收據編號規則）
+        /// </summary>
+        [Comment("結帳單號")]
+        public string? ReceiptNumber { get; set; }
+
+        /// <summary>
         /// 備註
         /// </summary>
         [Comment("備註")]
