@@ -164,9 +164,6 @@ tblStudentPermission (學生授課權限)
     ├─ FK: classroomId → tblClassroom
     └─ 自動產生課表:
         └─ 1:N → tblSchedule (課程表：按週期產生)
-
-【簽到與費用】
-tblSchedule (課程表)
     └─ 1:N → tblAttendance (簽到記錄)
         └─ 1:1 → tblAttendanceFee (簽到費用：時數、金額、增減、拆帳比)
 
