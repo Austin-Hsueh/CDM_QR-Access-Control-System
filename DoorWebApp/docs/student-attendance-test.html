@@ -120,7 +120,28 @@
                     <li><strong>公司獲利彙總表 (PDF):</strong> 按老師分組統計實收學費、應付薪資（折帳薪資）、毛利，學費欠費基於 tblPayment 判斷是否繳款，透過 GET /api/pdf/v1/CompanyProfitSummary。</li>
                 </ul>
 
-                <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">6️⃣ 軟刪除與審計</h4>
+                <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">6️⃣ 退款管理階段</h4>
+                <ul style="margin-left: 20px; color: #333;">
+                    <li><strong>查詢退款資訊:</strong> 透過 GET /api/v1/StudentRefund/{studentPermissionFeeId} 取得單筆費用的退款摘要（含應收、已收、折扣、已退金額、收據號）。資料來源涵蓋 tblStudentPermissionFee、tblPayment、tblRefund。</li>
+                    <li><strong>新增/更新退款:</strong> 透過 POST /api/v1/StudentRefund 建立或更新退款記錄（對齊繳費收據編號規則，如 114B120091），寫入 tblRefund，並記錄審計。</li>
+                    <li><strong>金額關聯:</strong> 退款不改變原繳款紀錄（tblPayment），但系統報表在計算「實收/未收」與「淨收入」時會一併考量退款金額。</li>
+                </ul>
+
+                <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">7️⃣ 關帳流程</h4>
+                <ul style="margin-left: 20px; color: #333;">
+                    <li><strong>查詢當日簽到狀態:</strong> GET /api/v1/CloseAccount/DailyStatus/{date} 回傳當日課表、簽到統計與是否可關帳（CanCloseAccount）。</li>
+                    <li><strong>批量簽到（可選）:</strong> POST /api/v1/CloseAccount/CheckInAll/{date} 將當日未簽到課程自動建立 tblAttendance 與對應 tblAttendanceFee（依課程費用/拆帳比計算），並寫入審計。</li>
+                    <li><strong>儲存關帳:</strong> POST /api/v1/CloseAccount，輸入日期與提存金額（DepositAmount）。系統自動計算：
+                        <br/>— 昨日零用金結餘（YesterdayPettyIncome）
+                        <br/>— 今日營業收入（BusinessIncome = 當日所有 Payment 的 Pay + DiscountAmount）
+                        <br/>— 關帳結算金額（CloseAccountAmount = 昨日零用金 + 今日營業收入）
+                        <br/>— 零用金結餘（PettyIncome = 結算金額 − 提存金額）
+                        <br/>並寫入 tblCloseAccount 與審計。</li>
+                    <li><strong>查詢關帳資料:</strong> GET /api/v1/CloseAccount/Detail/{date} 取得單日關帳內容；GET /api/v1/CloseAccount 可依日期區間查列表。</li>
+                    <li><strong>營業日總表 PDF:</strong> 可由「營業日總表 PDF」區塊測試/預覽，每日關帳資料與明細匯出報表。</li>
+                </ul>
+
+                <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">8️⃣ 軟刪除與審計</h4>
                 <ul style="margin-left: 20px; color: #333;">
                     <li><strong>軟刪除機制:</strong> tblStudentPermission、tblAttendance、tblStudentPermissionFee 等核心表都使用 IsDelete 欄位而非物理刪除，確保資料可溯源。</li>
                     <li><strong>審計日誌 (tblAuditLog):</strong> 重要操作 (新增、編輯、刪除課程、建立/修改費用等) 會被記錄在審計表中，包括操作時間、操作人、操作類型、影響的記錄 ID 等。</li>
@@ -128,24 +149,40 @@
 
                 <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">💾 核心資料表關係圖</h4>
                 <div style="background: white; padding: 12px; border-radius: 4px; border: 1px solid #ddd; margin-top: 10px; font-family: monospace; font-size: 12px; overflow-x: auto;">
-<pre>tblUser (老師/學生)
-    ↓ 1:N
-tblStudentPermission (學生授課權限)
-    ├─ 1:N → tblAttendance (簽到記錄)
-    │           ↓ 1:1
-    │       tblAttendanceFee (簽到費用)
-    │
-    └─ 1:N → tblStudentPermissionFee (權限費用)
-                    ↓ 1:1
-                tblPayment (繳款記錄)
-
+<pre>【使用者與課程基礎表】
+tblUser (使用者：老師/學生)
 tblCourse (課程)
-    ↓ 1:1
-tblCourseFee (課程收費)
+    └─ 1:1 → tblCourseFee (課程收費：金額、材料費、拆帳比)
+tblCourseType (課程類別)
+tblClassroom (教室)
 
-tblSchedule (課表，由權限自動產生)
+【權限與課表】
+tblStudentPermission (學生授課權限)
+    ├─ FK: userId → tblUser (學生)
+    ├─ FK: teacherId → tblUser (老師)
+    ├─ FK: courseId → tblCourse
+    ├─ FK: classroomId → tblClassroom
+    └─ 自動產生課表:
+        └─ 1:N → tblSchedule (課程表：按週期產生)
 
-tblAuditLog (審計日誌)</pre>
+【簽到與費用】
+tblSchedule (課程表)
+    └─ 1:N → tblAttendance (簽到記錄)
+        └─ 1:1 → tblAttendanceFee (簽到費用：時數、金額、增減、拆帳比)
+
+【費用與繳款】
+tblStudentPermission
+    └─ 1:N → tblStudentPermissionFee (權限費用：按週期/課程組計費)
+        ├─ FK: paymentId → tblPayment (繳款記錄：一對一關聯繳款)
+        └─ 關聯多筆 tblAttendance (每組簽到對應一筆 StudentPermissionFee)
+
+tblPayment (繳款記錄)
+    └─ FK: modifiedUserId → tblUser (操作者)
+
+【審計與結算】
+tblAuditLog (審計日誌：記錄所有重要操作)
+tblTeacherSettlement (老師結算：拆帳比、薪資統計)
+tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                 </div>
             </div>
         </div>
