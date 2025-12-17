@@ -116,7 +116,7 @@
                 <ul style="margin-left: 20px; color: #333;">
                     <li><strong>學生權限列表查詢 (tblStudentPermission):</strong> 查詢特定學生的所有已授予權限及其簽到摘要，包括「簽到次數」、「未繳費次數」等，透過 GET /api/v1/StudentAttendance/{userId}。</li>
                     <li><strong>簽到詳細查詢 (tblAttendance + tblAttendanceFee + tblPayment):</strong> 查詢特定 StudentPermission 的所有簽到記錄及最近繳款資訊，透過 GET /api/v1/StudentAttendance/Detail/{studentPermissionId}。</li>
-                    <li><strong>薪資明細表 (PDF):</strong> 依老師與日期統計所有簽到金額、時數，聚合成每位老師的薪資表，透過 GET /api/pdf/v1/SalaryReport。</li>
+                    <li><strong>上課拆帳明細表 (PDF):</strong> 依老師與日期統計所有簽到金額、時數，聚合成每位老師的薪資表，透過 GET /api/pdf/v1/SalaryReport。</li>
                     <li><strong>公司獲利彙總表 (PDF):</strong> 按老師分組統計實收學費、應付薪資（折帳薪資）、毛利，學費欠費基於 tblPayment 判斷是否繳款，透過 GET /api/pdf/v1/CompanyProfitSummary。</li>
                 </ul>
 
@@ -495,7 +495,7 @@ tblAuditLog (審計日誌)</pre>
 
                 <!-- 營業日總表 PDF -->
                 <div style="margin-bottom: 24px; padding: 16px; background: #fff3e0; border-radius: 8px; border-left: 4px solid #ff9800;">
-                    <h4 style="margin: 0 0 12px 0; color: #e65100;">📄 營業日總表 PDF（假數據版本）</h4>
+                    <h4 style="margin: 0 0 12px 0; color: #e65100;">📄 營業日總表 PDF</h4>
                     <p style="margin: 0 0 12px 0; color: #666; font-size: 13px;">生成指定日期的營業日總表 PDF，包含統計摘要與學生簽到明細</p>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                         <div>
@@ -503,7 +503,7 @@ tblAuditLog (審計日誌)</pre>
                             <input type="date" id="dailyReportDate" value="2025-12-16" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;" />
                         </div>
                         <div style="display: flex; align-items: flex-end;">
-                            <button class="btn-primary" style="width: 100%;" onclick="getDailyReportPdf()">📥 下載營業日總表 PDF</button>
+                            <button class="btn-primary" style="width: 100%;" onclick="getDailyReportPdf()">📥 下載營業日總表</button>
                         </div>
                     </div>
                     <div id="dailyReportStatus" style="margin-top: 16px;"></div>
@@ -803,7 +803,7 @@ tblAuditLog (審計日誌)</pre>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('listCloseAccount')">📋 取得關帳列表</button>
 
                             <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📄 報表</div>
-                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('salaryReport')">📄 薪資明細表</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('salaryReport')">📄 上課拆帳明細表</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('companyProfit')">🏢 公司獲利彙總表</button>
                         </div>
                     </div>
@@ -2908,6 +2908,8 @@ tblAuditLog (審計日誌)</pre>
             }
         }
 
+        // 已移除 getDailyBusinessPdf() 測試入口（PDFController 版本）
+
         // 費用記錄函數（可選）
         async function createAttendanceFee() {
             const attendanceId = document.getElementById('feeAttendanceId').value;
@@ -3866,12 +3868,12 @@ Content-Type: application/json
 
                 case 'salaryReport':
                     html = `
-                        <h2 style="color: #667eea;">📄 薪資明細表 </h2>
+                        <h2 style="color: #667eea;">📄 上課拆帳明細表 </h2>
                         <div style="margin-top: 20px;">
                             <h3>📖 API 概述</h3>
                             <p><strong>端點:</strong><code>GET /api/pdf/v1/SalaryReport?startDate={yyyy-MM-dd}&endDate={yyyy-MM-dd}&teacherId={id}&includePaid={bool}</code></p>
                             <p><strong>控制器:</strong><code>PDFController</code></p>
-                            <p><strong>說明:</strong>依結算日期區間、老師 ID 產生薪資明細表 PDF，資料來源為簽到(tblAttendance)與簽到費用(tblAttendanceFee)。可選擇是否包含未繳費記錄。</p>
+                            <p><strong>說明:</strong>依結算日期區間、老師 ID 產生上課拆帳明細表 PDF，資料來源為簽到(tblAttendance)與簽到費用(tblAttendanceFee)。可選擇是否包含未繳費記錄。</p>
 
                             <h3 style="margin-top: 20px;">📥 查詢參數</h3>
                             <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">

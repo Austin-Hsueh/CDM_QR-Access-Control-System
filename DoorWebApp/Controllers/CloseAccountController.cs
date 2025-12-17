@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using DoorDB;
+using DoorDB.Enums;
 using DoorWebApp.Models;
 using DoorWebApp.Models.DTO;
 using QuestPDF.Fluent;
@@ -17,13 +18,15 @@ namespace DoorWebApp.Controllers
     {
         private readonly DoorDbContext ctx;
         private readonly ILogger<CloseAccountController> log;
+        private readonly AuditLogWritter auditLog;
         private static bool _licenseInitialized;
         private static readonly object _licenseLock = new object();
 
-        public CloseAccountController(ILogger<CloseAccountController> log, DoorDbContext ctx)
+        public CloseAccountController(ILogger<CloseAccountController> log, DoorDbContext ctx, AuditLogWritter auditLog)
         {
             this.ctx = ctx;
             this.log = log;
+            this.auditLog = auditLog;
         }
 
         private static void EnsureQuestPdfLicense()
@@ -174,6 +177,7 @@ namespace DoorWebApp.Controllers
         {
             // 獲取操作者 ID
             int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+            string OperatorUsername = User.Identity?.Name ?? "N/A";
 
             // 檢查操作者 ID 是否有效
             if (OperatorId <= 0)
@@ -356,6 +360,11 @@ namespace DoorWebApp.Controllers
                 // 4. 一次性保存所有更改
                 await ctx.SaveChangesAsync();
 
+                auditLog.WriteAuditLog(
+                    AuditActType.Create,
+                    $"Batch check-in for {dateStr}. TotalSchedules={filteredSchedules.Count}, NewAttendances={successfulCheckins}",
+                    OperatorUsername);
+
                 res.result = APIResultCode.success;
                 res.msg = "批量簽到完成";
                 res.content = new CheckInAllResultDTO
@@ -533,6 +542,8 @@ namespace DoorWebApp.Controllers
         public async Task<IActionResult> SaveCloseAccount([FromBody] SaveCloseAccountRequest request)
         {
             var res = new APIResponse<TblCloseAccount>();
+            int operatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+            string operatorUsername = User.Identity?.Name ?? "N/A";
 
             try
             {
@@ -635,6 +646,12 @@ namespace DoorWebApp.Controllers
                 }
 
                 await ctx.SaveChangesAsync();
+
+                var auditMessage = isNewRecord
+                    ? $"Create CloseAccount {queryDate:yyyy-MM-dd}. Deposit={request.DepositAmount}, PettyIncome={closeAccount.PettyIncome}, BusinessIncome={closeAccount.BusinessIncome}, OperatorId={operatorId}"
+                    : $"Update CloseAccount {queryDate:yyyy-MM-dd}. Deposit={request.DepositAmount}, PettyIncome={closeAccount.PettyIncome}, BusinessIncome={closeAccount.BusinessIncome}, OperatorId={operatorId}";
+
+                auditLog.WriteAuditLog(isNewRecord ? AuditActType.Create : AuditActType.Modify, auditMessage, operatorUsername);
 
                 res.result = APIResultCode.success;
                 res.msg = isNewRecord ? "關帳記錄已新增" : "關帳記錄已更新";
@@ -843,7 +860,7 @@ namespace DoorWebApp.Controllers
             decimal tuitionIncome = System.Math.Round((decimal)todayPayments.Sum(p => p.Pay + p.DiscountAmount), 2);
             decimal tuitionDiscount = System.Math.Round((decimal)todayPayments.Sum(p => p.DiscountAmount), 2);
             int todayPresent = todayAttendances.Count(a => a.AttendanceType == 1); // 出席
-            int todayAbsent = todaySchedules - todayPresent;
+            int todayAbsent = todayAttendances.Count(a => a.AttendanceType == 2); // 請假
             decimal totalSignInAmount = System.Math.Round((decimal)todayAttendances.Sum(a => a.AttendanceFee != null ? a.AttendanceFee.Amount : 0), 2);
 
             // 零用金統計
@@ -955,118 +972,34 @@ namespace DoorWebApp.Controllers
                         col.Item().AlignRight().Text($"{data.PrintTime}").FontSize(8);
                         col.Item().PaddingBottom(8);
 
-                        // 三欄統計區域
-                        col.Item().Row(row =>
+                        // 統計區域（用 Row + Column + 分區框線）
+                        col.Item().Border(1).BorderColor("#000").Padding(0).Column(statsCol =>
                         {
-                            // 左側摘要統計
-                            row.RelativeItem(1.2f).Column(c =>
+                            // 上半部統計行
+                            statsCol.Item().Row(row =>
                             {
-                                c.Item().Text("VMS-POS").Bold().FontSize(10);
-                                c.Item().PaddingTop(4).Row(r =>
+                                // 中統計
+                                row.RelativeItem().BorderRight(1).Padding(4).Column(c =>
                                 {
-                                    r.RelativeItem().Column(cc =>
-                                    {
-                                        cc.Item().Text($"商品銷售: {data.ProductSales:N0}");
-                                        cc.Item().Text($"組會+維修: {data.GroupMaintenance:N0}");
-                                        cc.Item().Text($"商品折讓: {data.ProductDiscount:N0}");
-                                        cc.Item().Text($"學費收入: {data.TuitionIncome:N0}").Bold();
-                                        cc.Item().Text($"維習頻譜: {data.MaintenanceFrequency:N0}");
-                                        cc.Item().Text($"維習收現: {data.MaintenancePayment:N0}");
-                                        cc.Item().Text($"學費折讓: {data.TuitionDiscount:N0}");
-                                        cc.Item().Text($"退款/預繳: {data.RefundPrepayment:N0}");
-                                        cc.Item().Text($"今日欠款: {data.TodayDebt:N0}");
-                                        cc.Item().Text($"預收增減: {data.PrepaymentChange:N0}");
-                                        cc.Item().Text($"零用收支: {data.PettyCashInOut:N0}");
-                                        cc.Item().PaddingTop(4).Text($"結算金額: {data.SettlementAmount:N0}").Bold().FontSize(9);
-                                    });
+                                    c.Item().PaddingTop(3).Text($"學員總數: {data.TotalStudents}");
+                                    c.Item().Text($"本月新增: {data.MonthlyNewStudents}");
+                                    c.Item().Text($"本日新增: {data.DailyNewStudents}");
+                                    c.Item().Text($"今日上課: {data.TodayPresent}");
+                                    c.Item().Text($"今日請假: {data.TodayAbsent}");
+                                    c.Item().PaddingTop(3).Text($"繳費人次: {data.TotalSignIns}");
+                                    c.Item().PaddingTop(3).Text($"繳費金額: {data.TotalSignInAmount:N0}");
+                                });
+
+                                row.RelativeItem().Padding(4).Column(c =>
+                                {
+                                    c.Item().Text($"昨日零用金結餘: {data.YesterdayPettyCash:N0}");
+                                    c.Item().Text($"本日營運收入: {data.TodayOperationIncome:N0}");
+                                    c.Item().PaddingTop(3).Text($"本日結算金額: {data.TodaySettlement:N0}");
+                                    c.Item().Text($"提存金額: {data.DepositAmount:N0}");
+                                    c.Item().Text($"零用金結餘: {data.PettyCashBalance:N0}");
                                 });
                             });
 
-                            // 中間統計
-                            row.RelativeItem(1.5f).PaddingLeft(10).Column(c =>
-                            {
-                                c.Item().Border(1).Padding(4).Column(cc =>
-                                {
-                                    cc.Item().Row(rr =>
-                                    {
-                                        rr.RelativeItem().Text($"結帳合計: {data.CheckoutTotal:N0}").Bold();
-                                        rr.RelativeItem().Text($"付現: {data.CheckoutTotal:N0}");
-                                        rr.RelativeItem().Text($"刷卡:");
-                                        rr.RelativeItem().Text($"支票:");
-                                    });
-                                    
-                                    cc.Item().PaddingTop(4).Row(rr =>
-                                    {
-                                        rr.RelativeItem().Column(ccc =>
-                                        {
-                                            ccc.Item().Text($"學員總數: {data.TotalStudents}");
-                                            ccc.Item().Text($"本月新增: {data.MonthlyNewStudents}");
-                                            ccc.Item().Text($"本日新增: {data.DailyNewStudents}");
-                                            ccc.Item().Text($"今日連長: {data.TodayPresent}");
-                                            ccc.Item().Text($"今日連假: {data.TodayAbsent}");
-                                            ccc.Item().Text($"總簽人次: {data.TotalSignIns}").Bold();
-                                            ccc.Item().Text($"總簽金額: {data.TotalSignInAmount:N0}").Bold();
-                                        });
-
-                                        rr.RelativeItem().Column(ccc =>
-                                        {
-                                            ccc.Item().Text($"樂器租賃: 0");
-                                            ccc.Item().Text($"租賃押金: 0");
-                                            ccc.Item().Text($"租賃其它: 0");
-                                            ccc.Item().Text($"租賃銷售: 0");
-                                            ccc.Item().Text($"贈送組期: 0");
-                                            ccc.Item().Text($"贈送維修: 0");
-                                            ccc.Item().Text($"贈送轉售: 0");
-                                        });
-
-                                        rr.RelativeItem().Column(ccc =>
-                                        {
-                                            ccc.Item().Text($"維修檢測: 0");
-                                            ccc.Item().Text($"維修材料: 0");
-                                            ccc.Item().Text($"維修工資: 0");
-                                            ccc.Item().Text($"退貨/預收: 0");
-                                            ccc.Item().Text($"維修小計: 0");
-                                            ccc.Item().Text($"維護學費: 0");
-                                            ccc.Item().Text($"維護費用: 0");
-                                        });
-
-                                        rr.RelativeItem().Column(ccc =>
-                                        {
-                                            ccc.Item().Text("個別身分課程: 0");
-                                            ccc.Item().Text("團體身分課程: 0");
-                                            ccc.Item().PaddingTop(4).Text("課費合計: 42,880");
-                                        });
-
-                                        rr.RelativeItem().Column(ccc =>
-                                        {
-                                            ccc.Item().Text("商品銷售分類統計");
-                                            ccc.Item().Text("42,880");
-                                        });
-                                    });
-
-                                    cc.Item().PaddingTop(4).Row(rr =>
-                                    {
-                                        rr.RelativeItem().Text($"預收增加: {data.PrepaymentIncrease:N2}");
-                                        rr.RelativeItem().Text($"預收減少: {data.PrepaymentDecrease:N2}");
-                                        rr.RelativeItem().Text($"租賃小計: 0");
-                                    });
-                                });
-                            });
-
-                            // 右側零用金統計
-                            row.RelativeItem(1f).Column(c =>
-                            {
-                                c.Item().Border(1).Padding(4).Column(cc =>
-                                {
-                                    cc.Item().Text($"昨日零用金結餘: {data.YesterdayPettyCash:N0}");
-                                    cc.Item().Text($"本日營運收入: {data.TodayOperationIncome:N0}").Bold();
-                                    cc.Item().Text($"本日零用金收入: {data.TodayPettyCashIn:N0}");
-                                    cc.Item().Text($"本日零用金支出: {data.TodayPettyCashOut:N0}");
-                                    cc.Item().PaddingTop(4).Text($"本日結算金額: {data.TodaySettlement:N0}").Bold();
-                                    cc.Item().Text($"提存金額: {data.DepositAmount:N0}");
-                                    cc.Item().PaddingTop(4).Text($"零用金結餘: {data.PettyCashBalance:N0}").Bold();
-                                });
-                            });
                         });
 
                         col.Item().PaddingTop(8);
@@ -1076,47 +1009,46 @@ namespace DoorWebApp.Controllers
                         {
                             table.ColumnsDefinition(columns =>
                             {
-                                columns.ConstantColumn(70);  // 繳帳單號
-                                columns.ConstantColumn(50);  // 編號
-                                columns.ConstantColumn(60);  // 客戶姓名
-                                columns.ConstantColumn(45);  // 學號費用
-                                columns.ConstantColumn(40);  // 退款/預繳
-                                columns.ConstantColumn(40);  // 維習/租金
-                                columns.ConstantColumn(40);  // 銷售/租金
-                                columns.ConstantColumn(40);  // 折扣金額
-                                columns.ConstantColumn(40);  // 預收增減
-                                columns.ConstantColumn(40);  // 欠款金額
-                                columns.ConstantColumn(45);  // 實際收款
-                                columns.RelativeColumn();    // 結帳備註
-                                columns.ConstantColumn(60);  // 端統帳簿
+                                // 使用相對欄寬以避免中文字表頭造成排版異常
+                                columns.RelativeColumn(0.9f);   // 結帳單號
+                                columns.RelativeColumn(0.7f);   // 編號
+                                columns.RelativeColumn(1.2f);   // 客戶姓名
+                                columns.RelativeColumn(0.9f);   // 學費費用/租金
+                                columns.RelativeColumn(0.9f);   // 退款/預繳
+                                columns.RelativeColumn(0.9f);   // 販售相修
+                                columns.RelativeColumn(0.9f);   // 折扣金額
+                                columns.RelativeColumn(0.9f);   // 預收增減
+                                columns.RelativeColumn(0.9f);   // 欠款金額
+                                columns.RelativeColumn(1.0f);   // 實際收款
+                                columns.RelativeColumn(1.2f);   // 結帳備註
+                                columns.RelativeColumn(0.9f);   // 業績歸屬
                             });
 
                             table.Header(header =>
                             {
-                                header.Cell().Element(HeaderCell).Text("繳帳單號");
+                                header.Cell().Element(HeaderCell).Text("結帳單號");
                                 header.Cell().Element(HeaderCell).Text("編號");
                                 header.Cell().Element(HeaderCell).Text("客戶姓名");
-                                header.Cell().Element(HeaderCell).Text("學號費用");
+                                header.Cell().Element(HeaderCell).Text("學費費用/租金");
                                 header.Cell().Element(HeaderCell).Text("退款/預繳");
-                                header.Cell().Element(HeaderCell).Text("維習/租金");
-                                header.Cell().Element(HeaderCell).Text("銷售/租金");
+                                header.Cell().Element(HeaderCell).Text("販售相修");
                                 header.Cell().Element(HeaderCell).Text("折扣金額");
                                 header.Cell().Element(HeaderCell).Text("預收增減");
                                 header.Cell().Element(HeaderCell).Text("欠款金額");
                                 header.Cell().Element(HeaderCell).Text("實際收款");
                                 header.Cell().Element(HeaderCell).Text("結帳備註");
-                                header.Cell().Element(HeaderCell).Text("端統帳簿");
+                                header.Cell().Element(HeaderCell).Text("業績歸屬");
                             });
 
                             foreach (var record in data.Records)
                             {
+                                var saleTotal = record.Sales + record.Maintenance;
                                 table.Cell().Element(BodyCell).Text(record.InvoiceNo);
                                 table.Cell().Element(BodyCell).Text(record.Code);
                                 table.Cell().Element(BodyCell).Text(record.StudentName);
                                 table.Cell().Element(BodyCell).AlignRight().Text($"{record.Tuition:N0}");
                                 table.Cell().Element(BodyCell).AlignRight().Text($"{record.Refund:N0}");
-                                table.Cell().Element(BodyCell).AlignRight().Text($"{record.Maintenance:N0}");
-                                table.Cell().Element(BodyCell).AlignRight().Text($"{record.Sales:N0}");
+                                table.Cell().Element(BodyCell).AlignRight().Text($"{saleTotal:N0}");
                                 table.Cell().Element(BodyCell).AlignRight().Text($"{record.Discount:N0}");
                                 table.Cell().Element(BodyCell).AlignRight().Text($"{record.PrepaymentChange:N0}");
                                 table.Cell().Element(BodyCell).AlignRight().Text($"{record.Debt:N0}");
@@ -1126,14 +1058,13 @@ namespace DoorWebApp.Controllers
                             }
 
                             // 合計行
-                            table.Cell().ColumnSpan(3).Element(FooterCell).Text("銷售諾詩小計:");
+                            table.Cell().ColumnSpan(3).Element(FooterCell).Text("銷售計門小計:");
                             table.Cell().Element(FooterCell).AlignRight().Text($"{data.Records.Sum(r => r.Tuition):N0}");
-                            table.Cell().Element(FooterCell).AlignRight().Text("0");
-                            table.Cell().Element(FooterCell).AlignRight().Text("0");
-                            table.Cell().Element(FooterCell).AlignRight().Text("0");
-                            table.Cell().Element(FooterCell).AlignRight().Text("0");
-                            table.Cell().Element(FooterCell).AlignRight().Text("0");
-                            table.Cell().Element(FooterCell).AlignRight().Text("0");
+                            table.Cell().Element(FooterCell).AlignRight().Text($"{data.Records.Sum(r => r.Refund):N0}");
+                            table.Cell().Element(FooterCell).AlignRight().Text($"{data.Records.Sum(r => r.Sales + r.Maintenance):N0}");
+                            table.Cell().Element(FooterCell).AlignRight().Text($"{data.Records.Sum(r => r.Discount):N0}");
+                            table.Cell().Element(FooterCell).AlignRight().Text($"{data.Records.Sum(r => r.PrepaymentChange):N0}");
+                            table.Cell().Element(FooterCell).AlignRight().Text($"{data.Records.Sum(r => r.Debt):N0}");
                             table.Cell().Element(FooterCell).AlignRight().Text($"{data.Records.Sum(r => r.ActualPayment):N0}");
                             table.Cell().ColumnSpan(2).Element(FooterCell);
                         });
@@ -1144,7 +1075,13 @@ namespace DoorWebApp.Controllers
 
         private static IContainer HeaderCell(IContainer container)
         {
-            return container.Border(0.5f).Background("#f0f0f0").Padding(3).AlignCenter();
+            return container
+                .Border(0.5f)
+                .Background("#f0f0f0")
+                .PaddingVertical(3)
+                .PaddingHorizontal(1)
+                .AlignCenter()
+                .AlignMiddle();
         }
 
         private static IContainer BodyCell(IContainer container)

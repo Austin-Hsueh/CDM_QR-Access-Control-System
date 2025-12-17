@@ -1,12 +1,14 @@
+using DoorDB;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
-using DoorDB;
-using QuestPDF.Fluent;
-using QuestPDF.Infrastructure;
+using System.Threading.Tasks;
 
 namespace DoorWebApp.Controllers
 {
@@ -167,7 +169,11 @@ namespace DoorWebApp.Controllers
                         });
 
                         var subtotalCeil = Math.Ceiling(sample.TotalAmount);
-                        col.Item().PaddingTop(8).Text($"老師基本折帳比: {sample.BaseRatio:0.00}    跳級人數: {sample.PromotionCount}    跳級折帳比: {sample.PromotionRatio:0.00}    小計: ${subtotalCeil:N0}");
+                        col.Item().PaddingTop(8).Row(row =>
+                        {
+                            row.RelativeItem().Text($"老師基本折帳比: {sample.BaseRatio:0.00}    跳級人數: {sample.PromotionCount}    跳級折帳比: {sample.PromotionRatio:0.00}");
+                            row.RelativeItem().AlignRight().Text($"小計: ${subtotalCeil:N0}");
+                        });
 
                         col.Item().PaddingTop(4).Row(row =>
                         {
@@ -300,14 +306,70 @@ namespace DoorWebApp.Controllers
                 return $"{startRocYear:000}/{start.Month:00}~{endRocYear:000}/{end.Month:00}";
         }
 
+        private static IContainer LeftHeaderCell(IContainer container)
+        {
+            return container
+                .BorderTop(1.2f)
+                .BorderLeft(1.2f)
+                .BorderBottom(1.2f)
+                .BorderColor(Colors.Black)
+                .PaddingVertical(4)
+                .PaddingHorizontal(3)
+                .AlignCenter()
+                .AlignMiddle();
+        }
+        private static IContainer RightHeaderCell(IContainer container)
+        {
+            return container
+                .BorderTop(1.2f)
+                .BorderRight(1.2f)
+                .BorderBottom(1.2f)
+                .BorderColor(Colors.Black)
+                .PaddingVertical(4)
+                .PaddingHorizontal(3)
+                .AlignCenter()
+                .AlignMiddle();
+        }
         private static IContainer HeaderCell(IContainer container)
         {
-            return container.Border(0.5f).Padding(4).AlignCenter();
+            return container
+                .BorderTop(1.2f)
+                .BorderBottom(1.2f)
+                .BorderColor(Colors.Black)
+                .PaddingVertical(4)
+                .PaddingHorizontal(3)
+                .AlignCenter()
+                .AlignMiddle();
         }
 
+        private static IContainer LeftBodyCell(IContainer container)
+        {
+            return container
+                .BorderBottom(0.5f)
+                .BorderLeft(0.5f)
+                .BorderColor(Colors.Grey.Medium)
+                .PaddingVertical(3)
+                .PaddingHorizontal(3)
+                .AlignMiddle();
+        }
+        private static IContainer RightBodyCell(IContainer container)
+        {
+            return container
+                .BorderBottom(0.5f)
+                .BorderRight(0.5f)
+                .BorderColor(Colors.Grey.Medium)
+                .PaddingVertical(3)
+                .PaddingHorizontal(3)
+                .AlignMiddle();
+        }
         private static IContainer BodyCell(IContainer container)
         {
-            return container.Border(0.5f).Padding(4).AlignCenter();
+            return container
+                .BorderBottom(0.5f)
+                .BorderColor(Colors.Grey.Medium)
+                .PaddingVertical(3)
+                .PaddingHorizontal(3)
+                .AlignMiddle();
         }
 
         private record LessonItem(string Date, decimal Amount, decimal Hours);
@@ -445,9 +507,15 @@ namespace DoorWebApp.Controllers
 
             var totalStudents = rows.Sum(r => r.StudentCount);
             var totalLessons = rows.Sum(r => r.LessonCount);
-            var totalArrears = rows.Sum(r => r.Arrears);
+            var totalLessonArrears = rows.Sum(r => r.LessonArrears);
             var totalReceived = rows.Sum(r => r.ReceivedAmount);
+            var totalSplitSalary = rows.Sum(r => r.SplitSalary);
+            var totalAdvanceSalary = rows.Sum(r => r.AdvanceSalary);
+            var totalHealthInsurance = rows.Sum(r => r.HealthInsurance);
+            var totalDeposit = rows.Sum(r => r.Deposit);
             var totalSalary = rows.Sum(r => r.SalaryAmount);
+            var totalAdvancedSalary = rows.Sum(r => r.AdvancedSalary);
+            var totalSupplementSalary = rows.Sum(r => r.SupplementSalary);
             var totalProfit = rows.Sum(r => r.Profit);
 
             var period = FormatPeriod(start, end);
@@ -458,9 +526,15 @@ namespace DoorWebApp.Controllers
                 Rows = rows,
                 TotalStudents = totalStudents,
                 TotalLessons = totalLessons,
-                TotalArrears = totalArrears,
+                TotalLessonArrears = totalLessonArrears,
                 TotalReceived = totalReceived,
+                TotalSplitSalary = totalSplitSalary,
+                TotalAdvanceSalary = totalAdvanceSalary,
+                TotalHealthInsurance = totalHealthInsurance,
+                TotalDeposit = totalDeposit,
                 TotalSalary = totalSalary,
+                TotalAdvancedSalary = totalAdvancedSalary,
+                TotalSupplementSalary = totalSupplementSalary,
                 TotalProfit = totalProfit
             };
         }
@@ -469,15 +543,16 @@ namespace DoorWebApp.Controllers
         {
             var headers = new[]
             {
-                "序號", "上課老師", "學生數", "堂數", "學費欠費",
-                "實收學費", "應付薪資", "公司毛利", "%"
+                "序號", "上課老師", "學生數", "堂數", "堂數欠費", "實收學費",
+                "折帳薪資", "預支薪資", "二代健保", "保證金", "應付薪資",
+                "代墊薪資", "補發薪資", "公司毛利", "%"
             };
 
             return Document.Create(doc =>
             {
                 doc.Page(page =>
                 {
-                    page.Size(QuestPDF.Helpers.PageSizes.A4);
+                    page.Size(QuestPDF.Helpers.PageSizes.A4.Landscape());
                     page.Margin(20);
                     page.DefaultTextStyle(x => x.FontFamily("Microsoft JhengHei").FontSize(10));
 
@@ -496,48 +571,72 @@ namespace DoorWebApp.Controllers
                         {
                             table.ColumnsDefinition(columns =>
                             {
-                                columns.ConstantColumn(36);
-                                columns.RelativeColumn(2.5f);
-                                columns.RelativeColumn(1.0f);
-                                columns.RelativeColumn(1.0f);
-                                columns.RelativeColumn(1.2f);
-                                columns.RelativeColumn(1.2f);
-                                columns.RelativeColumn(1.2f);
-                                columns.RelativeColumn(1.2f);
-                                columns.ConstantColumn(48);
+                                columns.ConstantColumn(32);      // 序號
+                                columns.RelativeColumn(1.5f);    // 上課老師
+                                columns.RelativeColumn(0.7f);    // 學生數
+                                columns.RelativeColumn(0.7f);    // 堂數
+                                columns.RelativeColumn(0.9f);    // 堂數欠費
+                                columns.RelativeColumn(1.0f);    // 實收學費
+                                columns.RelativeColumn(1.0f);    // 折帳薪資
+                                columns.RelativeColumn(0.9f);    // 預支薪資
+                                columns.RelativeColumn(0.9f);    // 二代健保
+                                columns.RelativeColumn(0.8f);    // 保證金
+                                columns.RelativeColumn(1.0f);    // 應付薪資
+                                columns.RelativeColumn(0.9f);    // 代墊薪資
+                                columns.RelativeColumn(0.9f);    // 補發薪資
+                                columns.RelativeColumn(1.0f);    // 公司毛利
+                                columns.ConstantColumn(48);      // %
                             });
 
                             table.Header(header =>
                             {
-                                foreach (var h in headers)
-                                    header.Cell().Element(HeaderCell).Text(h).SemiBold();
+                                for (int i = 0; i < headers.Length; i++)
+                                {
+                                    var h = headers[i];
+                                    var cellStyle = i == 0
+                                        ? (Func<IContainer, IContainer>)LeftHeaderCell
+                                        : (i == headers.Length - 1 ? RightHeaderCell : HeaderCell);
+                                    header.Cell().Element(cellStyle).Text(h).SemiBold();
+                                }
                             });
 
                             var index = 1;
                             foreach (var r in data.Rows)
                             {
-                                table.Cell().Element(BodyCell).Text(index.ToString());
+                                table.Cell().Element(LeftBodyCell).Text(index.ToString());
                                 table.Cell().Element(BodyCell).Text(r.TeacherName);
                                 table.Cell().Element(BodyCell).Text(r.StudentCount.ToString());
                                 table.Cell().Element(BodyCell).Text(r.LessonCount.ToString("0.00"));
-                                table.Cell().Element(BodyCell).Text(r.Arrears.ToString("N0"));
+                                table.Cell().Element(BodyCell).Text(r.LessonArrears.ToString("N0"));  // 堂數欠費
                                 table.Cell().Element(BodyCell).Text(r.ReceivedAmount.ToString("N0"));
-                                table.Cell().Element(BodyCell).Text(r.SalaryAmount.ToString("N0"));
+                                table.Cell().Element(BodyCell).Text(r.SplitSalary.ToString("N0"));    // 折帳薪資
+                                table.Cell().Element(BodyCell).Text(r.AdvanceSalary.ToString("N0"));  // 預支薪資
+                                table.Cell().Element(BodyCell).Text(r.HealthInsurance.ToString("N0")); // 二代健保
+                                table.Cell().Element(BodyCell).Text(r.Deposit.ToString("N0"));        // 保證金
+                                table.Cell().Element(BodyCell).Text(r.SalaryAmount.ToString("N0"));   // 應付薪資
+                                table.Cell().Element(BodyCell).Text(r.AdvancedSalary.ToString("N0")); // 代墊薪資
+                                table.Cell().Element(BodyCell).Text(r.SupplementSalary.ToString("N0")); // 補發薪資
                                 table.Cell().Element(BodyCell).Text(r.Profit.ToString("N0"));
-                                table.Cell().Element(BodyCell).Text($"{r.ProfitRate:0.00}%");
+                                table.Cell().Element(RightBodyCell).Text($"{r.ProfitRate:0.00}%");
                                 index++;
                             }
 
-                            table.Cell().Element(BodyCell).Text("合計:");
+                            table.Cell().Element(LeftBodyCell).Text("合計:");
                             table.Cell().Element(BodyCell).Text("");
                             table.Cell().Element(BodyCell).Text(data.TotalStudents.ToString());
                             table.Cell().Element(BodyCell).Text(data.TotalLessons.ToString("0.00"));
-                            table.Cell().Element(BodyCell).Text(data.TotalArrears.ToString("N0"));
+                            table.Cell().Element(BodyCell).Text(data.TotalLessonArrears.ToString("N0"));
                             table.Cell().Element(BodyCell).Text(data.TotalReceived.ToString("N0"));
+                            table.Cell().Element(BodyCell).Text(data.TotalSplitSalary.ToString("N0"));
+                            table.Cell().Element(BodyCell).Text(data.TotalAdvanceSalary.ToString("N0"));
+                            table.Cell().Element(BodyCell).Text(data.TotalHealthInsurance.ToString("N0"));
+                            table.Cell().Element(BodyCell).Text(data.TotalDeposit.ToString("N0"));
                             table.Cell().Element(BodyCell).Text(data.TotalSalary.ToString("N0"));
+                            table.Cell().Element(BodyCell).Text(data.TotalAdvancedSalary.ToString("N0"));
+                            table.Cell().Element(BodyCell).Text(data.TotalSupplementSalary.ToString("N0"));
                             table.Cell().Element(BodyCell).Text(data.TotalProfit.ToString("N0"));
                             var totalRate = data.TotalReceived > 0 ? (data.TotalProfit / data.TotalReceived * 100) : 0;
-                            table.Cell().Element(BodyCell).Text($"{totalRate:0.00}%");
+                            table.Cell().Element(RightBodyCell).Text($"{totalRate:0.00}%");
                         });
                     });
                 });
@@ -587,9 +686,15 @@ namespace DoorWebApp.Controllers
                     TeacherName = TeacherName,
                     StudentCount = _studentIds.Count,
                     LessonCount = _totalHours,
-                    Arrears = arrears,
+                    LessonArrears = arrears,      // 堂數欠費
                     ReceivedAmount = receivedAmount,
-                    SalaryAmount = _totalSalary,
+                    SplitSalary = _totalSalary,   // 折帳薪資
+                    AdvanceSalary = 0,            // 預支薪資（暂无数据）
+                    HealthInsurance = 0,          // 二代健保（暂无数据）
+                    Deposit = 0,                  // 保證金（暂无数据）
+                    SalaryAmount = _totalSalary,  // 應付薪資
+                    AdvancedSalary = 0,           // 代墊薪資（暂无数据）
+                    SupplementSalary = 0,         // 補發薪資（暂无数据）
                     Profit = profit,
                     ProfitRate = profitRate
                 };
@@ -601,9 +706,15 @@ namespace DoorWebApp.Controllers
             public string TeacherName { get; set; } = string.Empty;
             public int StudentCount { get; set; }
             public decimal LessonCount { get; set; }
-            public decimal Arrears { get; set; }
+            public decimal LessonArrears { get; set; }      // 堂數欠費
             public decimal ReceivedAmount { get; set; }
-            public decimal SalaryAmount { get; set; }
+            public decimal SplitSalary { get; set; }        // 折帳薪資
+            public decimal AdvanceSalary { get; set; }      // 預支薪資
+            public decimal HealthInsurance { get; set; }    // 二代健保
+            public decimal Deposit { get; set; }            // 保證金
+            public decimal SalaryAmount { get; set; }       // 應付薪資
+            public decimal AdvancedSalary { get; set; }     // 代墊薪資
+            public decimal SupplementSalary { get; set; }   // 補發薪資
             public decimal Profit { get; set; }
             public decimal ProfitRate { get; set; }
         }
@@ -614,9 +725,15 @@ namespace DoorWebApp.Controllers
             public List<ProfitRow> Rows { get; set; } = new();
             public int TotalStudents { get; set; }
             public decimal TotalLessons { get; set; }
-            public decimal TotalArrears { get; set; }
+            public decimal TotalLessonArrears { get; set; }      // 堂數欠費
             public decimal TotalReceived { get; set; }
-            public decimal TotalSalary { get; set; }
+            public decimal TotalSplitSalary { get; set; }        // 折帳薪資
+            public decimal TotalAdvanceSalary { get; set; }      // 預支薪資
+            public decimal TotalHealthInsurance { get; set; }    // 二代健保
+            public decimal TotalDeposit { get; set; }            // 保證金
+            public decimal TotalSalary { get; set; }             // 應付薪資
+            public decimal TotalAdvancedSalary { get; set; }     // 代墊薪資
+            public decimal TotalSupplementSalary { get; set; }   // 補發薪資
             public decimal TotalProfit { get; set; }
         }
     }
