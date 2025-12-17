@@ -53,6 +53,27 @@ namespace DoorWebApp.Models.DTO
     }
 
     /// <summary>
+    /// 學生退款資訊回應 DTO (繼承繳費資訊，額外包含退款欄位)
+    /// </summary>
+    public class StudentRefundSummaryDTO : StudentPaymentSummaryDTO
+    {
+        /// <summary>退款 ID</summary>
+        public int? RefundId { get; set; }
+
+        /// <summary>退款日期</summary>
+        public string? RefundDate { get; set; }
+
+        /// <summary>退款金額</summary>
+        public int? RefundAmount { get; set; }
+
+        /// <summary>退款備註</summary>
+        public string? RefundRemark { get; set; }
+
+        /// <summary>退款結帳單號（來自 tblRefund）</summary>
+        public string? RefundReceiptNumber { get; set; }
+    }
+
+    /// <summary>
     /// 學生繳費記錄 DTO
     /// </summary>
     public class StudentPaymentRecordDTO

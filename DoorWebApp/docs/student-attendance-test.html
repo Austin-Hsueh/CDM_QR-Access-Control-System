@@ -162,6 +162,7 @@ tblAuditLog (審計日誌)</pre>
                 <div class="tab" onclick="switchTab('closeaccount')">📋 關帳管理</div>
                 <div class="tab" onclick="switchTab('attendance')">📝 查 學生權限</div>
                 <div class="tab" onclick="switchTab('payment')">💳 繳費管理</div>
+                <div class="tab" onclick="switchTab('refund')">💳 退款管理</div>
                 <div class="tab" onclick="switchTab('docs')">📖 API 文檔</div>
             </div>
 
@@ -681,6 +682,41 @@ tblAuditLog (審計日誌)</pre>
                 </div>
             </div>
 
+            <!-- 退款管理 Tab -->
+            <div id="refund" class="tab-content">
+                <div class="card">
+                    <h3>查詢學生退款資訊</h3>
+                    <div style="padding: 16px 0;">
+                        <input type="number" id="refundStudentPermissionFeeId" value="1" min="1" placeholder="輸入學生權限費用 ID (StudentPermissionFeeId)" />
+                        <button class="btn-primary" onclick="getRefundInfo()">查詢</button>
+                        <button class="btn-default" onclick="clearRefundInfo()">清除</button>
+                    </div>
+                    <div id="refundContent"></div>
+                    <div id="refundError" class="error" style="display:none;"></div>
+                </div>
+
+                <div class="card">
+                    <h3>新增或更新退款記錄</h3>
+                    <div style="padding: 16px 0; background: #f5f7fa; border-radius: 4px; padding: 12px;">
+                        <div style="margin-bottom: 12px;">
+                            <label>學生權限費用 ID: <input type="number" id="createRefundFeeId" value="1" min="1" style="width: 150px;" /></label>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label>退款金額: <input type="number" id="createRefundAmount" value="1000" min="1" style="width: 150px;" /></label>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label>備註: <input type="text" id="createRefundRemark" placeholder="選填" style="width: 250px;" /></label>
+                        </div>
+                        <div style="color: #67c23a; font-size: 13px; margin-bottom: 8px;">
+                            ℹ️ 退款日期、結帳單號與操作者 ID 將自動產生
+                        </div>
+                        <button class="btn-primary" onclick="createRefundRecord()">新增/更新記錄</button>
+                    </div>
+                    <div id="createRefundResult" style="margin-top: 12px;"></div>
+                    <div id="createRefundError" class="error" style="display:none;"></div>
+                </div>
+            </div>
+
             <!-- API 文檔 Tab -->
             <div id="docs" class="tab-content">
                 <div style="display: grid; grid-template-columns: 250px 1fr; gap: 20px;">
@@ -699,6 +735,10 @@ tblAuditLog (審計日誌)</pre>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('studentsList')">👨‍🎓 取得學生名單</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('getPaymentInfo')">💳 取得學生繳費資訊</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createPayment')">💵 新增或編輯繳費記錄</button>
+
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">💳 退款管理</div>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('refundList')">🔄 取得學生退款資訊</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createRefund')">↩️ 新增或編輯退款記錄</button>
 
                             <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📝 學生權限記錄</div>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('studentsList')">👨‍🎓 取得學生名單</button>
@@ -3916,6 +3956,14 @@ Content-Type: application/json
                             <h3 style="margin-top: 20px;">📤 回應欄位</h3>
                             <p>同取得關帳資料的回應欄位</p>
 
+                            <h3 style="margin-top: 20px;">⚠️ 智能儲存</h3>
+                            <div style="margin-top: 10px; padding: 12px; background: #fffacd; border-left: 4px solid #fbbf24; border-radius: 4px;">
+                                <ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
+                                    <li>若該日期尚無關帳記錄 → <strong>新增</strong>記錄</li>
+                                    <li>若該日期已有關帳記錄 → <strong>更新</strong>現有記錄（保留原關帳資料，更新提存金額和零用金結餘）</li>
+                                </ul>
+                            </div>
+
                             <h3 style="margin-top: 20px;">💡 邏輯流程</h3>
                             <div class="info">
                                 <ol style="margin-left: 20px; line-height: 1.8;">
@@ -3992,6 +4040,207 @@ Content-Type: application/json
 
 # 或只查詢最近 30 天（不帶參數）
 GET /api/v1/CloseAccount</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'refundList':
+                    html = `
+                        <h2 style="color: #f56c6c;">💳 取得學生退款資訊</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>GET /api/v1/StudentRefund/{studentPermissionFeeId}</code></p>
+                            <p><strong>說明：</strong>取得指定學生權限費用的繳費摘要資訊和退款記錄</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f56c6c; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionFeeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限費用 ID</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位 (StudentRefundSummaryDTO)</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f56c6c; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="background: #fff5f5;"><th colspan="3" style="padding: 8px; text-align: left; color: #f56c6c; font-weight: bold;">繳費摘要欄位</th></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionFeeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限費用 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">課程 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">課程名稱</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">學生 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">學生姓名</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>currentAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">當筆金額 (學費+教材)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>receivableAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal</td><td style="padding: 8px; border: 1px solid #ddd;">應收金額 (扣除總折扣)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>paidAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">已收金額</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>outstandingAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal</td><td style="padding: 8px; border: 1px solid #ddd;">欠款金額</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>totalDiscount</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal</td><td style="padding: 8px; border: 1px solid #ddd;">總折扣金額</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>payDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">繳費日期</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>receiptNumber</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">結帳單號（繳費）</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>remark</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">備註</td></tr>
+                                    <tr style="background: #fff5f5;"><th colspan="3" style="padding: 8px; text-align: left; color: #f56c6c; font-weight: bold;">退款資訊欄位</th></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>refundId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">退款 ID (無退款時為 null)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>refundDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">退款日期</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>refundAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">退款金額</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>refundReceiptNumber</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">退款結帳單號</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>refundRemark</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">退款備註</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">💡 說明</h3>
+                            <div class="info">
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li><strong>1:1 關係：</strong>每個 StudentPermissionFee 最多有一筆退款記錄</li>
+                                    <li><strong>結帳單號分離：</strong>
+                                        <ul style="margin-left: 20px;">
+                                            <li><code>receiptNumber</code> - 繳費時產生的結帳單號</li>
+                                            <li><code>refundReceiptNumber</code> - 退款時產生的結帳單號</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>無退款情況：</strong>若無退款，refundId/refundDate/refundAmount/refundReceiptNumber 均為 null</li>
+                                </ul>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <label>學生權限費用 ID: <input type="number" id="testRefundGetFeeId" style="width: 150px; padding: 6px;" /></label>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testGetRefundInfo()">執行測試</button>
+                            <div id="testResult-refundList" style="margin-top: 10px;"></div>
+                            
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-refundList" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'createRefund':
+                    html = `
+                        <h2 style="color: #f56c6c;">💳 新增或更新退款記錄</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>POST /api/v1/StudentRefund</code></p>
+                            <p><strong>說明：</strong>新增或更新退款記錄（若無則新增，若有則更新），自動產生退款結帳單號</p>
+                            <div class="info" style="margin-top: 10px; padding: 12px; background: #fff5f5; border-left: 4px solid #f56c6c; border-radius: 4px;">
+                                <p style="margin: 0;"><strong>⚠️ 智能儲存：</strong></p>
+                                <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+                                    <li>若該費用尚無退款記錄 → <strong>新增</strong>記錄（產生退款結帳單號）</li>
+                                    <li>若該費用已有退款記錄 → <strong>更新</strong>現有記錄（保留原退款結帳單號）</li>
+                                </ul>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數 (ReqCreateRefundDTO)</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f56c6c; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionFeeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限費用 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>refundAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">退款金額</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>remark</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">退款備註</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">🤖 自動產生欄位</h3>
+                            <div class="info">
+                                <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background: #f56c6c; color: white;">
+                                            <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                            <th style="padding: 8px; border: 1px solid #ddd;">產生規則</th>
+                                            <th style="padding: 8px; border: 1px solid #ddd;">範例</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>退款日期</strong></td><td style="padding: 8px; border: 1px solid #ddd;">系統自動取得當前 UTC+8 時間 (YYYY/MM/DD)</td><td style="padding: 8px; border: 1px solid #ddd;">2025/12/17</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>退款結帳單號</strong></td><td style="padding: 8px; border: 1px solid #ddd;">格式: {民國年:03}B{月份:02}{流水號:04}<br/>查詢當月最新流水號後 +1</td><td style="padding: 8px; border: 1px solid #ddd;">114B120091</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>操作者 ID</strong></td><td style="padding: 8px; border: 1px solid #ddd;">從 JWT Token 的 userId claim 取得</td><td style="padding: 8px; border: 1px solid #ddd;">自動填入</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">📝 請求範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">POST /api/v1/StudentRefund
+Content-Type: application/json
+
+{
+  "studentPermissionFeeId": 123,
+  "refundAmount": 5000,
+  "remark": "學生主動要求退款"
+}</pre>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f56c6c; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>result</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">結果代碼 (1=成功)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">訊息 ("created" 或 "updated")</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>content</code></td><td style="padding: 8px; border: 1px solid #ddd;">object?</td><td style="padding: 8px; border: 1px solid #ddd;">操作結果資料（StudentRefundSummaryDTO）</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">✅ 成功回應範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">{
+  "result": 1,
+  "msg": "created",
+  "content": {
+    "refundId": 456,
+    "refundDate": "2025/12/17",
+    "refundAmount": 5000,
+    "refundReceiptNumber": "114B120091",
+    "refundRemark": "學生主動要求退款",
+    ...其他 StudentRefundSummaryDTO 欄位...
+  }
+}</pre>
+
+                            <h3 style="margin-top: 20px;">💡 操作邏輯</h3>
+                            <div style="background: #fff5f5; border-left: 4px solid #f56c6c; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                                <ol style="margin-left: 20px; color: #333;">
+                                    <li><strong>查詢現有退款：</strong>檢查該 StudentPermissionFee 是否已有退款記錄</li>
+                                    <li><strong>新增或更新：</strong>
+                                        <ul style="margin-left: 20px;">
+                                            <li>若無 → 新增記錄，生成退款結帳單號，msg="created"</li>
+                                            <li>若有 → 更新金額和備註，保留原結帳單號，msg="updated"</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>回傳完整資訊：</strong>返回 StudentRefundSummaryDTO，包含繳費摘要和最新退款資訊</li>
+                                    <li><strong>稽核紀錄：</strong>操作會被記錄在 AuditLog</li>
+                                </ol>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                                <div><label>費用 ID: <input type="number" id="testRefundCreateFeeId" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>退款金額: <input type="number" id="testRefundCreateAmount" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>退款備註: <input type="text" id="testRefundCreateRemark" style="width: 100%; padding: 6px;" placeholder="可空" /></label></div>
+                            </div>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testCreateRefundRecord()">執行測試</button>
+                            <div id="testResult-createRefund" style="margin-top: 10px;"></div>
+                            
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-createRefund" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
                         </div>
                     `;
                     break;
@@ -4326,6 +4575,130 @@ GET /api/v1/CloseAccount</pre>
                 document.getElementById('createPaymentAmount').value = '';
                 document.getElementById('createPaymentDiscount').value = '0';
                 document.getElementById('createPaymentRemark').value = '';
+            } catch(err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+                resultDiv.innerHTML = '';
+            }
+        }
+
+        // ========== 退款管理功能 ==========
+
+        async function getRefundInfo() {
+            const permissionFeeId = document.getElementById('refundStudentPermissionFeeId').value;
+            if (!permissionFeeId) {
+                alert('請輸入學生權限費用 ID');
+                return;
+            }
+
+            const resultDiv = document.getElementById('refundContent');
+            const errorDiv = document.getElementById('refundError');
+            resultDiv.innerHTML = '<div class="loading">載入中...</div>';
+            errorDiv.style.display = 'none';
+
+            try {
+                const res = await apiFetch(`/api/v1/StudentRefund/${permissionFeeId}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '查詢失敗');
+                }
+
+                const info = data.content;
+                let html = `
+                    <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; border: 1px solid #b3d8ff; margin-bottom: 16px;">
+                        <h4>繳費摘要 + 退款資訊</h4>
+                        <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                            <tr style="border-bottom: 1px solid #ddd;"><th style="text-align: left; padding: 8px;">課程名稱</th><td style="padding: 8px;">${info.courseName || '無'}</td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><th style="text-align: left; padding: 8px;">學生姓名</th><td style="padding: 8px;">${info.studentName || '無'}</td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><th style="text-align: left; padding: 8px;">當筆金額</th><td style="padding: 8px; color: #409eff; font-weight: bold;">¥${info.currentAmount || 0}</td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><th style="text-align: left; padding: 8px;">應收金額</th><td style="padding: 8px; color: #409eff; font-weight: bold;">¥${info.receivableAmount || 0}</td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><th style="text-align: left; padding: 8px;">已收金額</th><td style="padding: 8px; color: #67c23a; font-weight: bold;">¥${info.paidAmount || 0}</td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><th style="text-align: left; padding: 8px;">欠款金額</th><td style="padding: 8px; color: #e6a23c; font-weight: bold;">¥${info.outstandingAmount || 0}</td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><th style="text-align: left; padding: 8px;">總額折扣</th><td style="padding: 8px; color: #f56c6c; font-weight: bold;">-¥${info.totalDiscount || 0}</td></tr>
+                            <tr style="border-bottom: 2px solid #67c23a;"><th colspan="2" style="text-align: left; padding: 8px; color: #67c23a; font-weight: bold;">繳費單據</th></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><th style="text-align: left; padding: 8px;">繳費日期</th><td style="padding: 8px;">${info.payDate || '無'}</td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><th style="text-align: left; padding: 8px;">結帳單號</th><td style="padding: 8px; color: #67c23a; font-weight: bold;">${info.receiptNumber || '無'}</td></tr>
+                            <tr style="border-bottom: 2px solid #f56c6c;"><th colspan="2" style="text-align: left; padding: 8px; color: #f56c6c; font-weight: bold;">退款資訊</th></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><th style="text-align: left; padding: 8px;">退款日期</th><td style="padding: 8px;">${info.refundDate || '無'}</td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><th style="text-align: left; padding: 8px;">退款金額</th><td style="padding: 8px; color: #f56c6c; font-weight: bold;">-¥${info.refundAmount || 0}</td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><th style="text-align: left; padding: 8px;">退款結帳單號</th><td style="padding: 8px; color: #f56c6c; font-weight: bold;">${info.refundReceiptNumber || '無'}</td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><th style="text-align: left; padding: 8px;">退款備註</th><td style="padding: 8px;">${info.refundRemark || '-'}</td></tr>
+                        </table>
+                    </div>
+                `;
+
+                resultDiv.innerHTML = html;
+            } catch(err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+                resultDiv.innerHTML = '';
+            }
+        }
+
+        function clearRefundInfo() {
+            document.getElementById('refundContent').innerHTML = '';
+            document.getElementById('refundError').style.display = 'none';
+            document.getElementById('refundStudentPermissionFeeId').value = '1';
+        }
+
+        async function createRefundRecord() {
+            const feeId = document.getElementById('createRefundFeeId').value;
+            const amount = parseInt(document.getElementById('createRefundAmount').value);
+            const remark = document.getElementById('createRefundRemark').value || null;
+
+            if (!feeId || !amount) {
+                alert('請填寫必填欄位：學生權限費用ID、退款金額');
+                return;
+            }
+
+            const resultDiv = document.getElementById('createRefundResult');
+            const errorDiv = document.getElementById('createRefundError');
+            resultDiv.innerHTML = '<div class="loading">處理中...</div>';
+            errorDiv.style.display = 'none';
+
+            try {
+                const payload = {
+                    studentPermissionFeeId: parseInt(feeId),
+                    refundAmount: amount,
+                    remark: remark
+                };
+
+                const res = await apiFetch('/api/v1/StudentRefund', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '處理失敗');
+                }
+
+                const isCreated = data.msg === 'created';
+                const isUpdated = data.msg === 'updated';
+                const actionText = isCreated ? '新增' : isUpdated ? '更新' : '處理';
+
+                const content = data.content || {};
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 退款記錄${actionText}成功</div>
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <p><strong>操作：</strong>${actionText}</p>
+                        <p><strong>學生權限費用ID：</strong>${feeId}</p>
+                        <p><strong>退款金額：</strong>$${amount}</p>
+                        <p><strong>退款日期：</strong>${content.refundDate}</p>
+                        <p><strong>結帳單號（繳費）：</strong>${content.receiptNumber || '無'}</p>
+                        <p><strong>退款結帳單號：</strong>${content.refundReceiptNumber || '無'}</p>
+                        ${remark ? `<p><strong>備註：</strong>${remark}</p>` : ''}
+                    </div>
+                `;
+                
+                // 清空表單
+                document.getElementById('createRefundAmount').value = '';
+                document.getElementById('createRefundRemark').value = '';
             } catch(err) {
                 errorDiv.textContent = err.message;
                 errorDiv.style.display = 'block';
@@ -4757,6 +5130,122 @@ GET /api/v1/CloseAccount</pre>
                 rawDiv.textContent = `type: ${blob.type || 'unknown'}; size: ${blob.size} bytes`;
 
                 setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                rawDiv.textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        // ========== API 文檔測試：退款管理 ==========
+
+        async function testGetRefundInfo() {
+            const feeId = document.getElementById('testRefundGetFeeId').value;
+            if (!feeId) {
+                alert('請輸入學生權限費用 ID');
+                return;
+            }
+
+            const resultDiv = document.getElementById('testResult-refundList');
+            const rawDiv = document.getElementById('rawData-refundList');
+            resultDiv.innerHTML = '<div class="loading">查詢中...</div>';
+            rawDiv.textContent = '';
+
+            try {
+                const res = await apiFetch(`/api/v1/StudentRefund/${feeId}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '查詢失敗');
+                }
+
+                const info = data.content;
+                let html = `
+                    <div class="success">✅ 查詢成功</div>
+                    <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; border: 1px solid #b3d8ff; margin-top: 8px;">
+                        <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                            <tr style="border-bottom: 1px solid #ddd;"><th style="text-align: left; padding: 8px; background: #e6f7ff;">繳費摘要</th><th style="text-align: left; padding: 8px;"></th></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">課程</td><td style="padding: 8px;"><strong>${info.courseName || '無'}</strong></td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">學生</td><td style="padding: 8px;"><strong>${info.studentName || '無'}</strong></td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">當筆金額</td><td style="padding: 8px; color: #409eff; font-weight: bold;">¥${info.currentAmount || 0}</td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">應收金額</td><td style="padding: 8px; color: #409eff;">¥${info.receivableAmount || 0}</td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">已收金額</td><td style="padding: 8px; color: #67c23a; font-weight: bold;">¥${info.paidAmount || 0}</td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">欠款金額</td><td style="padding: 8px; color: #e6a23c;">¥${info.outstandingAmount || 0}</td></tr>
+                            <tr style="border-bottom: 2px solid #67c23a;"><th style="text-align: left; padding: 8px; background: #f0f9ff;">繳費單據</th><th style="text-align: left; padding: 8px;"></th></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">繳費日期</td><td style="padding: 8px;">${info.payDate || '無'}</td></tr>
+                            <tr style="border-bottom: 2px solid #f56c6c;"><td style="padding: 8px;"><strong>結帳單號</strong></td><td style="padding: 8px; color: #67c23a; font-weight: bold;">${info.receiptNumber || '無'}</td></tr>
+                            <tr style="border-bottom: 2px solid #f56c6c;"><th style="text-align: left; padding: 8px; background: #fff5f5;">退款資訊</th><th style="text-align: left; padding: 8px;"></th></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">退款日期</td><td style="padding: 8px;">${info.refundDate || '無'}</td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">退款金額</td><td style="padding: 8px; color: #f56c6c; font-weight: bold;">-¥${info.refundAmount || 0}</td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;"><strong>退款結帳單號</strong></td><td style="padding: 8px; color: #f56c6c; font-weight: bold;">${info.refundReceiptNumber || '無'}</td></tr>
+                            <tr style="border-bottom: 1px solid #ddd;"><td style="padding: 8px;">退款備註</td><td style="padding: 8px;">${info.refundRemark || '-'}</td></tr>
+                        </table>
+                    </div>
+                `;
+
+                resultDiv.innerHTML = html;
+                rawDiv.textContent = JSON.stringify(data, null, 2);
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                rawDiv.textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        async function testCreateRefundRecord() {
+            const feeId = document.getElementById('testRefundCreateFeeId').value;
+            const amount = parseInt(document.getElementById('testRefundCreateAmount').value);
+            const remark = document.getElementById('testRefundCreateRemark').value || null;
+
+            if (!feeId || !amount) {
+                alert('請填寫必填欄位：費用 ID、退款金額');
+                return;
+            }
+
+            const resultDiv = document.getElementById('testResult-createRefund');
+            const rawDiv = document.getElementById('rawData-createRefund');
+            resultDiv.innerHTML = '<div class="loading">處理中...</div>';
+            rawDiv.textContent = '';
+
+            try {
+                const payload = {
+                    studentPermissionFeeId: parseInt(feeId),
+                    refundAmount: amount,
+                    remark: remark
+                };
+
+                const res = await apiFetch('/api/v1/StudentRefund', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '處理失敗');
+                }
+
+                const isCreated = data.msg === 'created';
+                const isUpdated = data.msg === 'updated';
+                const actionText = isCreated ? '新增' : isUpdated ? '更新' : '處理';
+
+                const content = data.content || {};
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 退款記錄${actionText}成功</div>
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <p><strong>操作：</strong>${actionText}</p>
+                        <p><strong>課程：</strong>${content.courseName || '-'}</p>
+                        <p><strong>學生：</strong>${content.studentName || '-'}</p>
+                        <p><strong>退款金額：</strong>¥${amount}</p>
+                        <p><strong>退款日期：</strong>${content.refundDate}</p>
+                        <p><strong style="color: #67c23a;">結帳單號（繳費）：</strong>${content.receiptNumber || '無'}</p>
+                        <p><strong style="color: #f56c6c;">退款結帳單號：</strong>${content.refundReceiptNumber || '無'}</p>
+                        ${remark ? `<p><strong>備註：</strong>${remark}</p>` : ''}
+                    </div>
+                `;
+                
+                rawDiv.textContent = JSON.stringify(data, null, 2);
             } catch(err) {
                 resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
                 rawDiv.textContent = `錯誤: ${err.message}`;
