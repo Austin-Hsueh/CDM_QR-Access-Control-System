@@ -740,7 +740,11 @@ tblAuditLog (審計日誌)</pre>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('refundList')">🔄 取得學生退款資訊</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createRefund')">↩️ 新增或編輯退款記錄</button>
 
-                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📝 學生權限記錄</div>
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">� 使用者管理</div>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('addUser')">👤 新增使用者</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('updateUser')">✏️ 更新使用者</button>
+
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">�📝 學生權限記錄</div>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('studentsList')">👨‍🎓 取得學生名單</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceList')">📝 學生權限記錄列表</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createPermissionFee')">➕ 新增學生權限費用</button>
@@ -4241,6 +4245,164 @@ Content-Type: application/json
                             
                             <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
                             <pre id="rawData-createRefund" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'addUser':
+                    html = `
+                        <h2 style="color: #667eea;">👤 新增使用者</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>POST /api/v1/User</code></p>
+                            <p><strong>說明：</strong>新增使用者帳號。若角色為老師（Role ID = 2），會自動建立 tblTeacherSettlement 記錄</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數 (ReqNewUserDTO)</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>username</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">使用者帳號</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>displayName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">顯示名稱</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>email</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">Email 地址</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>phone</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">電話號碼</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>password</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">密碼</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>roleid</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">角色 ID (1=管理員, 2=老師, 3=家長, 4=學生等)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>splitRatio</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">老師拆帳比例 (當 roleid=2 時使用，0-1 之間，預設 0.7)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>type</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">選課狀態 (0=預設, 1=在學, 2=停課, 3=約課)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>address</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">地址</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">⚠️ 自動建立邏輯</h3>
+                            <div style="margin-top: 10px; padding: 12px; background: #fffacd; border-left: 4px solid #fbbf24; border-radius: 4px;">
+                                <p style="margin: 0;"><strong>當 roleid = 2（老師）時：</strong></p>
+                                <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+                                    <li>系統會自動建立 <code>tblTeacherSettlement</code> 記錄</li>
+                                    <li>使用提供的 <code>splitRatio</code> 作為拆帳比例</li>
+                                    <li>若未提供 <code>splitRatio</code>，則使用預設值 0.7 (70%)</li>
+                                </ul>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>result</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">結果代碼 (0=成功)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">訊息</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📝 請求範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">POST /api/v1/User
+Content-Type: application/json
+
+{
+  "username": "teacher001",
+  "displayName": "王老師",
+  "email": "teacher@example.com",
+  "phone": "0912345678",
+  "password": "SecurePass123!",
+  "roleid": 2,
+  "splitRatio": 0.65,
+  "type": 1,
+  "address": "台北市中山區"
+}</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'updateUser':
+                    html = `
+                        <h2 style="color: #667eea;">✏️ 更新使用者</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>PATCH /api/v1/UpdateUser</code></p>
+                            <p><strong>說明：</strong>更新使用者資訊。若角色變更為或已是老師（Role ID = 2），會自動建立或編輯 tblTeacherSettlement 記錄</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數 (ReqUpdateUserDTO)</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>userId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">使用者 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>username</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">使用者帳號</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>displayName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">顯示名稱</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>email</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">Email 地址</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>phone</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">電話號碼</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>password</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">密碼 (留空則不修改)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>roleid</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">角色 ID (1=管理員, 2=老師, 3=家長, 4=學生等)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>splitRatio</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">老師拆帳比例 (當 roleid=2 時使用，0-1 之間，可空不修改)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>IsDelete</code></td><td style="padding: 8px; border: 1px solid #ddd;">bool</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">是否刪除 (true=假刪除，預設 false)</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">⚠️ 自動建立/編輯邏輯</h3>
+                            <div style="margin-top: 10px; padding: 12px; background: #fffacd; border-left: 4px solid #fbbf24; border-radius: 4px;">
+                                <p style="margin: 0;"><strong>當 roleid = 2（老師）時：</strong></p>
+                                <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+                                    <li>若用戶尚無 <code>tblTeacherSettlement</code> 記錄 → <strong>建立</strong>新記錄
+                                        <ul style="margin-left: 20px;">
+                                            <li>若提供 <code>splitRatio</code>，使用該值</li>
+                                            <li>否則使用預設值 0.7 (70%)</li>
+                                        </ul>
+                                    </li>
+                                    <li>若用戶已有 <code>tblTeacherSettlement</code> 記錄 → <strong>編輯</strong>現有記錄
+                                        <ul style="margin-left: 20px;">
+                                            <li>若提供 <code>splitRatio</code>，更新為新值</li>
+                                            <li>若未提供，保留現有值</li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>result</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">結果代碼 (0=成功)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">訊息</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📝 請求範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">PATCH /api/v1/UpdateUser
+Content-Type: application/json
+
+{
+  "userId": 123,
+  "username": "teacher001",
+  "displayName": "王老師（更新）",
+  "email": "teacher.new@example.com",
+  "phone": "0987654321",
+  "roleid": 2,
+  "splitRatio": 0.75,
+  "IsDelete": false
+}</pre>
                         </div>
                     `;
                     break;

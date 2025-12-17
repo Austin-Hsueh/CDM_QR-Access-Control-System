@@ -34,6 +34,11 @@
         public int roleid { set; get; }
 
         /// <summary>
+        /// 老師拆帳比例 (當 roleid=2 時使用，0-1 之間的小數)
+        /// </summary>
+        public decimal? splitRatio { get; set; }
+
+        /// <summary>
         /// 選課狀態 
         /// </summary>
         /// 0預設 1 在學 2 停課 3 約課
