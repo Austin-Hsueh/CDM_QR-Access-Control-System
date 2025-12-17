@@ -117,7 +117,7 @@
                     <li><strong>學生權限列表查詢 (tblStudentPermission):</strong> 查詢特定學生的所有已授予權限及其簽到摘要，包括「簽到次數」、「未繳費次數」等，透過 GET /api/v1/StudentAttendance/{userId}。</li>
                     <li><strong>簽到詳細查詢 (tblAttendance + tblAttendanceFee + tblPayment):</strong> 查詢特定 StudentPermission 的所有簽到記錄及最近繳款資訊，透過 GET /api/v1/StudentAttendance/Detail/{studentPermissionId}。</li>
                     <li><strong>薪資明細表 (PDF):</strong> 依老師與日期統計所有簽到金額、時數，聚合成每位老師的薪資表，透過 GET /api/pdf/v1/SalaryReport。</li>
-                    <li><strong>公司獲利彙總表 (PDF):</strong> 按老師分組統計實收學費、折帳薪資、毛利，透過 GET /api/pdf/v1/CompanyProfitSummary。</li>
+                    <li><strong>公司獲利彙總表 (PDF):</strong> 按老師分組統計實收學費、應付薪資（折帳薪資）、毛利，學費欠費基於 tblPayment 判斷是否繳款，透過 GET /api/pdf/v1/CompanyProfitSummary。</li>
                 </ul>
 
                 <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">6️⃣ 軟刪除與審計</h4>
@@ -559,14 +559,16 @@ tblAuditLog (審計日誌)</pre>
                 </div>
 
                 <!-- 依學生權限ID查詢費用 -->
-                <div style="padding: 16px 0;">
+                <div style="margin-bottom: 24px; padding: 16px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #409eff;">
                     <h4 style="margin: 0 0 12px 0;">💰 依學生權限ID查詢費用</h4>
-                    <input type="number" id="queryStudentPermissionId" value="1661" min="1" placeholder="輸入學生權限 Id" />
-                    <button class="btn-primary" onclick="queryAttendance()">查詢</button>
-                    <button class="btn-default" onclick="clearAttendance()">清除</button>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <input type="number" id="queryStudentPermissionId" value="1661" min="1" placeholder="輸入學生權限 Id" style="width: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                        <button class="btn-primary" onclick="queryAttendance()">查詢</button>
+                        <button class="btn-default" onclick="clearAttendance()">清除</button>
+                    </div>
+                    <div id="attendanceContent" style="margin-top: 12px;"></div>
+                    <div id="attendanceError" class="error" style="display:none;"></div>
                 </div>
-                <div id="attendanceContent"></div>
-                <div id="attendanceError" class="error" style="display:none;"></div>
                 
                 <!-- 新增費用記錄區域 -->
                 <div style="margin-top: 20px; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #ddd;">
@@ -779,13 +781,13 @@ tblAuditLog (審計日誌)</pre>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('refundList')">🔄 取得學生退款資訊</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createRefund')">↩️ 新增或編輯退款記錄</button>
 
-                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">� 使用者管理</div>
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;"> 使用者管理</div>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('addUser')">👤 新增使用者</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('updateUser')">✏️ 更新使用者</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('getAllUsersWithRoles')">📋 查詢所有使用者</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('getUserWithRoles')">🔍 查詢單一使用者</button>
 
-                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">�📝 學生權限記錄</div>
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📝 學生權限記錄</div>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('studentsList')">👨‍🎓 取得學生名單</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceList')">📝 學生權限記錄列表</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createPermissionFee')">➕ 新增學生權限費用</button>
@@ -793,14 +795,14 @@ tblAuditLog (審計日誌)</pre>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('paymentDetail')">💰 顯示繳費細項</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceFee')">✏️ 單堂老師費用修改</button>
 
-                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">� 關帳管理</div>
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;"> 關帳管理</div>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('dailyStatus')">🔍 取得簽到清單</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('checkInAll')">✅ 全部簽到</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('getCloseAccount')">💰 取得關帳資料</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('saveCloseAccount')">💾 新增或編輯關帳</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('listCloseAccount')">📋 取得關帳列表</button>
 
-                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">�📄 報表</div>
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📄 報表</div>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('salaryReport')">📄 薪資明細表</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('companyProfit')">🏢 公司獲利彙總表</button>
                         </div>
@@ -2890,14 +2892,14 @@ tblAuditLog (審計日誌)</pre>
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
                 const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `daily-report-${date}.pdf`;
-                a.click();
-                URL.revokeObjectURL(url);
+                const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+                const url = URL.createObjectURL(pdfBlob);
 
-                resultDiv.innerHTML = `<div class="success">✅ PDF 已生成並下載 <a href="${url}" target="_blank" style="color:#409eff;">預覽</a></div>`;
+                resultDiv.innerHTML = `<div class="success">✅ PDF 已生成 
+                    <a href="${url}" download="daily-report-${date}.pdf" style="color:#409eff; margin-left: 8px;">💾 下載</a>
+                    <button class="btn-primary btn-small" onclick="previewPdfInNewTab('${url}')" style="margin-left: 8px;">👁️ 直接預覽</button>
+                </div>`;
+                
                 setTimeout(() => URL.revokeObjectURL(url), 60000);
             } catch (err) {
                 errorDiv.textContent = err.message;
@@ -3939,7 +3941,7 @@ Content-Type: application/json
                             <h3>📖 API 概述</h3>
                             <p><strong>端點:</strong><code>GET /api/pdf/v1/CompanyProfitSummary?startDate={yyyy-MM-dd}&endDate={yyyy-MM-dd}&teacherId={id}&includePaid={bool}</code></p>
                             <p><strong>控制器:</strong><code>PDFController</code></p>
-                            <p><strong>說明:</strong>依結算日期區間產生公司獲利彙總表 PDF，按老師分組統計。實收學費由薪資回推拆帳比金額，薪資直接加總 tblAttendance，毛利為實收減薪資。</p>
+                            <p><strong>說明:</strong>依結算日期區間產生公司獲利彙總表 PDF，按老師分組統計。實收學費由薪資回推拆帳比金額，應付薪資等同折帳薪資，毛利為實收減應付薪資。</p>
 
                             <h3 style="margin-top: 20px;">📥 查詢參數</h3>
                             <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
@@ -3990,21 +3992,19 @@ Content-Type: application/json
                                     <li><strong>分組對應:</strong> 同薪資明細，每 StudentPermission 的簽到依日期排序，按每 4 筆分為一組去對應該組的 StudentPermissionFee。</li>
                                     <li><strong>繳費判定:</strong> 若 includePaid=false，只計算有繳款 (StudentPermissionFee.Payment.Pay &gt; 0) 的出勤。</li>
                                     <li><strong>實收學費計算:</strong> 使用 AttendanceFee.SourceHoursTotalAmount 作為該筆出勤的「實收學費」。</li>
-                                    <li><strong>薪資類型區分:</strong> 若對應組有付款，該筆薪資 (Amount + AdjustmentAmount) 計入「應付薪資」；否則計入「補發薪資」。</li>
-                                    <li><strong>欠費計算:</strong> 課程定價 = Course.CourseFee.Amount + Course.CourseFee.MaterialFee；實收 = 該 StudentPermission 所有有付款 (Payment) 的 StudentPermissionFee 的 Pay + DiscountAmount 之和；欠費 = Max(定價 - 實收, 0)，每個 StudentPermission 只計算一次。</li>
+                                    <li><strong>應付薪資計算:</strong> 折帳薪資 (Amount + AdjustmentAmount) 等同於應付薪資，不需要區分補發薪資。</li>
+                                    <li><strong>欠費計算:</strong> 每堂課的欠費 = (對應 StudentPermissionFee.TotalAmount / 4) - (對應 Payment.Pay / 4)，每筆 Attendance 都計算一次並累加。</li>
                                     <li><strong>老師聚合:</strong> 依 TeacherId 分組統計:
                                         <ul style="margin-left: 20px;">
                                             <li>學生數 = 不重複的 StudentIds 數量</li>
                                             <li>堂數 = 累計 AttendanceFee.Hours（預設 1）</li>
                                             <li>實收學費 = 累計 SourceHoursTotalAmount</li>
-                                            <li>折帳薪資 = 累計 Amount + AdjustmentAmount（全部）</li>
-                                            <li>應付薪資 = 有付款組的薪資總和</li>
-                                            <li>補發薪資 = 未付款組的薪資總和</li>
-                                            <li>學費欠費 = 累計各 StudentPermission 的欠費</li>
+                                            <li>應付薪資 = 累計 Amount + AdjustmentAmount（折帳薪資）</li>
+                                            <li>學費欠費 = 累計每堂課的欠費金額</li>
                                         </ul>
                                     </li>
-                                    <li><strong>毛利計算:</strong> 公司毛利 = 實收學費 - 折帳薪資；毛利率 = (毛利 / 實收學費) × 100%。</li>
-                                    <li><strong>PDF 生成:</strong> 調用 QuestPDF 生成表格，欄位包括序號、老師名稱、學生數、堂數、學費欠費、實收學費、折帳薪資、應付薪資、補發薪資、公司毛利、毛利率，最後加上合計行。</li>
+                                    <li><strong>毛利計算:</strong> 公司毛利 = 實收學費 - 應付薪資；毛利率 = (毛利 / 實收學費) × 100%。</li>
+                                    <li><strong>PDF 生成:</strong> 調用 QuestPDF 生成表格，欄位包括序號、老師名稱、學生數、堂數、學費欠費、實收學費、應付薪資、公司毛利、毛利率，最後加上合計行。</li>
                                 </ol>
                             </div>
 
@@ -5588,7 +5588,10 @@ Content-Type: application/json
                 const blob = await res.blob();
                 const url = URL.createObjectURL(blob);
 
-                resultDiv.innerHTML = `<div class="success">✅ PDF 產生成功 <a href="${url}" download="salary-report-${startDate}-${endDate}.pdf" target="_blank" style="color:#409eff;">下載/預覽</a></div>`;
+                resultDiv.innerHTML = `<div class="success">✅ PDF 產生成功 
+                    <a href="${url}" download="salary-report-${startDate}-${endDate}.pdf" style="color:#409eff; margin-left: 8px;">💾 下載</a>
+                    <button class="btn-primary btn-small" onclick="previewPdfInNewTab('${url}')" style="margin-left: 8px;">👁️ 直接預覽</button>
+                </div>`;
                 rawDiv.textContent = `type: ${blob.type || 'unknown'}; size: ${blob.size} bytes`;
 
                 setTimeout(() => URL.revokeObjectURL(url), 60000);
@@ -5626,13 +5629,38 @@ Content-Type: application/json
                 const blob = await res.blob();
                 const blobUrl = URL.createObjectURL(blob);
 
-                resultDiv.innerHTML = `<div class="success">✅ PDF 產生成功 <a href="${blobUrl}" download="company-profit-summary-${startDate}-${endDate}-teacher-${teacherId}.pdf" target="_blank" style="color:#409eff;">下載/預覽</a></div>`;
+                resultDiv.innerHTML = `<div class="success">✅ PDF 產生成功 
+                    <a href="${blobUrl}" download="company-profit-summary-${startDate}-${endDate}-teacher-${teacherId}.pdf" style="color:#409eff; margin-left: 8px;">💾 下載</a>
+                    <button class="btn-primary btn-small" onclick="previewPdfInNewTab('${blobUrl}')" style="margin-left: 8px;">👁️ 直接預覽</button>
+                </div>`;
                 rawDiv.textContent = `type: ${blob.type || 'unknown'}; size: ${blob.size} bytes`;
 
                 setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
             } catch(err) {
                 resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
                 rawDiv.textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        // ========== PDF 預覽通用函數 ==========
+        
+        /**
+         * ✅ 方式 1：用 Blob + URL.createObjectURL()（標準做法）
+         * 
+         * 適用：
+         * - API 回傳 PDF binary
+         * - 不想下載，直接預覽
+         * 
+         * 📌 瀏覽器會：
+         * - 自動用內建 PDF Viewer 開啟
+         * - 不會下載（除非使用者按下載）
+         */
+        function previewPdfInNewTab(blobUrl) {
+            // 使用 window.open() 在新分頁中直接預覽 PDF
+            const previewWindow = window.open(blobUrl, '_blank');
+            
+            if (!previewWindow) {
+                alert('❌ 無法開啟預覽視窗，請檢查瀏覽器彈出視窗設定');
             }
         }
 

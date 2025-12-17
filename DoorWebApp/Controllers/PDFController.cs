@@ -426,18 +426,16 @@ namespace DoorWebApp.Controllers
                 var salaryAmount = (fee?.Amount ?? 0) + (fee?.AdjustmentAmount ?? 0);
                 var sourceHoursTotalAmount = fee?.SourceHoursTotalAmount ?? 0m;
 
-                // 使用對應組的 StudentPermissionFee 判斷是否有付款
-                var spHasPayment = correspondingFee?.Payment != null && correspondingFee.Payment.Pay > 0;
+                // 計算學費欠費：attendancefee對應的tblstudentpermissionfee金額/4 - tblpayment金額/4
+                if (correspondingFee != null)
+                {
+                    var receivablePerLesson = correspondingFee.TotalAmount / 4m;
+                    var paidPerLesson = (correspondingFee.Payment?.Pay ?? 0) / 4m;
+                    var arrearsPerLesson = Math.Max(receivablePerLesson - paidPerLesson, 0);
+                    builder.AddArrears(att.Id, arrearsPerLesson);
+                }
 
-                // 每筆課程的欠費只計算一次
-                var receivableTotal = (sp.Course?.CourseFee?.Amount ?? 0) + (sp.Course?.CourseFee?.MaterialFee ?? 0);
-                var receivedTotal = sp.StudentPermissionFees?
-                    .Where(spf => spf.Payment != null && !spf.IsDelete)
-                    .Sum(spf => (spf.Payment!.Pay) + (spf.Payment!.DiscountAmount)) ?? 0;
-                var arrearsAmount = Math.Max(receivableTotal - receivedTotal, 0);
-                builder.AddArrears(sp.Id, arrearsAmount);
-
-                builder.AddLesson(sp.UserId, hours, salaryAmount, sourceHoursTotalAmount, spHasPayment);
+                builder.AddLesson(sp.UserId, hours, salaryAmount, sourceHoursTotalAmount);
             }
 
             var rows = teacherGroups.Values
@@ -450,8 +448,6 @@ namespace DoorWebApp.Controllers
             var totalArrears = rows.Sum(r => r.Arrears);
             var totalReceived = rows.Sum(r => r.ReceivedAmount);
             var totalSalary = rows.Sum(r => r.SalaryAmount);
-            var totalPaidSalary = rows.Sum(r => r.PaidSalary);
-            var totalSupplementSalary = rows.Sum(r => r.SupplementSalary);
             var totalProfit = rows.Sum(r => r.Profit);
 
             var period = FormatPeriod(start, end);
@@ -465,8 +461,6 @@ namespace DoorWebApp.Controllers
                 TotalArrears = totalArrears,
                 TotalReceived = totalReceived,
                 TotalSalary = totalSalary,
-                TotalPaidSalary = totalPaidSalary,
-                TotalSupplementSalary = totalSupplementSalary,
                 TotalProfit = totalProfit
             };
         }
@@ -476,7 +470,7 @@ namespace DoorWebApp.Controllers
             var headers = new[]
             {
                 "序號", "上課老師", "學生數", "堂數", "學費欠費",
-                "實收學費", "折帳薪資", "應付薪資", "補發薪資", "公司毛利", "%"
+                "實收學費", "應付薪資", "公司毛利", "%"
             };
 
             return Document.Create(doc =>
@@ -503,11 +497,9 @@ namespace DoorWebApp.Controllers
                             table.ColumnsDefinition(columns =>
                             {
                                 columns.ConstantColumn(36);
-                                columns.RelativeColumn(2.2f);
-                                columns.RelativeColumn(0.9f);
-                                columns.RelativeColumn(0.9f);
+                                columns.RelativeColumn(2.5f);
                                 columns.RelativeColumn(1.0f);
-                                columns.RelativeColumn(1.2f);
+                                columns.RelativeColumn(1.0f);
                                 columns.RelativeColumn(1.2f);
                                 columns.RelativeColumn(1.2f);
                                 columns.RelativeColumn(1.2f);
@@ -531,8 +523,6 @@ namespace DoorWebApp.Controllers
                                 table.Cell().Element(BodyCell).Text(r.Arrears.ToString("N0"));
                                 table.Cell().Element(BodyCell).Text(r.ReceivedAmount.ToString("N0"));
                                 table.Cell().Element(BodyCell).Text(r.SalaryAmount.ToString("N0"));
-                                table.Cell().Element(BodyCell).Text(r.PaidSalary.ToString("N0"));
-                                table.Cell().Element(BodyCell).Text(r.SupplementSalary.ToString("N0"));
                                 table.Cell().Element(BodyCell).Text(r.Profit.ToString("N0"));
                                 table.Cell().Element(BodyCell).Text($"{r.ProfitRate:0.00}%");
                                 index++;
@@ -545,8 +535,6 @@ namespace DoorWebApp.Controllers
                             table.Cell().Element(BodyCell).Text(data.TotalArrears.ToString("N0"));
                             table.Cell().Element(BodyCell).Text(data.TotalReceived.ToString("N0"));
                             table.Cell().Element(BodyCell).Text(data.TotalSalary.ToString("N0"));
-                            table.Cell().Element(BodyCell).Text(data.TotalPaidSalary.ToString("N0"));
-                            table.Cell().Element(BodyCell).Text(data.TotalSupplementSalary.ToString("N0"));
                             table.Cell().Element(BodyCell).Text(data.TotalProfit.ToString("N0"));
                             var totalRate = data.TotalReceived > 0 ? (data.TotalProfit / data.TotalReceived * 100) : 0;
                             table.Cell().Element(BodyCell).Text($"{totalRate:0.00}%");
@@ -561,13 +549,10 @@ namespace DoorWebApp.Controllers
             public int TeacherId { get; }
             public string TeacherName { get; }
             private readonly HashSet<int> _studentIds = new();
-            private readonly HashSet<int> _arrearsSpIds = new();
+            private decimal _totalArrears;
             private decimal _totalHours;
-            private decimal _totalSalary;            // 折帳薪資合計（全部）
+            private decimal _totalSalary;            // 應付薪資合計（折帳薪資）
             private decimal _totalReceived;          // 依 min(拆帳比) 回算的實收學費合計
-            private decimal _paidSalary;             // 有 StudentPermissionFee 的薪資合計
-            private decimal _supplementSalary;       // 無 StudentPermissionFee 的薪資合計
-            private decimal _arrears;                // 學費欠費合計
 
             public TeacherProfitBuilder(int teacherId, string teacherName)
             {
@@ -575,14 +560,12 @@ namespace DoorWebApp.Controllers
                 TeacherName = teacherName;
             }
 
-            public void AddArrears(int studentPermissionId, decimal arrearsAmount)
+            public void AddArrears(int attendanceId, decimal arrearsAmount)
             {
-                if (arrearsAmount <= 0) return;
-                if (_arrearsSpIds.Add(studentPermissionId))
-                    _arrears += arrearsAmount;
+                _totalArrears += arrearsAmount;
             }
 
-            public void AddLesson(int studentId, decimal hours, decimal salaryAmount, decimal sourceHoursTotalAmount, bool hasFeePayment)
+            public void AddLesson(int studentId, decimal hours, decimal salaryAmount, decimal sourceHoursTotalAmount)
             {
                 _studentIds.Add(studentId);
                 _totalHours += hours;
@@ -590,17 +573,13 @@ namespace DoorWebApp.Controllers
 
                 // 使用 AttendanceFee 的 SourceHoursTotalAmount 作為實收學費
                 _totalReceived += sourceHoursTotalAmount;
-
-                if (hasFeePayment)
-                    _paidSalary += salaryAmount;
-                else
-                    _supplementSalary += salaryAmount;
             }
 
             public ProfitRow ToRow()
             {
+                var arrears = _totalArrears;
                 var receivedAmount = _totalReceived;
-                var profit = receivedAmount - _totalSalary; // 公司毛利 = 實收 - 拆帳（薪資）
+                var profit = receivedAmount - _totalSalary; // 公司毛利 = 實收 - 應付薪資
                 var profitRate = receivedAmount > 0 ? (profit / receivedAmount * 100) : 0;
 
                 return new ProfitRow
@@ -608,11 +587,9 @@ namespace DoorWebApp.Controllers
                     TeacherName = TeacherName,
                     StudentCount = _studentIds.Count,
                     LessonCount = _totalHours,
-                    Arrears = _arrears,
+                    Arrears = arrears,
                     ReceivedAmount = receivedAmount,
                     SalaryAmount = _totalSalary,
-                    PaidSalary = _paidSalary,
-                    SupplementSalary = _supplementSalary,
                     Profit = profit,
                     ProfitRate = profitRate
                 };
@@ -627,8 +604,6 @@ namespace DoorWebApp.Controllers
             public decimal Arrears { get; set; }
             public decimal ReceivedAmount { get; set; }
             public decimal SalaryAmount { get; set; }
-            public decimal PaidSalary { get; set; }
-            public decimal SupplementSalary { get; set; }
             public decimal Profit { get; set; }
             public decimal ProfitRate { get; set; }
         }
@@ -642,8 +617,6 @@ namespace DoorWebApp.Controllers
             public decimal TotalArrears { get; set; }
             public decimal TotalReceived { get; set; }
             public decimal TotalSalary { get; set; }
-            public decimal TotalPaidSalary { get; set; }
-            public decimal TotalSupplementSalary { get; set; }
             public decimal TotalProfit { get; set; }
         }
     }
