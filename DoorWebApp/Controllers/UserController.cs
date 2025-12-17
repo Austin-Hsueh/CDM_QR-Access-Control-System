@@ -898,27 +898,6 @@ namespace DoorWebApp.Controllers
                 ctx.SaveChanges(); // Save user to generate UserId
                 log.LogInformation($"[{Request.Path}] Create User : Name={NewUser.Username}, DisplayName={NewUser.DisplayName}");
 
-                // 3-1-1. 如果角色是老師 (Role ID = 2)，建立 TblTeacherSettlement
-                if (UserDTO.roleid == 2)
-                {
-                    var existingTeacherSettlement = ctx.TblTeacherSettlement
-                        .FirstOrDefault(x => x.TeacherId == NewUser.Id);
-                    
-                    if (existingTeacherSettlement == null)
-                    {
-                        var teacherSettlement = new TblTeacherSettlement
-                        {
-                            TeacherId = NewUser.Id,
-                            SplitRatio = UserDTO.splitRatio ?? 0.7m, // 預設 0.7 (70%)
-                            CreatedTime = DateTime.Now,
-                            ModifiedTime = DateTime.Now
-                        };
-                        ctx.TblTeacherSettlement.Add(teacherSettlement);
-                        log.LogInformation($"[{Request.Path}] Create TeacherSettlement for UserId={NewUser.Id}, SplitRatio={teacherSettlement.SplitRatio}");
-                    }
-                    ctx.SaveChanges();
-                }
-
                 // 3-2. 新增門禁,再加到使用者
 
                 //新增門禁權限關聯,再加到使用者
@@ -1120,37 +1099,6 @@ namespace DoorWebApp.Controllers
                 var AssignRoleEntities = ctx.TblRoles.Where(x => UserRoleAssign.Contains(x.Id)).ToList();
                 UserEntity.Roles.Clear();
                 UserEntity.Roles.AddRange(AssignRoleEntities);
-
-                // 3-1. 如果角色是老師 (Role ID = 2)，建立或編輯 TblTeacherSettlement
-                if (UserDTO.roleid == 2)
-                {
-                    var existingTeacherSettlement = ctx.TblTeacherSettlement
-                        .FirstOrDefault(x => x.TeacherId == UserId);
-                    
-                    if (existingTeacherSettlement == null)
-                    {
-                        // 建立新的 TeacherSettlement
-                        var teacherSettlement = new TblTeacherSettlement
-                        {
-                            TeacherId = UserId,
-                            SplitRatio = UserDTO.splitRatio ?? 0.7m, // 預設 0.7 (70%)
-                            CreatedTime = DateTime.Now,
-                            ModifiedTime = DateTime.Now
-                        };
-                        ctx.TblTeacherSettlement.Add(teacherSettlement);
-                        log.LogInformation($"[{Request.Path}] Create TeacherSettlement for UserId={UserId}, SplitRatio={teacherSettlement.SplitRatio}");
-                    }
-                    else
-                    {
-                        // 編輯現有的 TeacherSettlement
-                        if (UserDTO.splitRatio.HasValue)
-                        {
-                            existingTeacherSettlement.SplitRatio = UserDTO.splitRatio.Value;
-                            existingTeacherSettlement.ModifiedTime = DateTime.Now;
-                            log.LogInformation($"[{Request.Path}] Update TeacherSettlement for UserId={UserId}, SplitRatio={existingTeacherSettlement.SplitRatio}");
-                        }
-                    }
-                }
 
                 //更新使用者門禁
                 //var AssignPermissionEntities = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == UserId).FirstOrDefault();

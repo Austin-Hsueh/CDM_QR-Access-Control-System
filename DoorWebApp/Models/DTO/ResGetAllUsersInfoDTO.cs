@@ -97,5 +97,10 @@
         /// </summary>
         public string? parentUsername { set; get; }
 
+        /// <summary>
+        /// 拆帳比例 (老師專用，0-1 之間)
+        /// </summary>
+        public decimal? splitRatio { get; set; }
+
     }
 }
