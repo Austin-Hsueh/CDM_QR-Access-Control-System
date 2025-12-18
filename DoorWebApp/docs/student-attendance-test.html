@@ -151,6 +151,7 @@
                 <div style="background: white; padding: 12px; border-radius: 4px; border: 1px solid #ddd; margin-top: 10px; font-family: monospace; font-size: 12px; overflow-x: auto;">
 <pre>【使用者與課程基礎表】
 tblUser (使用者：老師/學生)
+    └─ 1:1 → tblTeacherSettlement (老師結算：拆帳比、薪資統計)
 tblCourse (課程)
     └─ 1:1 → tblCourseFee (課程收費：金額、材料費、拆帳比)
 tblCourseType (課程類別)
@@ -170,15 +171,14 @@ tblStudentPermission (學生授課權限)
 【費用與繳款】
 tblStudentPermission
     └─ 1:N → tblStudentPermissionFee (權限費用：按週期/課程組計費)
-        ├─ FK: paymentId → tblPayment (繳款記錄：一對一關聯繳款)
+        └─ 1:1 → tblPayment (繳款記錄：一對一關聯繳款)
+        └─ 1:1 → tblRefund (退款記錄：一對一關聯退款)
         └─ 關聯多筆 tblAttendance (每組簽到對應一筆 StudentPermissionFee)
 
-tblPayment (繳款記錄)
-    └─ FK: modifiedUserId → tblUser (操作者)
-
-【審計與結算】
+【審計】
 tblAuditLog (審計日誌：記錄所有重要操作)
-tblTeacherSettlement (老師結算：拆帳比、薪資統計)
+
+【結算】
 tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                 </div>
             </div>
@@ -837,6 +837,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('listCloseAccount')">📋 取得關帳列表</button>
 
                             <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📄 報表</div>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('dailyReport')">📄 營業日總表</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('salaryReport')">📄 上課拆帳明細表</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('companyProfit')">🏢 公司獲利彙總表</button>
                         </div>
@@ -3900,6 +3901,55 @@ Content-Type: application/json
                     `;
                     break;
 
+                case 'dailyReport':
+                    html = `
+                        <h2 style="color: #667eea;">📄 營業日總表 PDF</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點:</strong><code>GET /api/v1/CloseAccount/DailyReport/{yyyy-MM-dd}</code></p>
+                            <p><strong>控制器:</strong><code>CloseAccountController</code></p>
+                            <p><strong>說明:</strong> 產生指定日期的營業日總表 PDF。查詢「今天」會即時計算 (繳款 - 退款) 與簽到統計；查詢「非今天」則使用既有的關帳紀錄 (tblCloseAccount.BusinessIncome)。退款金額以負值列示，並與繳款依收據號排序。</p>
+
+                            <h3 style="margin-top: 20px;">📥 查詢參數</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">date</td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">報表日期 (yyyy-MM-dd)，例如 2025-12-18</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                                <div><label>報表日期: <input type="date" id="testDailyReportDate" value="2025-12-18" style="width: 100%; padding: 6px;" /></label></div>
+                                <div style="align-self: end;"><button class="btn-primary" onclick="testDailyReportDoc()">執行測試 (下載 PDF)</button></div>
+                            </div>
+                            <div id="testResult-dailyReport" style="margin-top: 10px;"></div>
+                            <pre id="rawData-dailyReport" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 300px; font-size: 12px; margin-top: 10px;">執行測試後顯示檔案資訊</pre>
+
+                            <h3 style="margin-top: 20px;">💡 資料流</h3>
+                            <div style="background: #f0f9ff; border-left: 4px solid #667eea; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                                <ol style="margin-left: 20px; color: #333;">
+                                    <li><strong>決定模式:</strong> 若日期=今天 → 即時計算；否則使用 tblCloseAccount.BusinessIncome。</li>
+                                    <li><strong>收入來源:</strong> tblPayment (繳款) + tblRefund (退款，金額轉負號)，按 ReceiptNumber 排序合併。</li>
+                                    <li><strong>簽到統計:</strong> tblAttendance + tblAttendanceFee，出席/請假以學生去重計算。</li>
+                                    <li><strong>學生統計:</strong> 總學生數、本月新增、今日新增取自 tblUser (角色=學生)。</li>
+                                    <li><strong>關帳結餘:</strong> 昨日零用金 (yesterdayCloseAccount) + 今日營業收入，計算關帳結算金額與零用金結餘。</li>
+                                </ol>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">📝 請求範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">GET /api/v1/CloseAccount/DailyReport/2025-12-18</pre>
+                        </div>
+                    `;
+                    break;
+
                 case 'salaryReport':
                     html = `
                         <h2 style="color: #667eea;">📄 上課拆帳明細表 </h2>
@@ -4189,6 +4239,7 @@ Content-Type: application/json
                             <h3 style="margin-top: 20px;">💡 卡控邏輯</h3>
                             <div class="info">
                                 <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li><strong>今日判斷：</strong>若日期=今天 → 即時計算</li>
                                     <li><strong>前一日關帳檢查：</strong>若查詢非今日則前一日必須已關帳</li>
                                     <li><strong>簽到狀態檢查：</strong>檢查該日期所有課程是否都已簽到</li>
                                     <li><strong>自動計算：</strong>若無關帳記錄則自動計算；若有則返回已存檔記錄</li>
@@ -5626,6 +5677,42 @@ Content-Type: application/json
 
                 resultDiv.innerHTML = `<div class="success">✅ PDF 產生成功 
                     <a href="${url}" download="salary-report-${startDate}-${endDate}.pdf" style="color:#409eff; margin-left: 8px;">💾 下載</a>
+                    <button class="btn-primary btn-small" onclick="previewPdfInNewTab('${url}')" style="margin-left: 8px;">👁️ 直接預覽</button>
+                </div>`;
+                rawDiv.textContent = `type: ${blob.type || 'unknown'}; size: ${blob.size} bytes`;
+
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                rawDiv.textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        async function testDailyReportDoc() {
+            const date = document.getElementById('testDailyReportDate').value;
+            const resultDiv = document.getElementById('testResult-dailyReport');
+            const rawDiv = document.getElementById('rawData-dailyReport');
+            resultDiv.innerHTML = '<div class="loading">生成中...</div>';
+            rawDiv.textContent = '';
+
+            if (!date) {
+                resultDiv.innerHTML = '<div class="error">❌ 請選擇日期</div>';
+                return;
+            }
+
+            try {
+                const res = await apiFetch(`/api/v1/CloseAccount/DailyReport/${date}`, {
+                    headers: { 'Accept': 'application/pdf' }
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const fileName = `daily-report-${date.replace(/-/g, '')}.pdf`;
+
+                resultDiv.innerHTML = `<div class="success">✅ PDF 產生成功 
+                    <a href="${url}" download="${fileName}" style="color:#409eff; margin-left: 8px;">💾 下載</a>
                     <button class="btn-primary btn-small" onclick="previewPdfInNewTab('${url}')" style="margin-left: 8px;">👁️ 直接預覽</button>
                 </div>`;
                 rawDiv.textContent = `type: ${blob.type || 'unknown'}; size: ${blob.size} bytes`;

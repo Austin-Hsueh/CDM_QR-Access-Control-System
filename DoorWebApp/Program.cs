@@ -121,6 +121,16 @@ namespace DoorWebApp
                     .ForJob(jobKey)
                     .WithIdentity("ScheduledJob-startup-trigger")
                     .StartNow());
+
+                // 設定第二個工作 - 晚上12點自動存檔關帳
+                var closeAccountJobKey = new JobKey("ScheduledJobCloseAccount");
+                q.AddJob<ScheduledJobCloseAccount>(opts => opts.WithIdentity(closeAccountJobKey));
+                
+                // 定時觸發器 - 每天晚上 12:00 執行一次 (Cron: 0 0 0 * * ? = 每天午夜)
+                q.AddTrigger(opts => opts
+                    .ForJob(closeAccountJobKey)
+                    .WithIdentity("ScheduledJobCloseAccount-trigger")
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 * * ?")));
             });
 
             // �K�[ Quartz �D���A��

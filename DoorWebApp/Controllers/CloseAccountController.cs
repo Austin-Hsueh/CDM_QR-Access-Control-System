@@ -430,6 +430,7 @@ namespace DoorWebApp.Controllers
                     .FirstOrDefaultAsync();
 
                 // 如果查詢的不是今天或更早的日期，且昨天沒有關帳記錄，則不允許操作
+                /*
                 if (queryDate.Date != DateTime.Now.Date && yesterdayCloseAccount == null)
                 {
                     // 查詢最新的一筆關帳記錄
@@ -445,6 +446,7 @@ namespace DoorWebApp.Controllers
                     res.msg = $"無法取得關帳資料：{yesterday.ToString("yyyy-MM-dd")} 尚未關帳，請先完成前一日的關帳作業。{latestInfo}";
                     return Ok(res);
                 }
+                */
 
                 // 2. 檢查該日期所有課程是否都已簽到
                 var schedules = await ctx.TblSchedule
@@ -483,6 +485,8 @@ namespace DoorWebApp.Controllers
                     .Where(ca => ca.CloseDate == queryDate)
                     .FirstOrDefaultAsync();
 
+                var isToday = queryDate.Date == DateTime.Now.Date;
+
                 // 5.1 取得昨日零用金結餘（已在步驟 1 查詢過）
                 int yesterdayPettyIncome = yesterdayCloseAccount?.PettyIncome ?? 0;
 
@@ -502,10 +506,9 @@ namespace DoorWebApp.Controllers
                 // 5.3 計算關帳結算金額
                 int closeAccountAmount = yesterdayPettyIncome + businessIncome;
 
-                // 5. 若無關帳記錄，則計算並建立臨時關帳資料
+                // 5.4 若無關帳記錄，則建立臨時關帳物件（不儲存至資料庫）
                 if (closeAccount == null)
                 {
-                    // 5.4 建立臨時關帳物件（不儲存至資料庫）
                     closeAccount = new TblCloseAccount
                     {
                         CloseDate = queryDate,
@@ -520,13 +523,18 @@ namespace DoorWebApp.Controllers
                 }
                 else
                 {
-                    closeAccount.YesterdayPettyIncome = yesterdayPettyIncome;
-                    closeAccount.YesterdayPettyIncome = businessIncome;
-                    closeAccount.CloseAccountAmount = closeAccountAmount;
+                    // 5. 若是查詢今天，則即時計算營業收入；否則使用 CloseAccount 記錄
+                    if (isToday)
+                    {
+                        // 若有記錄，則更新營業收入（以防支付或退款有變動）
+                        closeAccount.YesterdayPettyIncome = yesterdayPettyIncome;
+                        closeAccount.BusinessIncome = businessIncome;
+                        closeAccount.CloseAccountAmount = closeAccountAmount;
+                    }
                 }
 
-                    // 6. 根據簽到狀態返回結果
-                    res.result = APIResultCode.success;
+                // 6. 根據簽到狀態返回結果
+                res.result = APIResultCode.success;
                 res.msg = canCloseAccount ? "該日期已全部簽到，關帳資料如下" : "該日期尚未全部簽到，現有關帳資料如下";
                 res.content = closeAccount;
 
@@ -578,8 +586,8 @@ namespace DoorWebApp.Controllers
                     .Where(ca => ca.CloseDate == yesterday)
                     .FirstOrDefaultAsync();
 
-                // 如果查詢的不是今天或更早的日期，且昨天沒有關帳記錄，則不允許操作
-                if (queryDate.Date != DateTime.Now.Date && yesterdayCloseAccount == null)
+                // 如果查詢的昨天沒有關帳記錄，則不允許操作
+                if (yesterdayCloseAccount == null)
                 {
                     // 查詢最新的一筆關帳記錄
                     var latestCloseAccount = await ctx.TblCloseAccount
@@ -633,7 +641,7 @@ namespace DoorWebApp.Controllers
                     // 2.6 新增關帳記錄
                     closeAccount = new TblCloseAccount
                     {
-                        CloseDate = queryDate,
+                        CloseDate = queryDate.Date,
                         YesterdayPettyIncome = yesterdayPettyIncome,
                         BusinessIncome = businessIncome,
                         CloseAccountAmount = closeAccountAmount,
@@ -900,11 +908,36 @@ namespace DoorWebApp.Controllers
                     && s.StudentPermission.Type == 1)
                 .CountAsync();
 
+            // 9. 檢查是否為查詢今天，決定即時計算或使用 CloseAccount 記錄
+            var isToday = date.Date == DateTime.Now.Date;
+            decimal tuitionIncome;
+
+            if (closeAccount == null)
+            {
+                tuitionIncome = System.Math.Round(
+                    (decimal)todayPayments.Sum(p => p.Pay + p.DiscountAmount)
+                    - (decimal)todayRefunds.Sum(r => r.RefundAmount),
+                    2);
+            }
+            else
+            {
+                if (isToday)
+                {
+                    // 若是今天，則即時計算營業收入（包含退款，退款金額為負）
+                    tuitionIncome = System.Math.Round(
+                        (decimal)todayPayments.Sum(p => p.Pay + p.DiscountAmount)
+                        - (decimal)todayRefunds.Sum(r => r.RefundAmount),
+                        2);
+                }
+                else
+                {
+                    // 若非今天，則使用 CloseAccount 記錄的 BusinessIncome
+                    tuitionIncome = System.Math.Round((decimal)(closeAccount?.BusinessIncome ?? 0), 2);
+                }
+            }
+
+
             // 計算統計數據（包含退款，退款金額為負）
-            decimal tuitionIncome = System.Math.Round(
-                (decimal)todayPayments.Sum(p => p.Pay + p.DiscountAmount) 
-                - (decimal)todayRefunds.Sum(r => r.RefundAmount), 
-                2);
             decimal tuitionDiscount = System.Math.Round((decimal)todayPayments.Sum(p => p.DiscountAmount), 2);
             
             // 繳費人次 = 當日繳款的去重學生人數
