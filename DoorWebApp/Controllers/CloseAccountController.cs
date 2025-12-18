@@ -269,6 +269,12 @@ namespace DoorWebApp.Controllers
                         ctx.TblAttendance.Add(newAttendance);
                         await ctx.SaveChangesAsync(); // 先保存以取得簽到 ID
 
+                        // 寫入每筆簽到的審計紀錄
+                        auditLog.WriteAuditLog(
+                            AuditActType.Create,
+                            $"Create Attendance: AttendanceId={newAttendance.Id}, StudentPermissionId={schedule.StudentPermissionId}, Date={date}",
+                            OperatorUsername);
+
                         // 計算費用參數（參考 AttendController.AddAttend 邏輯）
                         var permission = schedule.StudentPermission;
                         var courseFee = permission?.Course?.CourseFee;
@@ -477,23 +483,28 @@ namespace DoorWebApp.Controllers
                     .Where(ca => ca.CloseDate == queryDate)
                     .FirstOrDefaultAsync();
 
+                // 5.1 取得昨日零用金結餘（已在步驟 1 查詢過）
+                int yesterdayPettyIncome = yesterdayCloseAccount?.PettyIncome ?? 0;
+
+                // 5.2 計算今日營業收入：所有 tblPayment 的 Pay + DiscountAmount 減去退款
+                var todayDateStr = queryDate.ToString("yyyy/MM/dd");
+                var todayPayments = await ctx.TblPayment
+                    .Where(p => p.PayDate == todayDateStr && !p.IsDelete)
+                    .ToListAsync();
+
+                var todayRefunds = await ctx.TblRefund
+                    .Where(r => r.RefundDate == todayDateStr && !r.IsDelete)
+                    .ToListAsync();
+
+                int businessIncome = todayPayments.Sum(p => p.Pay + p.DiscountAmount)
+                    - todayRefunds.Sum(r => r.RefundAmount);
+
+                // 5.3 計算關帳結算金額
+                int closeAccountAmount = yesterdayPettyIncome + businessIncome;
+
                 // 5. 若無關帳記錄，則計算並建立臨時關帳資料
                 if (closeAccount == null)
                 {
-                    // 5.1 取得昨日零用金結餘（已在步驟 1 查詢過）
-                    int yesterdayPettyIncome = yesterdayCloseAccount?.PettyIncome ?? 0;
-
-                    // 5.2 計算今日營業收入：所有 tblPayment 的 Pay + DiscountAmount
-                    var todayDateStr = queryDate.ToString("yyyy/MM/dd");
-                    var todayPayments = await ctx.TblPayment
-                        .Where(p => p.PayDate == todayDateStr && !p.IsDelete)
-                        .ToListAsync();
-                    
-                    int businessIncome = todayPayments.Sum(p => p.Pay + p.DiscountAmount);
-
-                    // 5.3 計算關帳結算金額
-                    int closeAccountAmount = yesterdayPettyIncome + businessIncome;
-
                     // 5.4 建立臨時關帳物件（不儲存至資料庫）
                     closeAccount = new TblCloseAccount
                     {
@@ -507,9 +518,15 @@ namespace DoorWebApp.Controllers
                         ModifiedTime = DateTime.Now
                     };
                 }
+                else
+                {
+                    closeAccount.YesterdayPettyIncome = yesterdayPettyIncome;
+                    closeAccount.YesterdayPettyIncome = businessIncome;
+                    closeAccount.CloseAccountAmount = closeAccountAmount;
+                }
 
-                // 6. 根據簽到狀態返回結果
-                res.result = APIResultCode.success;
+                    // 6. 根據簽到狀態返回結果
+                    res.result = APIResultCode.success;
                 res.msg = canCloseAccount ? "該日期已全部簽到，關帳資料如下" : "該日期尚未全部簽到，現有關帳資料如下";
                 res.content = closeAccount;
 
@@ -595,11 +612,17 @@ namespace DoorWebApp.Controllers
                     int yesterdayPettyIncome = yesterdayCloseAccount?.PettyIncome ?? 0;
 
                     // 2.3 計算今日營業收入：所有 tblPayment 的 Pay + DiscountAmount
+                    var todayDateStr = queryDate.ToString("yyyy/MM/dd");
                     var todayPayments = await ctx.TblPayment
                         .Where(p => p.PayDate == dateStr && !p.IsDelete)
                         .ToListAsync();
-                    
-                    int businessIncome = todayPayments.Sum(p => p.Pay + p.DiscountAmount);
+
+                    var todayRefunds = await ctx.TblRefund
+                        .Where(r => r.RefundDate == todayDateStr && !r.IsDelete)
+                        .ToListAsync();
+
+                    int businessIncome = todayPayments.Sum(p => p.Pay + p.DiscountAmount)
+                        - todayRefunds.Sum(r => r.RefundAmount);
 
                     // 2.4 計算關帳結算金額
                     int closeAccountAmount = yesterdayPettyIncome + businessIncome;
@@ -626,12 +649,18 @@ namespace DoorWebApp.Controllers
                 {
                     // 3. 更新現有關帳記錄
                     // 3.1 重新計算營業收入（以防資料有變動）
+                    var todayDateStr = queryDate.ToString("yyyy/MM/dd");
                     var todayPayments = await ctx.TblPayment
                         .Where(p => p.PayDate == dateStr && !p.IsDelete)
                         .ToListAsync();
-                    
-                    closeAccount.BusinessIncome = todayPayments.Sum(p => p.Pay + p.DiscountAmount);
-                    
+
+                    var todayRefunds = await ctx.TblRefund
+                        .Where(r => r.RefundDate == todayDateStr && !r.IsDelete)
+                        .ToListAsync();
+
+                    closeAccount.BusinessIncome = todayPayments.Sum(p => p.Pay + p.DiscountAmount)
+                        - todayRefunds.Sum(r => r.RefundAmount);
+
                     // 3.2 重新計算關帳結算金額
                     closeAccount.CloseAccountAmount = closeAccount.YesterdayPettyIncome + closeAccount.BusinessIncome;
                     
@@ -813,7 +842,21 @@ namespace DoorWebApp.Controllers
                 .Include(p => p.StudentPermissionFee)
                     .ThenInclude(spf => spf.StudentPermission)
                         .ThenInclude(sp => sp.User)
+                .Include(p => p.StudentPermissionFee)
+                    .ThenInclude(spf => spf.StudentPermission)
+                        .ThenInclude(sp => sp.Course)
                 .Where(p => p.PayDate == dateStr && !p.IsDelete)
+                .ToListAsync();
+
+            // 3.1 查詢今日所有退款記錄（tblRefund）
+            var todayRefunds = await ctx.TblRefund
+                .Include(r => r.StudentPermissionFee)
+                    .ThenInclude(spf => spf.StudentPermission)
+                        .ThenInclude(sp => sp.User)
+                .Include(r => r.StudentPermissionFee)
+                    .ThenInclude(spf => spf.StudentPermission)
+                        .ThenInclude(sp => sp.Course)
+                .Where(r => r.RefundDate == dateStr && !r.IsDelete)
                 .ToListAsync();
 
             // 4. 查詢今日所有簽到記錄（tblAttendance）
@@ -829,13 +872,14 @@ namespace DoorWebApp.Controllers
                 .Where(u => u.Roles.Any(r => r.Id == 3 && !r.IsDelete && r.IsEnable) && !u.IsDelete)
                 .CountAsync();
 
-            // 6. 統計本月新增學生
+            // 6. 統計本月新增學生（月初到月底）
             var monthStart = new DateTime(date.Year, date.Month, 1);
+            var monthEnd = monthStart.AddMonths(1); // 月底（下月第一天）
             var monthlyNewStudents = await ctx.TblUsers
                 .Where(u => u.Roles.Any(r => r.Id == 3 && !r.IsDelete && r.IsEnable) 
                     && !u.IsDelete 
                     && u.CreateTime >= monthStart 
-                    && u.CreateTime < date.AddDays(1))
+                    && u.CreateTime < monthEnd)
                 .CountAsync();
 
             // 7. 統計今日新增學生
@@ -856,11 +900,36 @@ namespace DoorWebApp.Controllers
                     && s.StudentPermission.Type == 1)
                 .CountAsync();
 
-            // 計算統計數據
-            decimal tuitionIncome = System.Math.Round((decimal)todayPayments.Sum(p => p.Pay + p.DiscountAmount), 2);
+            // 計算統計數據（包含退款，退款金額為負）
+            decimal tuitionIncome = System.Math.Round(
+                (decimal)todayPayments.Sum(p => p.Pay + p.DiscountAmount) 
+                - (decimal)todayRefunds.Sum(r => r.RefundAmount), 
+                2);
             decimal tuitionDiscount = System.Math.Round((decimal)todayPayments.Sum(p => p.DiscountAmount), 2);
-            int todayPresent = todayAttendances.Count(a => a.AttendanceType == 1); // 出席
-            int todayAbsent = todayAttendances.Count(a => a.AttendanceType == 2); // 請假
+            
+            // 繳費人次 = 當日繳款的去重學生人數
+            int checkoutCount = todayPayments
+                .Select(p => p.StudentPermissionFee?.StudentPermission?.User?.Id)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Distinct()
+                .Count();
+            
+            int todayPresent = todayAttendances
+                .Where(a => a.AttendanceType == 1)
+                .Select(a => a.StudentPermission?.User?.Id)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Distinct()
+                .Count(); // 以學生去重計算出席人數
+
+            int todayAbsent = todayAttendances
+                .Where(a => a.AttendanceType == 2)
+                .Select(a => a.StudentPermission?.User?.Id)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Distinct()
+                .Count(); // 以學生去重計算請假人數
             decimal totalSignInAmount = System.Math.Round((decimal)todayAttendances.Sum(a => a.AttendanceFee != null ? a.AttendanceFee.Amount : 0), 2);
 
             // 零用金統計
@@ -870,19 +939,23 @@ namespace DoorWebApp.Controllers
             decimal depositAmount = System.Math.Round(closeAccount?.DepositAmount ?? 0M, 2);
             decimal pettyCashBalance = System.Math.Round(closeAccount?.PettyIncome ?? (todaySettlement - depositAmount), 2);
 
-            // 9. 建立明細記錄
+            // 9. 建立明細記錄（繳款 + 退款，按 ReceiptNumber 排序）
             var records = new List<DailyReportRecord>();
-            int invoiceCounter = 1;
 
-            foreach (var payment in todayPayments.OrderBy(p => p.CreatedTime))
+            // 新增繳款記錄
+            foreach (var payment in todayPayments.OrderBy(p => p.ReceiptNumber))
             {
                 var studentName = payment.StudentPermissionFee?.StudentPermission?.User?.DisplayName 
                     ?? payment.StudentPermissionFee?.StudentPermission?.User?.Username 
                     ?? "未知";
                 var studentCode = payment.StudentPermissionFee?.StudentPermission?.User?.Username ?? "-";
                 
+                var courseId = payment.StudentPermissionFee?.StudentPermission?.CourseId ?? 0;
                 var courseName = payment.StudentPermissionFee?.StudentPermission?.Course?.Name ?? "-";
-                var remark = $"[學費 {courseName}]";
+                var courseAmount = payment.StudentPermissionFee?.TotalAmount ?? (payment.Pay + payment.DiscountAmount);
+                
+                // 結帳備註：學費:課程編號-課程名稱 金額*1=金額
+                var remark = $"[學費:{courseId}-{courseName} {courseAmount}*1={courseAmount}]";
                 
                 if (!string.IsNullOrEmpty(payment.Remark))
                 {
@@ -891,7 +964,7 @@ namespace DoorWebApp.Controllers
 
                 records.Add(new DailyReportRecord
                 {
-                    InvoiceNo = $"{rocYear % 100:00}B{date.Month:00}{date.Day:00}{invoiceCounter:000}",
+                    InvoiceNo = payment.ReceiptNumber ?? "-",
                     Code = studentCode,
                     StudentName = studentName,
                     Tuition = payment.Pay + payment.DiscountAmount,
@@ -904,9 +977,43 @@ namespace DoorWebApp.Controllers
                     ActualPayment = payment.Pay,
                     Remark = remark
                 });
-
-                invoiceCounter++;
             }
+
+            // 新增退款記錄（金額為負）
+            foreach (var refund in todayRefunds.OrderBy(r => r.ReceiptNumber))
+            {
+                var studentName = refund.StudentPermissionFee?.StudentPermission?.User?.DisplayName 
+                    ?? refund.StudentPermissionFee?.StudentPermission?.User?.Username 
+                    ?? "未知";
+                var studentCode = refund.StudentPermissionFee?.StudentPermission?.User?.Username ?? "-";
+                
+                var courseName = refund.StudentPermissionFee?.StudentPermission?.Course?.Name ?? "-";
+                var remark = $"[退款:{courseName}]";
+                
+                if (!string.IsNullOrEmpty(refund.Remark))
+                {
+                    remark += $" {refund.Remark}";
+                }
+
+                records.Add(new DailyReportRecord
+                {
+                    InvoiceNo = refund.ReceiptNumber ?? "-",
+                    Code = studentCode,
+                    StudentName = studentName,
+                    Tuition = -refund.RefundAmount, // 退款金額為負
+                    Refund = 0,
+                    Maintenance = 0,
+                    Sales = 0,
+                    Discount = 0,
+                    PrepaymentChange = 0,
+                    Debt = 0,
+                    ActualPayment = -refund.RefundAmount,
+                    Remark = remark
+                });
+            }
+
+            // 按 ReceiptNumber 排序整個列表
+            records = records.OrderBy(r => r.InvoiceNo).ToList();
 
             return new DailyReportData
             {
@@ -928,7 +1035,7 @@ namespace DoorWebApp.Controllers
                 SettlementAmount = tuitionIncome,
 
                 // 中間統計
-                CheckoutTotal = tuitionIncome,
+                CheckoutTotal = checkoutCount,
                 TotalStudents = totalStudents,
                 MonthlyNewStudents = monthlyNewStudents,
                 DailyNewStudents = dailyNewStudents,
@@ -986,7 +1093,7 @@ namespace DoorWebApp.Controllers
                                     c.Item().Text($"本日新增: {data.DailyNewStudents}");
                                     c.Item().Text($"今日上課: {data.TodayPresent}");
                                     c.Item().Text($"今日請假: {data.TodayAbsent}");
-                                    c.Item().PaddingTop(3).Text($"繳費人次: {data.TotalSignIns}");
+                                    c.Item().PaddingTop(3).Text($"繳費人次: {data.CheckoutTotal}");
                                     c.Item().PaddingTop(3).Text($"繳費金額: {data.TotalSignInAmount:N0}");
                                 });
 
@@ -1026,7 +1133,7 @@ namespace DoorWebApp.Controllers
 
                             table.Header(header =>
                             {
-                                header.Cell().Element(HeaderCell).Text("結帳單號");
+                                header.Cell().Element(LeftHeaderCell).Text("結帳單號");
                                 header.Cell().Element(HeaderCell).Text("編號");
                                 header.Cell().Element(HeaderCell).Text("客戶姓名");
                                 header.Cell().Element(HeaderCell).Text("學費費用/租金");
@@ -1037,13 +1144,13 @@ namespace DoorWebApp.Controllers
                                 header.Cell().Element(HeaderCell).Text("欠款金額");
                                 header.Cell().Element(HeaderCell).Text("實際收款");
                                 header.Cell().Element(HeaderCell).Text("結帳備註");
-                                header.Cell().Element(HeaderCell).Text("業績歸屬");
+                                header.Cell().Element(RightHeaderCell).Text("業績歸屬");
                             });
 
                             foreach (var record in data.Records)
                             {
                                 var saleTotal = record.Sales + record.Maintenance;
-                                table.Cell().Element(BodyCell).Text(record.InvoiceNo);
+                                table.Cell().Element(LeftBodyCell).Text(record.InvoiceNo);
                                 table.Cell().Element(BodyCell).Text(record.Code);
                                 table.Cell().Element(BodyCell).Text(record.StudentName);
                                 table.Cell().Element(BodyCell).AlignRight().Text($"{record.Tuition:N0}");
@@ -1054,39 +1161,89 @@ namespace DoorWebApp.Controllers
                                 table.Cell().Element(BodyCell).AlignRight().Text($"{record.Debt:N0}");
                                 table.Cell().Element(BodyCell).AlignRight().Text($"{record.ActualPayment:N0}");
                                 table.Cell().Element(BodyCell).Text(record.Remark).FontSize(6);
-                                table.Cell().Element(BodyCell).Text("");
+                                table.Cell().Element(RightBodyCell).Text("");
                             }
 
                             // 合計行
-                            table.Cell().ColumnSpan(3).Element(FooterCell).Text("銷售計門小計:");
-                            table.Cell().Element(FooterCell).AlignRight().Text($"{data.Records.Sum(r => r.Tuition):N0}");
-                            table.Cell().Element(FooterCell).AlignRight().Text($"{data.Records.Sum(r => r.Refund):N0}");
-                            table.Cell().Element(FooterCell).AlignRight().Text($"{data.Records.Sum(r => r.Sales + r.Maintenance):N0}");
-                            table.Cell().Element(FooterCell).AlignRight().Text($"{data.Records.Sum(r => r.Discount):N0}");
-                            table.Cell().Element(FooterCell).AlignRight().Text($"{data.Records.Sum(r => r.PrepaymentChange):N0}");
-                            table.Cell().Element(FooterCell).AlignRight().Text($"{data.Records.Sum(r => r.Debt):N0}");
-                            table.Cell().Element(FooterCell).AlignRight().Text($"{data.Records.Sum(r => r.ActualPayment):N0}");
-                            table.Cell().ColumnSpan(2).Element(FooterCell);
+                            table.Cell().ColumnSpan(3).Element(LeftBodyCell).Text("銷售計門小計:");
+                            table.Cell().Element(BodyCell).AlignRight().Text($"{data.Records.Sum(r => r.Tuition):N0}");
+                            table.Cell().Element(BodyCell).AlignRight().Text($"{data.Records.Sum(r => r.Refund):N0}");
+                            table.Cell().Element(BodyCell).AlignRight().Text($"{data.Records.Sum(r => r.Sales + r.Maintenance):N0}");
+                            table.Cell().Element(BodyCell).AlignRight().Text($"{data.Records.Sum(r => r.Discount):N0}");
+                            table.Cell().Element(BodyCell).AlignRight().Text($"{data.Records.Sum(r => r.PrepaymentChange):N0}");
+                            table.Cell().Element(BodyCell).AlignRight().Text($"{data.Records.Sum(r => r.Debt):N0}");
+                            table.Cell().Element(BodyCell).AlignRight().Text($"{data.Records.Sum(r => r.ActualPayment):N0}");
+                            table.Cell().ColumnSpan(2).Element(RightBodyCell);
                         });
                     });
                 });
             }).GeneratePdf();
         }
 
+        private static IContainer LeftHeaderCell(IContainer container)
+        {
+            return container
+                .BorderTop(1.2f)
+                .BorderLeft(1.2f)
+                .BorderBottom(1.2f)
+                .BorderColor(Colors.Black)
+                .PaddingVertical(4)
+                .PaddingHorizontal(3)
+                .AlignCenter()
+                .AlignMiddle();
+        }
+        private static IContainer RightHeaderCell(IContainer container)
+        {
+            return container
+                .BorderTop(1.2f)
+                .BorderRight(1.2f)
+                .BorderBottom(1.2f)
+                .BorderColor(Colors.Black)
+                .PaddingVertical(4)
+                .PaddingHorizontal(3)
+                .AlignCenter()
+                .AlignMiddle();
+        }
         private static IContainer HeaderCell(IContainer container)
         {
             return container
-                .Border(0.5f)
-                .Background("#f0f0f0")
-                .PaddingVertical(3)
-                .PaddingHorizontal(1)
+                .BorderTop(1.2f)
+                .BorderBottom(1.2f)
+                .BorderColor(Colors.Black)
+                .PaddingVertical(4)
+                .PaddingHorizontal(3)
                 .AlignCenter()
                 .AlignMiddle();
         }
 
+        private static IContainer LeftBodyCell(IContainer container)
+        {
+            return container
+                .BorderBottom(0.5f)
+                .BorderLeft(0.5f)
+                .BorderColor(Colors.Grey.Medium)
+                .PaddingVertical(3)
+                .PaddingHorizontal(3)
+                .AlignMiddle();
+        }
+        private static IContainer RightBodyCell(IContainer container)
+        {
+            return container
+                .BorderBottom(0.5f)
+                .BorderRight(0.5f)
+                .BorderColor(Colors.Grey.Medium)
+                .PaddingVertical(3)
+                .PaddingHorizontal(3)
+                .AlignMiddle();
+        }
         private static IContainer BodyCell(IContainer container)
         {
-            return container.Border(0.5f).Padding(3);
+            return container
+                .BorderBottom(0.5f)
+                .BorderColor(Colors.Grey.Medium)
+                .PaddingVertical(3)
+                .PaddingHorizontal(3)
+                .AlignMiddle();
         }
 
         private static IContainer FooterCell(IContainer container)

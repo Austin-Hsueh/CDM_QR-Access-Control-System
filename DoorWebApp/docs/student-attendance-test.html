@@ -620,9 +620,9 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                     <div id="createFeeError" class="error" style="display:none;"></div>
                 </div>
 
-                <!-- 修改/刪除費用記錄區域 -->
+                <!-- 編輯或刪除費用記錄區域 -->
                 <div style="margin-top: 20px; padding: 16px; background: #fff5e6; border-radius: 8px; border: 1px solid #ffe4b5;">
-                    <h4 style="margin-bottom: 12px;">✏️ 修改/刪除學生權限費用</h4>
+                    <h4 style="margin-bottom: 12px;">✏️ 編輯或刪除學生權限費用</h4>
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
                         <div>
                             <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">學生權限費用 ID：</label>
@@ -803,7 +803,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('coursesList')">📖 取得課程列表</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('courseDetail')">📖 取得單一課程</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createCourse')">➕ 新增課程</button>
-                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('editCourse')">✏️ 編輯課程</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('editCourse')">✏️ 編輯或刪除課程</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('copyCourse')">📋 複製課程</button>
 
                             <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">💳 繳費管理</div>
@@ -825,7 +825,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('studentsList')">👨‍🎓 取得學生名單</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceList')">📝 學生權限記錄列表</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createPermissionFee')">➕ 新增學生權限費用</button>
-                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('updatePermissionFee')">✏️ 修改學生權限費用</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('updatePermissionFee')">✏️ 編輯或刪除學生權限費用</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('paymentDetail')">💰 顯示繳費細項</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceFee')">✏️ 單堂老師費用修改</button>
 
@@ -3358,11 +3358,11 @@ Content-Type: application/json
 
                 case 'updatePermissionFee':
                     html = `
-                        <h2 style="color: #667eea;">✏️ 修改/刪除 學生權限費用記錄</h2>
+                        <h2 style="color: #667eea;">✏️ 編輯或刪除 學生權限費用記錄</h2>
                         <div style="margin-top: 20px;">
                             <h3>📖 API 概述</h3>
                             <p><strong>端點：</strong><code>PATCH /api/v2/StudentAttendance</code></p>
-                            <p><strong>說明：</strong>修改或刪除學生權限費用記錄（可編輯繳款日期、總金額、刪除狀態），方式同 /api/v2/UpdateCourse</p>
+                            <p><strong>說明：</strong>編輯或刪除學生權限費用記錄（可編輯繳款日期、總金額、刪除狀態），方式同 /api/v2/UpdateCourse</p>
 
                             <h3 style="margin-top: 20px;">📥 請求參數 (ReqUpdateStudentPermissionFeeDTO)</h3>
                             <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
@@ -3759,7 +3759,7 @@ Content-Type: application/json
 
                 case 'editCourse':
                     html = `
-                        <h2 style="color: #667eea;">✏️ 編輯課程</h2>
+                        <h2 style="color: #667eea;">✏️ 編輯或刪除課程</h2>
                         <div style="margin-top: 20px;">
                             <h3>📖 API 概述</h3>
                             <p><strong>端點：</strong><code>PATCH /api/v2/UpdateCourse</code></p>
