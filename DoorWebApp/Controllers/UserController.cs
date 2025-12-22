@@ -38,7 +38,7 @@ namespace DoorWebApp.Controllers
 
 
         public UserController(
-            ILogger<UserController> log, 
+            ILogger<UserController> log,
             DoorDbContext ctx,
             AuditLogWritter auditLog,
             JWTHelper jwt,
@@ -106,7 +106,7 @@ namespace DoorWebApp.Controllers
                 log.LogInformation($"[{Request.Path}] Update account attritube.");
                 int EffectRow = ctx.SaveChanges();
                 log.LogInformation($"[{Request.Path}] Account updated. (EffectRow:{EffectRow})");
-                
+
 
                 // 6. 撈取使用者權限清單
                 //var UserPermissions = GetUserPermissionListByUserId(targetUserEntity.Id);
@@ -215,7 +215,7 @@ namespace DoorWebApp.Controllers
                 //取得Qrcode
                 APIResponse<List<ResGetAllUsersDTO>> resQrcodes = new APIResponse<List<ResGetAllUsersDTO>>();
                 var result = await SoyalAPI.SendUserAccessProfilesAsync(UserList);
-                if(result.msg == "Success" && result.content.Count > 0)
+                if (result.msg == "Success" && result.content.Count > 0)
                 {
                     var qrcode = result.content.FirstOrDefault();
                     // 新增 Qrcode 或更新 Qrcode
@@ -236,7 +236,8 @@ namespace DoorWebApp.Controllers
 
                         ctx.SaveChanges(); // Save user to generate UserId
                         log.LogInformation($"[{Request.Path}] Create QRCode : Id={NewQRCode.Id}, Add to QRCodeData={NewQRCode.QRCodeData}");
-                    }else //更新 Qrcode
+                    }
+                    else //更新 Qrcode
                     {
                         qrcodeEntity.userTag = (int)qrcode.userTag;
                         qrcodeEntity.qrcodeTxt = qrcode.qrcodeTxt;
@@ -249,9 +250,9 @@ namespace DoorWebApp.Controllers
                         ctx.SaveChanges(); // Save user to generate UserId
                         log.LogInformation($"[{Request.Path}] update QRCode : Id={qrcodeEntity.Id}, Add to UserId={qrcode.userAddr}");
                     }
-                    
+
                 }
-                
+
 
                 res.result = APIResultCode.success;
                 res.msg = "success";
@@ -547,7 +548,7 @@ namespace DoorWebApp.Controllers
             try
             {
                 /// 1. 查詢
-                var User= ctx.TblUsers
+                var User = ctx.TblUsers
                     .Include(x => x.Roles)
                     .Include(x => x.Permission)
                     .ThenInclude(x => x.PermissionGroups)
@@ -722,7 +723,7 @@ namespace DoorWebApp.Controllers
         public IActionResult RefreshToken()
         {
             APIResponse<ResUserAuthInfoDTO> res = new APIResponse<ResUserAuthInfoDTO>();
-            
+
             try
             {
                 int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
@@ -898,7 +899,6 @@ namespace DoorWebApp.Controllers
                 ctx.SaveChanges(); // Save user to generate UserId
                 log.LogInformation($"[{Request.Path}] Create User : Name={NewUser.Username}, DisplayName={NewUser.DisplayName}");
 
-
                 // 3-2. 新增門禁,再加到使用者
 
                 //新增門禁權限關聯,再加到使用者
@@ -969,13 +969,13 @@ namespace DoorWebApp.Controllers
             APIResponse res = new APIResponse();
             try
             {
-                int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x=>int.Parse(x.Value)).FirstOrDefault();
-                string OperatorUsername = User.Identity?.Name?? "N/A";
+                int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+                string OperatorUsername = User.Identity?.Name ?? "N/A";
                 int UserId = UserDTO.userId;
 
                 log.LogInformation($"[{Request.Path}] Update user. OperatorId:{OperatorId}");
                 // 1. 資料檢核
-                var UserEntity = ctx.TblUsers.Include(x=> x.Roles).Where(x => x.Id == UserId).FirstOrDefault();
+                var UserEntity = ctx.TblUsers.Include(x => x.Roles).Where(x => x.Id == UserId).FirstOrDefault();
                 if (UserEntity == null)
                 {
                     log.LogWarning($"[{Request.Path}] User (Id:{UserId}) not found");
@@ -1004,7 +1004,7 @@ namespace DoorWebApp.Controllers
                     res.msg = "duplicate_username";
                     return Ok(res);
                 }
-                
+
                 //姓名
                 if (string.IsNullOrEmpty(UserDTO.displayName))
                 {
@@ -1042,7 +1042,7 @@ namespace DoorWebApp.Controllers
 
 
                 //1-1. 假刪除使用者
-                if(UserDTO.IsDelete)
+                if (UserDTO.IsDelete)
                 {
                     UserEntity.IsDelete = true;
                     // 存檔
@@ -1064,11 +1064,11 @@ namespace DoorWebApp.Controllers
                 // 2. 比對角色資訊(為了auditlog用)
                 List<int> UserRoleCurrent = ctx.TblUsers
                     .Include(x => x.Roles)
-                    .Where(x=>x.Id == UserId)
+                    .Where(x => x.Id == UserId)
                     .SelectMany(x => x.Roles)
                     .Select(x => x.Id)
                     .ToList();
-               
+
                 List<int> UserRoleAssign = new List<int> { UserDTO.roleid };
                 List<int> RoleIdToDelete = UserRoleCurrent.Except(UserRoleAssign).ToList();
                 List<int> RoleIdToInsert = UserRoleAssign.Except(UserRoleCurrent).ToList();
@@ -1091,7 +1091,7 @@ namespace DoorWebApp.Controllers
                 UserEntity.ContactPhone = UserDTO.contactPhone;
                 UserEntity.RelationshipTitle = UserDTO.relationshipTitle;
 
-                if (!string.IsNullOrEmpty( UserDTO.password) )
+                if (!string.IsNullOrEmpty(UserDTO.password))
                     UserEntity.Secret = UserDTO.password;
 
                 UserEntity.ModifiedTime = DateTime.Now;
@@ -1136,7 +1136,8 @@ namespace DoorWebApp.Controllers
                     {
                         log.LogInformation($"[{Request.Path}] User QRcode Invalid success. (UserId:{UserId})");
                     }
-                    else{
+                    else
+                    {
                         log.LogInformation($"[{Request.Path}] Update QRcode Invalid failed. (UserId:{UserId})");
                     }
 
@@ -1385,7 +1386,7 @@ namespace DoorWebApp.Controllers
             }
         }
 
-                /// <summary>
+        /// <summary>
         /// 更新暫時門禁_ID=54
         /// </summary>
         /// <param name="UserId"></param>
@@ -1524,7 +1525,7 @@ namespace DoorWebApp.Controllers
 
                 log.LogInformation($"[{Request.Path}] Target user found! UserId:{UserId}, Username:{targetUserEntity.Username}");
 
-                
+
                 var userPermission = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == UserId).FirstOrDefault();
 
                 var QRCodeData = ctx.TbQRCodeStorages.FromSqlRaw(@"SELECT q.* 
@@ -1546,18 +1547,18 @@ namespace DoorWebApp.Controllers
                 {
                     var permissions = ctx.TblPermission
                                         .Where(x => x.UserId == UserId)
-                                        .Where( x => x.IsDelete == false)
+                                        .Where(x => x.IsDelete == false)
                                         .Where(p =>
                                             (
                                                 (string.Compare(p.DateFrom, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) >= 0 &&
-                                                string.Compare(p.DateTo, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) >= 0 )
+                                                string.Compare(p.DateTo, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) >= 0)
                                                 ||
                                                 (string.Compare(p.DateFrom, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) <= 0 &&
                                                 string.Compare(p.DateTo, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) >= 0)
                                             )
                                             &&
                                             string.Compare(p.TimeFrom, QRCodeData.ModifiedTime.ToString("HH:mm")) <= 0 &&
-                                            string.Compare(p.TimeTo, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0 
+                                            string.Compare(p.TimeTo, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0
                                         )
                                         .Select(x => new
                                         {
@@ -1571,16 +1572,16 @@ namespace DoorWebApp.Controllers
 
 
                     Permissions = permissions.Select(x => new ManyTimePermissionDTO
-                                            {
-                                                datefrom = x.DateFrom,
-                                                dateto = x.DateTo,
-                                                timefrom = x.TimeFrom,
-                                                timeto = x.TimeTo,
-                                                days = x.Days.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                    {
+                        datefrom = x.DateFrom,
+                        dateto = x.DateTo,
+                        timefrom = x.TimeFrom,
+                        timeto = x.TimeTo,
+                        days = x.Days.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                                                     .Select(int.Parse)  // Convert each day string to integer
                                                     .ToList(),
-                                                id = x.Id
-                                            }).ToList();
+                        id = x.Id
+                    }).ToList();
 
                     var studentpermissions = ctx.TblStudentPermission
                                                 .Where(x => x.UserId == UserId)
@@ -1620,13 +1621,48 @@ namespace DoorWebApp.Controllers
                         id = x.Id
                     }).ToList();
                 }
-                
+
                 string qrcode = QRCodeData == null ? "" : QRCodeData.QRCodeData.ToString();
 
                 var days = userPermission.Days
                     .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(int.Parse)  // Convert each day string to integer
                     .ToList();  // Convert to List<int>
+
+                // 查詢課表記錄
+                List<ResScheduleDTO> schedules = new List<ResScheduleDTO>();
+                if (QRCodeData != null)
+                {
+                    schedules = ctx.TblSchedule
+                        .Where(s => s.StudentPermission.UserId == UserId)
+                        .Where(s => !s.IsDelete)
+                        .Where(s =>
+                            (
+                            (string.Compare(s.StartTime, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0 &&
+                            string.Compare(s.EndTime, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0)
+                            ||
+                            (string.Compare(s.StartTime, QRCodeData.ModifiedTime.ToString("HH:mm")) <= 0 &&
+                            string.Compare(s.EndTime, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0)
+                            )
+                            &&
+                            (string.Compare(s.ScheduleDate, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) == 0))
+                        .OrderBy(s => s.ScheduleDate)
+                        .ThenBy(s => s.StartTime)
+                        .Select(s => new ResScheduleDTO
+                        {
+                            ScheduleId = s.Id,
+                            StudentPermissionId = s.StudentPermissionId,
+                            ClassroomId = s.ClassroomId,
+                            ScheduleDate = s.ScheduleDate,
+                            StartTime = s.StartTime,
+                            EndTime = s.EndTime,
+                            CourseMode = s.CourseMode,
+                            ScheduleMode = s.ScheduleMode,
+                            Status = s.Status,
+                            Remark = s.Remark
+                        })
+                        .ToList();
+                }
 
                 // Map the result to ManyPermissionsDTO
                 var userPermissions = new ManyPermissionsDTO
@@ -1639,6 +1675,7 @@ namespace DoorWebApp.Controllers
                     qrcode = qrcode,
                     permissions = Permissions,
                     studentpermissions = StudentPermissions,
+                    schedules = schedules,
                     groupIds = userPermission.PermissionGroups
                         .Select(y => y.Id)
                         .ToList()  // Convert the IEnumerable<int> to List<int>
@@ -1731,7 +1768,7 @@ namespace DoorWebApp.Controllers
             }
         }
 
-                /// <summary>
+        /// <summary>
         /// 取得使用者權限 暫時門禁設定_ID=54
         /// </summary>
         /// <returns></returns>
@@ -1801,7 +1838,7 @@ namespace DoorWebApp.Controllers
             }
         }
 
-        
+
         /// <summary>
         /// 使用Local DB進行帳密驗證
         /// </summary>
@@ -1879,7 +1916,7 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
-               
+
 
                 if (targetUserEntity.Email == null)
                 {
@@ -1980,7 +2017,7 @@ namespace DoorWebApp.Controllers
         {
             int[] result = new int[] { };
 
-            if(!string.IsNullOrEmpty(days))
+            if (!string.IsNullOrEmpty(days))
                 days.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                                                          .Select(int.Parse)
                                                          .Distinct() // Distinct operation in-memory
@@ -2159,11 +2196,11 @@ namespace DoorWebApp.Controllers
             {
                 //選課狀態 預設0,1在學,2停課,3約課
                 var StudentTypeCount = new ResStudentTypeCountDTO()
-                    {
-                        studyingCount = ctx.TblUsers.Where(x => x.IsDelete == false && x.Type == 1).Count(),
-                        stopCount = ctx.TblUsers.Where(x => x.IsDelete == false && x.Type == 2).Count(),
-                        bookingCount = ctx.TblUsers.Where(x => x.IsDelete == false && x.Type == 3).Count()
-                    };
+                {
+                    studyingCount = ctx.TblUsers.Where(x => x.IsDelete == false && x.Type == 1).Count(),
+                    stopCount = ctx.TblUsers.Where(x => x.IsDelete == false && x.Type == 2).Count(),
+                    bookingCount = ctx.TblUsers.Where(x => x.IsDelete == false && x.Type == 3).Count()
+                };
 
                 res.result = APIResultCode.success;
                 res.msg = "success";

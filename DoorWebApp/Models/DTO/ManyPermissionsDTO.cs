@@ -13,6 +13,8 @@ namespace DoorWebApp.Models.DTO
         public List<int> groupIds { set; get; }
         public List<ManyTimePermissionDTO> permissions { set; get; }
         public List<ManyTimePermissionDTO> studentpermissions { set; get; }
+        public List<ResScheduleDTO> schedules { set; get; }
+        
     }
 
 }
