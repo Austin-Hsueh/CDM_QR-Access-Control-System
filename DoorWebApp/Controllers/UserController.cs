@@ -1505,13 +1505,7 @@ namespace DoorWebApp.Controllers
                 int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
                 string OperatorUsername = User.Identity?.Name ?? "N/A";
                 log.LogInformation($"[{Request.Path}] GetPermissionSetting : id={OperatorId}, username={OperatorUsername})");
-                DateTime now = DateTime.Now.AddDays(-1);
-                now = new DateTime(
-                    2025, 12, 18,
-                    now.Hour,
-                    now.Minute,
-                    now.Second
-                );
+                DateTime now = DateTime.Now;
                 int day = (int)now.DayOfWeek;
                 if (day == 0)
                     day = 7;
@@ -1529,13 +1523,13 @@ namespace DoorWebApp.Controllers
 
                 log.LogInformation($"[{Request.Path}] Target user found! UserId:{UserId}, Username:{targetUserEntity.Username}");
 
-                
+
                 var userPermission = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == UserId).FirstOrDefault();
 
                 var QRCodeData = ctx.TbQRCodeStorages.FromSqlRaw(@"SELECT q.* 
                                                             FROM tblqrcodestorage q
                                                             LEFT JOIN tblqrcodestoragetbluser qu ON qu.QRCodesId = q.Id 
-                                                            WHERE UsersId = @UsersId AND q.ModifiedTime >= CONCAT('2025-12-18', ' 00:00:00') ",
+                                                            WHERE UsersId = @UsersId AND q.ModifiedTime >= CONCAT(CURDATE(), ' 00:00:00') ",
                                                             new MySqlConnector.MySqlParameter("@UsersId", UserId))
                                                      .Select(x => new
                                                      {
