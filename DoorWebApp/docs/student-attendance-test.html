@@ -578,6 +578,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
 
             <!-- 查 學生權限 Tab -->
             <div id="attendance" class="tab-content">
+
                 <!-- 依學生ID查詢學生權限 -->
                 <div style="margin-bottom: 24px; padding: 16px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #409eff;">
                     <h4 style="margin: 0 0 12px 0;">👤 依學生ID查詢學生權限</h4>
@@ -590,6 +591,22 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                     </div>
                     <div id="studentPermissionsContent" style="margin-top: 12px;"></div>
                     <div id="studentPermissionsError" class="error" style="display:none;"></div>
+                </div>
+
+                <!-- 📊 查詢學生權限GROUP詳細資料 -->
+                <div style="margin-bottom: 24px; padding: 16px; background: #e8f5e9; border-radius: 8px; border-left: 4px solid #4caf50;">
+                    <h4 style="margin: 0 0 12px 0;">📊 查詢學生權限GROUP詳細資料</h4>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <label>學生權限 ID：
+                            <input type="number" id="testGroupPermissionIdCard" value="51" min="1" placeholder="輸入學生權限 ID" style="width: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                        </label>
+                        <button class="btn-primary" onclick="testAttendanceGroupCard()">執行測試</button>
+                        <button class="btn-default" onclick="clearGroupTestResult()">清除</button>
+                    </div>
+                    <div id="groupTestResult" style="margin-top: 12px;"></div>
+                    <div id="groupTestError" class="error" style="display:none;"></div>
+                    <div id="groupTestRawData" style="margin-top: 12px; padding: 12px; background: #f9fafb; border: 1px solid #ddd; border-radius: 4px; max-height: 500px; overflow-y: auto; display: none;">
+                    </div>
                 </div>
 
                 <!-- 依學生權限ID查詢費用 -->
@@ -828,6 +845,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('updatePermissionFee')">✏️ 編輯或刪除學生權限費用</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('paymentDetail')">💰 顯示繳費細項</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceFee')">✏️ 單堂老師費用修改</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceGroup')">📊 查詢學生權限GROUP詳細資料</button>
 
                             <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;"> 關帳管理</div>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('dailyStatus')">🔍 取得簽到清單</button>
@@ -1691,6 +1709,155 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
             document.getElementById('studentsError').style.display = 'none';
         }
 
+        // ========== 查 學生權限 TAB 中的測試函數 ==========
+
+        async function testAttendanceGroupCard() {
+            const permissionId = document.getElementById('testGroupPermissionIdCard').value;
+            
+            if (!permissionId) {
+                alert('請輸入學生權限 ID');
+                return;
+            }
+
+            const resultDiv = document.getElementById('groupTestResult');
+            const rawDataDiv = document.getElementById('groupTestRawData');
+            resultDiv.innerHTML = '<div class="loading">查詢中...</div>';
+            rawDataDiv.style.display = 'none';
+
+            try {
+                const res = await apiFetch(`/api/v1/StudentAttendance/Group/${permissionId}`);
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '查詢失敗');
+                }
+
+                const content = data.content || {};
+                const groupId = content.groupId || 'N/A';
+                const studentName = content.studentName || '未知';
+                const courseName = content.courseName || '未知';
+                const permissions = content.permissions || [];
+                const totalFees = permissions.reduce((sum, p) => sum + (p.fees ? p.fees.length : 0), 0);
+                const totalAttendances = permissions.reduce((sum, p) => sum + (p.attendances ? p.attendances.length : 0), 0);
+
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 查詢成功</div>
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <p><strong>👥 GROUP 資訊</strong></p>
+                        <p style="margin: 5px 0;"><strong>目前學生權限 ID：</strong> ${content.nowStudentPermissionId}</p>
+                        <p style="margin: 5px 0;"><strong>GROUP ID：</strong> ${groupId}</p>
+                        <p style="margin: 5px 0;"><strong>學生：</strong> ${studentName} (${content.studentId})</p>
+                        <p style="margin: 5px 0;"><strong>課程：</strong> ${courseName} (${content.courseId})</p>
+                        <hr style="margin: 10px 0; border: none; border-top: 1px solid #ddd;">
+                        <p><strong>📊 統計資訊</strong></p>
+                        <p style="margin: 5px 0;"><strong>包含權限數：</strong> ${permissions.length}</p>
+                        <p style="margin: 5px 0;"><strong>費用記錄總數：</strong> ${totalFees}</p>
+                        <p style="margin: 5px 0;"><strong>出席記錄總數：</strong> ${totalAttendances}</p>
+                    </div>
+                `;
+
+                // 顯示 RAW DATA - 用 TABLE 格式
+                let tableHtml = `
+                    <div style="margin-top: 12px;">
+                        <h4 style="margin: 0 0 8px 0; color: #333;">📋 權限詳細資料</h4>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead>
+                                <tr style="background: #667eea; color: white;">
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">權限ID</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">老師ID</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">老師名稱</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">開始日期</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">結束日期</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">費用筆數</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">出席筆數</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">課表筆數</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                permissions.forEach((perm, idx) => {
+                    const feeCount = perm.fees ? perm.fees.length : 0;
+                    const attCount = perm.attendances ? perm.attendances.length : 0;
+                    const scheduleCount = perm.schedules ? perm.schedules.length : 0;
+                    const bgColor = idx % 2 === 0 ? '#fafafa' : 'white';
+                    tableHtml += `
+                        <tr style="background: ${bgColor};">
+                            <td style="padding: 8px; border: 1px solid #ddd;">${perm.permissionId || '-'}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${perm.teacherId || '-'}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${perm.teacherName || '-'}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${perm.dateFrom || '-'}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">${perm.dateTo || '-'}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;"><strong>${feeCount}</strong></td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;"><strong>${attCount}</strong></td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;"><strong>${scheduleCount}</strong></td>
+                        </tr>
+                    `;
+                    
+                    // 顯示該權限下的費用記錄
+                    if (perm.fees && perm.fees.length > 0) {
+                        perm.fees.forEach(fee => {
+                            tableHtml += `
+                                <tr style="background: #f5f5f5; font-size: 11px;">
+                                    <td colspan="8" style="padding: 6px 8px; border: 1px solid #eee;">
+                                        <strong>💰 費用ID ${fee.feeId}：</strong> 應收 ￥${fee.totalAmount || 0} | 繳款日期 ${fee.paymentDate || '-'} | 刪除 ${fee.isDelete ? '是' : '否'}
+                                        ${fee.payment ? ` | 已繳 ￥${fee.payment.pay || 0} | 折扣 ￥${fee.payment.discountAmount || 0}` : ''}
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+                    
+                    // 顯示該權限下的出席記錄
+                    if (perm.attendances && perm.attendances.length > 0) {
+                        perm.attendances.forEach(att => {
+                            const feeInfo = att.attendanceFee ? `時數 ${att.attendanceFee.hours || 0} | 金額 ￥${att.attendanceFee.amount || 0} | 增減 ${att.attendanceFee.adjustmentAmount || 0}` : '-';
+                            tableHtml += `
+                                <tr style="background: #f0f9ff; font-size: 11px;">
+                                    <td colspan="8" style="padding: 6px 8px; border: 1px solid #eee;">
+                                        <strong>📅 簽到ID ${att.attendanceId}：</strong> 日期 ${att.attendanceDate || '-'} | 類型 ${att.attendanceTypeName || '-'} | ${feeInfo}
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+                    
+                    // 顯示該權限下的課表記錄
+                    if (perm.schedules && perm.schedules.length > 0) {
+                        perm.schedules.forEach(sch => {
+                            tableHtml += `
+                                <tr style="background: #fff9e6; font-size: 11px;">
+                                    <td colspan="8" style="padding: 6px 8px; border: 1px solid #eee;">
+                                        <strong>📅 課表ID ${sch.scheduleId}：</strong> 日期 ${sch.scheduleDate || '-'} | 時間 ${sch.timeFrom || '-'} ~ ${sch.timeTo || '-'} | 教室ID ${sch.classroomId || '-'} | 狀態 ${sch.status || '-'}
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+                });
+                
+                tableHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                rawDataDiv.style.display = 'block';
+                rawDataDiv.innerHTML = `<strong style="color: #e2e8f0;">📊 資料表格：</strong>${tableHtml}`;
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                rawDataDiv.style.display = 'none';
+            }
+        }
+
+        function clearGroupTestResult() {
+            document.getElementById('groupTestResult').innerHTML = '';
+            document.getElementById('groupTestRawData').style.display = 'none';
+            document.getElementById('testGroupPermissionIdCard').value = '51';
+        }
+
         // ========== 學生權限查詢功能 ==========
 
         async function queryStudentPermissions() {
@@ -1730,6 +1897,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                                 <thead>
                                     <tr>
                                         <th>權限ID</th>
+                                        <th>課程ID</th>
                                         <th>開始日期</th>
                                         <th>結束日期</th>
                                         <th>時間</th>
@@ -1749,6 +1917,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             html += `
                                 <tr>
                                     <td>${perm.id || '-'}</td>
+                                    <td>${perm.courseId || '-'}</td>
                                     <td>${perm.datefrom || '-'}</td>
                                     <td>${perm.dateto || '-'}</td>
                                     <td>${perm.timefrom || '-'} ~ ${perm.timeto || '-'}</td>
@@ -3075,6 +3244,17 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             <p><strong>端點：</strong><code>GET /api/v1/StudentAttendance/{userId}</code></p>
                             <p><strong>說明：</strong>取得指定學生的所有學生權限記錄，包含課程資訊、繳款狀態、出席紀錄摘要</p>
 
+                            <h3 style="margin-top: 20px;">🔄 分組邏輯</h3>
+                            <div style="background: #f0f9ff; border-left: 4px solid #667eea; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li><strong>分組維度：</strong>以 <code>studentPermissionId</code> 為單位；一個學生權限可對應多筆學生權限費用</li>
+                                    <li><strong>費用對應：</strong>每 4 筆簽到對應一筆 StudentPermissionFee；應收/已收/欠款依該筆費用計算</li>
+                                    <li><strong>一對多關係：</strong>一個權限 (StudentPermission) 可能有多筆費用 (StudentPermissionFee)</li>
+                                    <li><strong>排序輸出：</strong>依權限建立時間或 Id 排序，方便辨識最新一期權限</li>
+                                    <li><strong>與 GROUP 的關聯：</strong>同學生 + 同課程的多期權限會在 GROUP API 聚合，這裡僅提供單筆權限摘要</li>
+                                </ul>
+                            </div>
+
                             <h3 style="margin-top: 20px;">📥 請求參數</h3>
                             <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
                                 <thead>
@@ -3116,6 +3296,60 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                                 </tbody>
                             </table>
 
+                            <h3 style="margin-top: 20px;">💡 操作邏輯</h3>
+                            <div class="info">
+                                <p><strong>分組和合併策略：</strong></p>
+                                <ol style="margin-left: 20px; line-height: 1.8;">
+                                    <li><strong>查詢相同課程和學生的所有權限：</strong>
+                                        <br/>根據提供的 <code>studentPermissionId</code> 找到對應的課程 (CourseId) 和學生 (UserId)，然後查詢該學生在該課程下的 <strong>所有學生權限記錄</strong>（包括多次報名的情況）
+                                    </li>
+                                    <li><strong>合併簽到記錄：</strong>
+                                        <br/>將該學生在該課程下所有學生權限的簽到紀錄<strong>按日期升序</strong>合併為一個連續清單
+                                        <br/>例如：[2025-11-01, 2025-11-08, 2025-11-15, 2025-11-22, 2025-11-29, ...]
+                                    </li>
+                                    <li><strong>合併費用記錄：</strong>
+                                        <br/>將該學生在該課程下所有學生權限的費用紀錄<strong>按繳款日期升序</strong>合併為一個清單
+                                    </li>
+                                    <li><strong>映射費用與簽到（每 4 筆一組）：</strong>
+                                        <br/>每一筆費用記錄對應<strong>全域簽到清單中連續的 4 筆簽到紀錄</strong>
+                                        <br/>範例：
+                                        <ul style="margin-left: 20px;">
+                                            <li>費用 1：對應簽到 [1, 2, 3, 4]</li>
+                                            <li>費用 2：對應簽到 [5, 6, 7, 8]</li>
+                                            <li>費用 3：對應簽到 [9, 10, 11, 12]</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>金額計算：</strong>
+                                        <br/><code>已收金額 = 付款金額 + 折扣金額</code>
+                                        <br/><code>欠款金額 = max(應收金額 - 已收金額, 0)</code>
+                                    </li>
+                                </ol>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">📌 使用案例</h3>
+                            <div class="info">
+                                <p><strong>場景：</strong>學生「小明」在「鋼琴課」報名了 2 次</p>
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li>第一次報名（studentPermissionId=100）：4 堂課（11/01, 11/08, 11/15, 11/22）</li>
+                                    <li>第二次報名（studentPermissionId=101）：4 堂課（11/29, 12/06, 12/13, 12/20）</li>
+                                    <li>第一次繳費（費用 ID=1000）：應收 10000 元</li>
+                                    <li>第二次繳費（費用 ID=1001）：應收 10000 元</li>
+                                </ul>
+                                <p><strong>API 返回的結果：</strong></p>
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li>
+                                        序號 1（費用 1000）：
+                                        <br/>- 簽到 1~4：[11/01, 11/08, 11/15, 11/22]
+                                        <br/>- 應收：10000，已收：? 元，欠款：? 元
+                                    </li>
+                                    <li>
+                                        序號 2（費用 1001）：
+                                        <br/>- 簽到 5~8：[11/29, 12/06, 12/13, 12/20]
+                                        <br/>- 應收：10000，已收：? 元，欠款：? 元
+                                    </li>
+                                </ul>
+                            </div>
+
                             <h3 style="margin-top: 20px;">🧪 測試 API</h3>
                             <label>學生權限 ID: <input type="number" id="testUserId" value="51" style="width: 150px; padding: 6px;" /></label>
                             <button class="btn-primary" style="margin-top: 10px;" onclick="testAttendanceList()">執行測試</button>
@@ -3134,6 +3368,16 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             <h3>📖 API 概述</h3>
                             <p><strong>端點：</strong><code>GET /api/v1/StudentAttendance/Detail/{studentPermissionFeeId}</code></p>
                             <p><strong>說明：</strong>取得學生權限費用的詳細繳費資訊，包含拆帳比例、老師分潤、課程記錄</p>
+
+                            <h3 style="margin-top: 20px;">🔄 分組邏輯</h3>
+                            <div style="background: #f0f9ff; border-left: 4px solid #667eea; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li><strong>分組維度：</strong>以 <code>studentPermissionFeeId</code> 為單位（單筆費用 = 一組簽到區段）</li>
+                                    <li><strong>對應權限：</strong>每筆費用隸屬一個 <code>studentPermissionId</code>，而該權限屬於某學生 + 某課程的 GROUP</li>
+                                    <li><strong>簽到對應：</strong>簽到會按 4 筆對應一筆費用；查看細項即為查看該組簽到的費用拆帳/繳費狀態</li>
+                                    <li><strong>與 GROUP 的關聯：</strong>若需看同課程多期權限的所有費用，請改用「📊 查詢學生權限GROUP詳細資料」取得整組資料</li>
+                                </ul>
+                            </div>
 
                             <h3 style="margin-top: 20px;">📥 請求參數</h3>
                             <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
@@ -3255,6 +3499,16 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                                     <li><strong>自動設定繳款日：</strong>系統自動將繳款日設為執行當天（UTC+8 時區）</li>
                                     <li><strong>費用分組：</strong>每個學生權限可以有多筆費用記錄，每4筆簽到對應一筆費用</li>
                                     <li><strong>用途：</strong>當學生權限有新的上課週期時，可以新增費用記錄來管理分期繳款</li>
+                                </ul>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">🔍 現行 nowStudentPermissionId 判定</h3>
+                            <div style="background: #f0f9ff; border-left: 4px solid #667eea; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li><strong>資料來源：</strong>在 <code>GET /api/v1/StudentAttendance/Group/{studentPermissionId}</code> 中，先抓同學生 + 同課程的所有權限</li>
+                                    <li><strong>選取邏輯：</strong>目前以「列表的最後一筆權限」作為 <code>nowStudentPermissionId</code>（條件 <code>Schedules.Count >= 0</code> 等同全抓，沒有排序條件時即取最後一筆）</li>
+                                    <li><strong>回退機制：</strong>若找不到權限，回退為請求帶入的 <code>studentPermissionId</code></li>
+                                    <li><strong>使用提醒：</strong>新增費用時若希望綁定「最新」權限，請確保目標權限是該學生該課程的最後一筆（通常為 Id 最大的權限）</li>
                                 </ul>
                             </div>
 
@@ -3398,12 +3652,16 @@ Content-Type: application/json
                                 </tbody>
                             </table>
 
-                            <h3 style="margin-top: 20px;">💡 操作邏輯</h3>
+                            <h3 style="margin-top: 20px;">�💡 操作邏輯</h3>
                             <div class="info">
                                 <p><strong>修改流程：</strong></p>
                                 <ol style="margin-left: 20px; line-height: 1.8;">
                                     <li>若 <code>IsDelete = true</code>，執行假刪除（標記為已刪除）</li>
                                     <li>否則，更新 <code>PaymentDate</code>（若提供）和 <code>TotalAmount</code>（若提供）</li>
+                                    <li><strong>總金額回歸原計算：</strong>若 <code>totalAmount</code> 未提供（空或 null），自動回歸到課程費用計算：
+                                        <br/>&nbsp;&nbsp;&nbsp;&nbsp;<code>default = CourseFee.Amount + CourseFee.MaterialFee</code>
+                                        <br/>&nbsp;&nbsp;&nbsp;&nbsp;（即課程學費 + 教材費之和）
+                                    </li>
                                     <li>記錄修改時間 (<code>ModifiedTime</code>)</li>
                                     <li>寫入稽核紀錄</li>
                                 </ol>
@@ -3418,6 +3676,16 @@ Content-Type: application/json
   "studentPermissionFeeId": 123,
   "paymentDate": "2025-12-15",
   "totalAmount": 5000,
+  "IsDelete": false
+}
+
+// 重置總金額為課程費用預設值（totalAmount 留空或 null）
+PATCH /api/v2/StudentAttendance
+Content-Type: application/json
+
+{
+  "studentPermissionFeeId": 123,
+  "paymentDate": "2025-12-15",
   "IsDelete": false
 }
 
@@ -4832,6 +5100,203 @@ Content-Type: application/json
                     `;
                     break;
 
+                case 'attendanceGroup':
+                    html = `
+                        <h2 style="color: #667eea;">📊 查詢學生權限GROUP詳細資料</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>GET /api/v1/StudentAttendance/Group/{studentPermissionId}</code></p>
+                            <p><strong>說明：</strong>根據學生權限ID，查詢該學生同課程的所有權限GROUP，包含權限、費用、出席、出席費用等完整資訊</p>
+
+                            <h3 style="margin-top: 20px;">🔄 分組邏輯</h3>
+                            <div style="background: #f0f9ff; border-left: 4px solid #667eea; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                                <p><strong>GROUP分組維度：按學生 + 課程進行聚合</strong></p>
+                                <ul style="margin-left: 20px; line-height: 1.8;">
+                                    <li><strong>GROUP識別碼：</strong>格式為 <code>{studentId}_{courseId}</code>，用於識別同一學生在同一課程的所有權限</li>
+                                    <li><strong>分組條件：</strong>同一個學生 (studentId) + 同一個課程 (courseId) 的所有 <code>StudentPermission</code> 記錄聚集為一個 GROUP</li>
+                                    <li><strong>當前權限：</strong><code>nowStudentPermissionId</code> 表示該 GROUP 中「最後一個有課表的權限」，用於標識當前正在使用的權限</li>
+                                    <li><strong>權限陣列：</strong><code>permissions</code> 陣列包含該 GROUP 內所有的歷史權限記錄，每筆權限都有：
+                                        <ul style="margin-left: 20px;">
+                                            <li><code>fees</code> - 該權限對應的費用記錄</li>
+                                            <li><code>attendances</code> - 該權限下的所有出席記錄</li>
+                                            <li><code>schedules</code> - 該權限的課表記錄</li>
+                                        </ul>
+                                    </li>
+                                    <li><strong>分組用途：</strong>用於展示學生在某課程的完整歷史（多期權限、多次繳費、所有出席記錄）</li>
+                                </ul>
+                            </div>
+
+                                <h3 style="margin-top: 20px;">🔍 nowStudentPermissionId 判定邏輯</h3>
+                                <div style="background: #f0f9ff; border-left: 4px solid #667eea; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                                    <ul style="margin-left: 20px; line-height: 1.8;">
+                                        <li><strong>資料來源：</strong>先抓同學生 + 同課程的全部權限（未刪除）</li>
+                                        <li><strong>選取方式：</strong>目前以權限清單的最後一筆作為 <code>nowStudentPermissionId</code>（條件 <code>Schedules.Count >= 0</code> 等同全抓，未排序時取最後一筆）</li>
+                                        <li><strong>回退機制：</strong>若清單為空，回傳呼叫帶入的 <code>studentPermissionId</code></li>
+                                        <li><strong>使用建議：</strong>想要「最新」作為當前權限時，請確保目標權限在該學生該課程中排序在最後（通常 Id 最大）</li>
+                                    </ul>
+                                </div>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限 ID (任一權限ID即可取得整個GROUP)</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位名稱</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">型別</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>nowStudentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">當前的學生權限 ID（最後一個有課表的權限）</td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;"><code>groupId</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">GROUP唯一識別碼 (格式: {studentId}_{courseId})</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學生 ID</td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;"><code>studentName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">學生姓名</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">課程 ID</td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;"><code>courseName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">課程名稱</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>category</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">課程分類</td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;"><code>feeCode</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">費用代碼</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>tuitionAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">課程學費</td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;"><code>materialFee</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">教材費</td></tr>
+                                    <tr style="background: #e3f2fd;"><td colspan="3" style="padding: 8px; border: 1px solid #ddd;"><strong style="color: #1976d2;">📋 permissions - 同學生同課程的所有權限陣列</strong></td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>permissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">權限 ID</td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>teacherId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">老師 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>teacherName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">老師名稱</td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>dateFrom</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">權限開始日期</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>dateTo</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">權限結束日期</td></tr>
+                                    <tr style="background: #c8e6c9;"><td colspan="3" style="padding: 8px; border: 1px solid #ddd;"><strong style="color: #2e7d32;">💰 fees - 該權限的所有費用記錄陣列</strong></td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>feeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">費用記錄 ID</td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>studentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">所屬權限 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>totalAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">應收金額</td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>paymentDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">繳款日期</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>isDelete</code></td><td style="padding: 8px; border: 1px solid #ddd;">bool</td><td style="padding: 8px; border: 1px solid #ddd;">是否已刪除</td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>payment</code></td><td style="padding: 8px; border: 1px solid #ddd;">object</td><td style="padding: 8px; border: 1px solid #ddd;">繳費記錄 {paymentId, pay, discountAmount, receiptNumber, payDate}</td></tr>
+                                    <tr style="background: #ffccbc;"><td colspan="3" style="padding: 8px; border: 1px solid #ddd;"><strong style="color: #d84315;">📅 attendances - 該權限的所有出席記錄陣列</strong></td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>attendanceId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">出席記錄 ID</td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>attendanceDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">上課日期</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>attendanceType</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">出席類型 (1=出席, 2=請假, 0=缺席)</td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>attendanceTypeName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">出席類型文字</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>attendanceFee</code></td><td style="padding: 8px; border: 1px solid #ddd;">object</td><td style="padding: 8px; border: 1px solid #ddd;">該堂費用 {feeId, hours, amount, adjustmentAmount}</td></tr>
+                                    <tr style="background: #fff9c4;"><td colspan="3" style="padding: 8px; border: 1px solid #ddd;"><strong style="color: #f57f17;">📅 schedules - 該權限的課表記錄陣列</strong></td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>scheduleId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">課表記錄 ID</td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>scheduleDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">上課日期</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>timeFrom</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">開始時間</td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>timeTo</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">結束時間</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>classroomId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">教室 ID</td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>status</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">課表狀態</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">💡 使用場景</h3>
+                            <div style="background: #fff8e1; padding: 12px; border-radius: 4px; margin: 10px 0; border-left: 4px solid #fbc02d;">
+                                <p style="margin: 0;"><strong>多期課程同學生+同課程的情況：</strong></p>
+                                <p style="margin: 5px 0 0 20px; font-size: 14px;">學生「小明」初次報名「鋼琴課」取得權限1（2025/1-2月），後來課程結束又重新報名同課程取得權限2（2025/3-4月）。</p>
+                                <p style="margin: 5px 0 0 20px; font-size: 14px;">輸入任一權限ID，本API會返回同GROUP的所有權限及其費用/出席記錄，方便統計分析。</p>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">📝 回應範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 500px; font-size: 12px;">GET /api/v1/StudentAttendance/Group/51
+
+Response:
+{
+  "result": 1,
+  "msg": "success",
+  "content": {
+    "nowStudentPermissionId": 51,
+    "groupId": "3_15",
+    "studentId": 3,
+    "studentName": "小明",
+    "courseId": 15,
+    "courseName": "鋼琴課",
+    "category": "才藝課程",
+    "feeCode": "PIANO",
+    "tuitionAmount": 8000,
+    "materialFee": 500,
+    "permissions": [
+      {
+        "permissionId": 51,
+        "teacherId": 5,
+        "teacherName": "王老師",
+        "dateFrom": "2025-01-01",
+        "dateTo": "2025-02-28",
+        "fees": [
+          {
+            "feeId": 123,
+            "studentPermissionId": 51,
+            "totalAmount": 8500,
+            "paymentDate": "2025-01-15",
+            "isDelete": false,
+            "payment": {
+              "paymentId": 456,
+              "pay": 8500,
+              "discountAmount": 0,
+              "receiptNumber": "114B010001",
+              "payDate": "2025-01-15"
+            }
+          }
+        ],
+        "attendances": [
+          {
+            "attendanceId": 789,
+            "attendanceDate": "2025-01-05",
+            "attendanceType": 1,
+            "attendanceTypeName": "出席",
+            "attendanceFee": {
+              "feeId": 100,
+              "hours": 1.5,
+              "amount": 1200,
+              "adjustmentAmount": 0
+            }
+          }
+        ],
+        "schedules": [
+          {
+            "scheduleId": 101,
+            "scheduleDate": "2025-01-05",
+            "timeFrom": "09:00",
+            "timeTo": "10:30",
+            "classroomId": 2,
+            "status": 1
+          },
+          {
+            "scheduleId": 102,
+            "scheduleDate": "2025-01-12",
+            "timeFrom": "09:00",
+            "timeTo": "10:30",
+            "classroomId": 2,
+            "status": 1
+          }
+        ]
+      }
+    ]
+  }
+}
+</pre>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <label>學生權限 ID: <input type="number" id="testGroupPermissionId" value="51" style="width: 200px; padding: 6px;" /></label>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testAttendanceGroup()">執行測試</button>
+                            <div id="testResult-attendanceGroup" style="margin-top: 10px;"></div>
+                            
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-attendanceGroup" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
+                        </div>
+                    `;
+                    break;
+
             }
 
             docContent.innerHTML = html;
@@ -4904,8 +5369,7 @@ Content-Type: application/json
                 // 顯示 RAW DATA
                 document.getElementById('rawData-attendanceList').textContent = JSON.stringify(data, null, 2);
             } catch(err) {
-                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
-                document.getElementById('rawData-attendanceList').textContent = `錯誤: ${err.message}`;
+                resultDiv.innerHTML = `<div class="error">❌ 查詢失敗: ${err.message}</div>`;
             }
         }
 
@@ -5900,6 +6364,60 @@ Content-Type: application/json
             } catch(err) {
                 resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
                 rawDiv.textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        // 測試查詢學生權限GROUP詳細資料
+        async function testAttendanceGroup() {
+            const permissionId = document.getElementById('testGroupPermissionId').value;
+            
+            if (!permissionId) {
+                alert('請輸入學生權限 ID');
+                return;
+            }
+
+            const resultDiv = document.getElementById('testResult-attendanceGroup');
+            resultDiv.innerHTML = '<div class="loading">查詢中...</div>';
+
+            try {
+                const res = await apiFetch(`/api/v1/StudentAttendance/Group/${permissionId}`);
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '查詢失敗');
+                }
+
+                const groupData = data.content || {};
+                const permCount = groupData.permissions ? groupData.permissions.length : 0;
+                const totalFees = groupData.permissions ? 
+                    groupData.permissions.reduce((sum, p) => sum + (p.fees ? p.fees.length : 0), 0) : 0;
+                const totalAttendances = groupData.permissions ?
+                    groupData.permissions.reduce((sum, p) => sum + (p.attendances ? p.attendances.length : 0), 0) : 0;
+
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 查詢成功</div>
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <p><strong>GROUP ID:</strong> ${groupData.groupId || '-'}</p>
+                        <p><strong>學生：</strong> ${groupData.studentName || '-'} (ID: ${groupData.studentId || '-'})</p>
+                        <p><strong>課程：</strong> ${groupData.courseName || '-'} (ID: ${groupData.courseId || '-'})</p>
+                        <p><strong>課程分類：</strong> ${groupData.category || '-'}</p>
+                        <p><strong>課程學費：</strong> ￥${groupData.tuitionAmount || 0}</p>
+                        <p><strong>教材費：</strong> ￥${groupData.materialFee || 0}</p>
+                        <hr style="margin: 10px 0; border: none; border-top: 1px solid #ddd;">
+                        <p style="color: #2196f3;"><strong>📊 統計資訊：</strong></p>
+                        <p style="margin-left: 10px;"><strong>權限數：</strong> ${permCount}</p>
+                        <p style="margin-left: 10px;"><strong>費用記錄數：</strong> ${totalFees}</p>
+                        <p style="margin-left: 10px;"><strong>出席記錄數：</strong> ${totalAttendances}</p>
+                    </div>
+                `;
+
+                // 顯示 RAW DATA
+                document.getElementById('rawData-attendanceGroup').textContent = JSON.stringify(data, null, 2);
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                document.getElementById('rawData-attendanceGroup').textContent = `錯誤: ${err.message}`;
             }
         }
     </script>

@@ -1,16 +1,17 @@
 using DoorDB;
+using DoorDB.Enums;
+using DoorWebApp.Models;
 using DoorWebApp.Models.DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using NLog.Targets;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
-using DoorDB.Enums;
-using DoorWebApp.Models;
 
 namespace DoorWebApp.Controllers
 {
@@ -189,10 +190,24 @@ namespace DoorWebApp.Controllers
 
             try
             {
+                // 先取得查詢的學生權限，判定所屬學生與課程
+                var spTarget = ctx.TblStudentPermission
+                    .Where(sp => sp.Id == studentPermissionId && !sp.IsDelete)
+                    .Include(sp => sp.Course)
+                    .FirstOrDefault();
+
+                if (spTarget == null)
+                {
+                    res.result = APIResultCode.data_not_found;
+                    res.msg = $"StudentPermission not found: {studentPermissionId}";
+                    return Ok(res);
+                }
+
+                // 依「相同學生 + 相同課程」分組查詢所有學生權限
                 var permissions = ctx.TblStudentPermission
-                    .Where(sp => sp.Id == studentPermissionId && sp.IsDelete == false
-                                 //&& sp.IsEnable == true
-                                 )
+                    .Where(sp => !sp.IsDelete
+                                 && sp.UserId == spTarget.UserId
+                                 && sp.CourseId == spTarget.CourseId)
                     .Include(sp => sp.Course)                 // 課程名稱
                         .ThenInclude(c => c.CourseFee)        // 課程費用 + 教材費
                     .Include(sp => sp.StudentPermissionFees)  // 學生權限費用列表
@@ -202,91 +217,57 @@ namespace DoorWebApp.Controllers
 
                 var list = new List<ResStudentAttendanceDTO>();
 
-                foreach (var sp in permissions)
+                // 合併「相同學生 + 相同課程」的簽到與費用，統一分組
+                var combinedAttendances = permissions
+                    .SelectMany(sp => sp.Attendances ?? new List<TblAttendance>())
+                    .Where(a => !a.IsDelete)
+                    .OrderBy(a => a.AttendanceDate)
+                    .ToList();
+
+                var combinedFees = permissions
+                    .SelectMany(sp => sp.StudentPermissionFees ?? new List<TblStudentPermissionFee>())
+                    .Where(spf => !spf.IsDelete)
+                    .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
+                    .ThenBy(spf => spf.Id)
+                    .ToList();
+
+                int feeIndexGlobal = 0;
+                foreach (var fee in combinedFees)
                 {
-                    var courseFee = sp.Course?.CourseFee;
+                    int startIndex = feeIndexGlobal * 4;
+                    string? att1 = FormatAttendance(combinedAttendances.ElementAtOrDefault(startIndex));
+                    string? att2 = FormatAttendance(combinedAttendances.ElementAtOrDefault(startIndex + 1));
+                    string? att3 = FormatAttendance(combinedAttendances.ElementAtOrDefault(startIndex + 2));
+                    string? att4 = FormatAttendance(combinedAttendances.ElementAtOrDefault(startIndex + 3));
 
-                    // 取得所有簽到記錄，依日期排序
-                    var allAttendances = sp.Attendances?
-                        .Where(a => !a.IsDelete)
-                        .OrderBy(a => a.AttendanceDate)
-                        .ToList() ?? new List<TblAttendance>();
+                    var payment = fee.Payment;
+                    var hasPayment = payment != null && !payment.IsDelete;
+                    int received = hasPayment ? payment.Pay + payment.DiscountAmount : 0;
+                    int outstanding = Math.Max(fee.TotalAmount - received, 0);
+                    string? receiptNumber = hasPayment ? payment?.ReceiptNumber : null;
 
-                    // 取得未刪除的費用記錄
-                    var fees = sp.StudentPermissionFees?.Where(spf => !spf.IsDelete).ToList() ?? new List<TblStudentPermissionFee>();
-                    
-                    // 如果沒有費用記錄，按簽到記錄每4筆一組顯示
-                    // 不使用
-                    /*
-                    if (!fees.Any())
+                    // 取得該費用所屬的學生權限與課程名稱
+                    var spOfFee = permissions.FirstOrDefault(sp => sp.StudentPermissionFees != null && sp.StudentPermissionFees.Any(f => f.Id == fee.Id));
+                    string courseName = spOfFee?.Course?.Name ?? spTarget.Course?.Name ?? string.Empty;
+
+                    list.Add(new ResStudentAttendanceDTO
                     {
-                        int groupCount = (int)Math.Ceiling(allAttendances.Count / 4.0);
-                        if (groupCount == 0) groupCount = 1; // 至少顯示一組
+                        SerialNo = feeIndexGlobal + 1,
+                        StudentPermissionId = fee.StudentPermissionId,
+                        StudentPermissionFeeId = fee.Id,
+                        CourseName = courseName,
+                        PaymentDate = fee.PaymentDate?.ToString("yyy/MM/dd"),
+                        ReceivableAmount = fee.TotalAmount,
+                        ReceivedAmount = received,
+                        OutstandingAmount = outstanding,
+                        ReceiptNumber = receiptNumber,
+                        Attendance1 = att1,
+                        Attendance2 = att2,
+                        Attendance3 = att3,
+                        Attendance4 = att4
+                    });
 
-                        for (int groupIndex = 0; groupIndex < groupCount; groupIndex++)
-                        {
-                            int startIndex = groupIndex * 4;
-                            string? att1 = FormatAttendance(allAttendances.ElementAtOrDefault(startIndex));
-                            string? att2 = FormatAttendance(allAttendances.ElementAtOrDefault(startIndex + 1));
-                            string? att3 = FormatAttendance(allAttendances.ElementAtOrDefault(startIndex + 2));
-                            string? att4 = FormatAttendance(allAttendances.ElementAtOrDefault(startIndex + 3));
-
-                            list.Add(new ResStudentAttendanceDTO
-                            {
-                                SerialNo = groupIndex + 1, // 每組從1開始
-                                StudentPermissionId = sp.Id,
-                                StudentPermissionFeeId = 0,
-                                CourseName = sp.Course?.Name ?? string.Empty,
-                                PaymentDate = null,
-                                ReceivableAmount = receivable,
-                                ReceivedAmount = 0,
-                                OutstandingAmount = receivable,
-                                ReceiptNumber = null,
-                                Attendance1 = att1,
-                                Attendance2 = att2,
-                                Attendance3 = att3,
-                                Attendance4 = att4
-                            });
-                        }
-                        continue;
-                    }
-                    */
-
-                    // 有費用記錄時，每個費用配對一組簽到記錄（每4筆一組）
-                    int feeIndex = 0;
-                    foreach (var fee in fees)
-                    {
-                        int startIndex = feeIndex * 4;
-                        string? att1 = FormatAttendance(allAttendances.ElementAtOrDefault(startIndex));
-                        string? att2 = FormatAttendance(allAttendances.ElementAtOrDefault(startIndex + 1));
-                        string? att3 = FormatAttendance(allAttendances.ElementAtOrDefault(startIndex + 2));
-                        string? att4 = FormatAttendance(allAttendances.ElementAtOrDefault(startIndex + 3));
-
-                        var payment = fee.Payment;
-                        var hasPayment = payment != null && !payment.IsDelete;
-                        int received = hasPayment ? payment.Pay + payment.DiscountAmount : 0;
-                        int outstanding = Math.Max(fee.TotalAmount - received, 0);
-                        string? receiptNumber = hasPayment ? payment?.ReceiptNumber : null;
-
-                        list.Add(new ResStudentAttendanceDTO
-                        {
-                            SerialNo = feeIndex + 1, // 每組從1開始
-                            StudentPermissionId = sp.Id,
-                            StudentPermissionFeeId = fee.Id,
-                            CourseName = sp.Course?.Name ?? string.Empty,
-                            PaymentDate = fee.PaymentDate?.ToString("yyy/MM/dd"),
-                            ReceivableAmount = fee.TotalAmount,
-                            ReceivedAmount = received,
-                            OutstandingAmount = outstanding,
-                            ReceiptNumber = receiptNumber,
-                            Attendance1 = att1,
-                            Attendance2 = att2,
-                            Attendance3 = att3,
-                            Attendance4 = att4
-                        });
-
-                        feeIndex++;
-                    }
+                    feeIndexGlobal++;
                 }
 
                 res.result = APIResultCode.success;
@@ -350,6 +331,20 @@ namespace DoorWebApp.Controllers
                     res.msg = "找不到學生權限資料";
                     return Ok(res);
                 }
+                var permissions = ctx.TblStudentPermission
+                    .Where(sp => !sp.IsDelete
+                                 && sp.UserId == permission.UserId
+                                 && sp.CourseId == permission.CourseId)
+                    .Include(sp => sp.User)
+                    .Include(sp => sp.Course)
+                        .ThenInclude(c => c.CourseFee)
+                    .Include(sp => sp.Teacher)
+                    .Include(sp => sp.StudentPermissionFees)
+                        .ThenInclude(spf => spf.Payment)
+                    .Include(sp => sp.Attendances)
+                        .ThenInclude(a => a.AttendanceFee)
+                    .Include(sp => sp.Schedules)
+                    .ToList();
 
                 // 2. 計算課程拆帳比和老師拆帳比
                 var courseFee = permission.Course?.CourseFee;
@@ -394,18 +389,25 @@ namespace DoorWebApp.Controllers
                 int totalAmount = permissionFee.TotalAmount;
 
                 // 4. 計算該費用在所有費用中的索引（用於確定對應的簽到記錄組）
-                var allFees = permission.StudentPermissionFees?
-                    .OrderBy(f => f.Id)
-                    .ToList() ?? new List<TblStudentPermissionFee>();
+                var combinedFees = permissions
+                    .SelectMany(sp => sp.StudentPermissionFees ?? new List<TblStudentPermissionFee>())
+                    .Where(spf => !spf.IsDelete)
+                    .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
+                    .ThenBy(spf => spf.Id)
+                    .ToList();
+                var allFees = combinedFees;
                 
                 int feeSeriesIndex = allFees.FindIndex(f => f.Id == studentPermissionFeeId);
                 if (feeSeriesIndex < 0) feeSeriesIndex = 0; // 防守性編程
 
                 // 5. 取得對應該序號的簽到記錄（每4筆一組）
-                var allAttendances = permission.Attendances?
+                // 合併「相同學生 + 相同課程」的簽到與費用，統一分組
+                var combinedAttendances = permissions
+                    .SelectMany(sp => sp.Attendances ?? new List<TblAttendance>())
                     .Where(a => !a.IsDelete)
                     .OrderBy(a => a.AttendanceDate)
-                    .ToList() ?? new List<TblAttendance>();
+                    .ToList();
+                var allAttendances = combinedAttendances;
 
                 int startIndex = feeSeriesIndex * 4;
                 var groupAttendances = allAttendances
@@ -544,12 +546,29 @@ namespace DoorWebApp.Controllers
                 var courseFee = permission.Course?.CourseFee;
                 int totalAmount = (courseFee?.Amount ?? 0) + (courseFee?.MaterialFee ?? 0);
 
+                // 2. 查詢相同學生+相同課程的所有權限
+                var permissions = ctx.TblStudentPermission
+                    .Where(sp => !sp.IsDelete
+                                 && sp.UserId == permission.UserId
+                                 && sp.CourseId == permission.CourseId)
+                    .Include(sp => sp.User)
+                    .Include(sp => sp.Course)
+                        .ThenInclude(c => c.CourseFee)
+                    .Include(sp => sp.Teacher)
+                    .Include(sp => sp.StudentPermissionFees)
+                        .ThenInclude(spf => spf.Payment)
+                    .Include(sp => sp.Attendances)
+                        .ThenInclude(a => a.AttendanceFee)
+                    .Include(sp => sp.Schedules)
+                    .ToList();
+                var nowStudentPermission = permissions.Where(x => x.Schedules.Count >= 0).LastOrDefault();
+
                 // 取得當前 UTC+8 時間作為繳款日期
                 var nowUtc8 = DateTime.UtcNow.AddHours(8);
 
                 var fee = new TblStudentPermissionFee
                 {
-                    StudentPermissionId = req.StudentPermissionId,
+                    StudentPermissionId = nowStudentPermission != null ? nowStudentPermission.Id : req.StudentPermissionId,
                     PaymentDate = nowUtc8, // 繳款日自動設為今天
                     TotalAmount = totalAmount,
                     IsDelete = false,
@@ -650,10 +669,20 @@ namespace DoorWebApp.Controllers
                     }
                 }
 
-                // 更新總金額
+                // 更新總金額：若未提供 (空) 則回歸原本計算 (課程學費 + 教材費)
                 if (feeDTO.totalAmount.HasValue && feeDTO.totalAmount.Value >= 0)
                 {
                     feeEntity.TotalAmount = feeDTO.totalAmount.Value;
+                }
+                else
+                {
+                    var permission = await ctx.TblStudentPermission
+                        .Include(sp => sp.Course)
+                            .ThenInclude(c => c.CourseFee)
+                        .FirstOrDefaultAsync(sp => sp.Id == feeEntity.StudentPermissionId && !sp.IsDelete);
+
+                    int defaultTotal = (permission?.Course?.CourseFee?.Amount ?? 0) + (permission?.Course?.CourseFee?.MaterialFee ?? 0);
+                    feeEntity.TotalAmount = defaultTotal;
                 }
 
                 // 記錄修改時間
@@ -663,7 +692,7 @@ namespace DoorWebApp.Controllers
                 log.LogInformation($"[{Request.Path}] Update StudentPermissionFee success: Id={feeEntity.Id}");
 
                 // 寫入稽核紀錄
-                auditLog.WriteAuditLog(AuditActType.Modify, $"Update StudentPermissionFee. id: {feeEntity.Id}, PaymentDate: {feeDTO.paymentDate}, TotalAmount: {feeDTO.totalAmount}", OperatorUsername);
+                auditLog.WriteAuditLog(AuditActType.Modify, $"Update StudentPermissionFee. id: {feeEntity.Id}, PaymentDate: {feeDTO.paymentDate}, TotalAmount: {(feeDTO.totalAmount.HasValue ? feeDTO.totalAmount.Value.ToString() : "defaulted")}", OperatorUsername);
 
                 res.result = APIResultCode.success;
                 res.msg = "success";
@@ -672,6 +701,138 @@ namespace DoorWebApp.Controllers
             catch (Exception ex)
             {
                 log.LogError(ex, "[UpdateStudentPermissionFee] error: {Message}", ex.Message);
+                res.result = APIResultCode.unknow_error;
+                res.msg = ex.Message;
+                return Ok(res);
+            }
+        }
+
+        /// <summary>
+        /// 查詢學生權限 GROUP 的詳細資料
+        /// 包含相同學生+相同課程的所有權限、費用、出席、出席費用記錄
+        /// </summary>
+        [HttpGet("v1/StudentAttendance/Group/{studentPermissionId}")]
+        public IActionResult GetStudentPermissionGroup(int studentPermissionId)
+        {
+            var res = new APIResponse<dynamic>();
+
+            try
+            {
+                // 1. 取得目標權限
+                var spTarget = ctx.TblStudentPermission
+                    .Where(sp => sp.Id == studentPermissionId && !sp.IsDelete)
+                    .Include(sp => sp.Course)
+                    .FirstOrDefault();
+
+                if (spTarget == null)
+                {
+                    res.result = APIResultCode.data_not_found;
+                    res.msg = "StudentPermission not found";
+                    return Ok(res);
+                }
+
+                // 2. 查詢相同學生+相同課程的所有權限
+                var permissions = ctx.TblStudentPermission
+                    .Where(sp => !sp.IsDelete
+                                 && sp.UserId == spTarget.UserId
+                                 && sp.CourseId == spTarget.CourseId)
+                    .Include(sp => sp.User)
+                    .Include(sp => sp.Course)
+                        .ThenInclude(c => c.CourseFee)
+                    .Include(sp => sp.Teacher)
+                    .Include(sp => sp.StudentPermissionFees)
+                        .ThenInclude(spf => spf.Payment)
+                    .Include(sp => sp.Attendances)
+                        .ThenInclude(a => a.AttendanceFee)
+                    .Include(sp => sp.Schedules)
+                    .ToList();
+
+                var nowStudentPermission = permissions.Where(x => x.Schedules.Count >= 0).LastOrDefault();
+
+                // 3. 組織資料結構
+                var groupData = new
+                {
+                    nowStudentPermissionId = nowStudentPermission != null ? nowStudentPermission.Id : studentPermissionId,
+                    groupId = $"{spTarget.UserId}_{spTarget.CourseId}",
+                    studentId = spTarget.UserId,
+                    studentName = spTarget.User?.DisplayName,
+                    courseId = spTarget.CourseId,
+                    courseName = spTarget.Course?.Name,
+                    category = spTarget.Course?.CourseFee?.Category,
+                    feeCode = spTarget.Course?.CourseFee?.FeeCode,
+                    tuitionAmount = spTarget.Course?.CourseFee?.Amount,
+                    materialFee = spTarget.Course?.CourseFee?.MaterialFee,
+                    permissions = permissions.Select(sp => new
+                    {
+                        permissionId = sp.Id,
+                        teacherId = sp.Teacher?.Id,
+                        teacherName = sp.Teacher?.DisplayName,
+                        dateFrom = sp.DateFrom,
+                        dateTo = sp.DateTo,
+                        fees = (sp.StudentPermissionFees?
+                            .Where(spf => !spf.IsDelete)
+                            .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
+                            .ThenBy(spf => spf.Id)
+                            .Select(spf => new
+                            {
+                                feeId = spf.Id,
+                                studentPermissionId = spf.StudentPermissionId,
+                                totalAmount = spf.TotalAmount,
+                                paymentDate = spf.PaymentDate?.ToString("yyyy-MM-dd"),
+                                isDelete = spf.IsDelete,
+                                payment = spf.Payment != null && !spf.Payment.IsDelete ? new
+                                {
+                                    paymentId = spf.Payment.Id,
+                                    pay = spf.Payment.Pay,
+                                    discountAmount = spf.Payment.DiscountAmount,
+                                    receiptNumber = spf.Payment.ReceiptNumber,
+                                    payDate = spf.Payment.PayDate
+                                } : null
+                            })
+                            .ToList() as IEnumerable<object>) ?? new List<object>(),
+                        attendances = (sp.Attendances?
+                            .Where(a => !a.IsDelete)
+                            .OrderBy(a => a.AttendanceDate)
+                            .Select(a => new
+                            {
+                                attendanceId = a.Id,
+                                attendanceDate = a.AttendanceDate,
+                                attendanceType = a.AttendanceType,
+                                attendanceTypeName = a.AttendanceType == 1 ? "出席" : (a.AttendanceType == 2 ? "請假" : "缺席"),
+                                attendanceFee = a.AttendanceFee != null ? new
+                                {
+                                    feeId = a.AttendanceFee.Id,
+                                    hours = a.AttendanceFee.Hours,
+                                    amount = a.AttendanceFee.Amount,
+                                    adjustmentAmount = a.AttendanceFee.AdjustmentAmount
+                                } : null
+                            })
+                            .ToList() as IEnumerable<object>) ?? new List<object>(),
+                        schedules = (sp.Schedules?
+                            .Where(s => !s.IsDelete)
+                            .OrderBy(s => s.ScheduleDate)
+                            .ThenBy(s => s.StartTime)
+                            .Select(s => new
+                            {
+                                scheduleId = s.Id,
+                                scheduleDate = s.ScheduleDate,
+                                timeFrom = s.StartTime,
+                                timeTo = s.EndTime,
+                                classroomId = s.ClassroomId,
+                                status = s.Status
+                            })
+                            .ToList() as IEnumerable<object>) ?? new List<object>()
+                    }).ToList()
+                };
+
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                res.content = groupData;
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "[GetStudentPermissionGroup] error: {Message}", ex.Message);
                 res.result = APIResultCode.unknow_error;
                 res.msg = ex.Message;
                 return Ok(res);

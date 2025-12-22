@@ -376,6 +376,8 @@ namespace DoorWebApp.Controllers
                     .Select(sp => new ResStudentPermissionDTO()
                     {
                         Id = sp.Id,
+                        courseId = (int)sp.CourseId,
+                        teacherId = (int)sp.TeacherId,
                         datefrom = sp.DateFrom,
                         dateto = sp.DateTo,
                         timefrom = sp.TimeFrom,
