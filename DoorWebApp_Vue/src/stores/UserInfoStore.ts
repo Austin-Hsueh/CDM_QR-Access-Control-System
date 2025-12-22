@@ -1,9 +1,9 @@
 import IUserInfo from '@/models/IUserInfo';
 import { defineStore } from 'pinia'
 import i18n from "@/locale";
-import element_zh_TW from "element-plus/lib/locale/lang/zh-tw";
-import element_zh_CN from "element-plus/lib/locale/lang/zh-cn";
-import element_en_US from "element-plus/lib/locale/lang/en";
+import element_zh_TW from "element-plus/es/locale/lang/zh-tw";
+import element_zh_CN from "element-plus/es/locale/lang/zh-cn";
+import element_en_US from "element-plus/es/locale/lang/en";
 import { LocaleType } from "@/models/enums/LocaleType";
 
 export const useUserInfoStore = defineStore('userInfo', {

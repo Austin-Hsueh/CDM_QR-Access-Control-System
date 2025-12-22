@@ -104,9 +104,11 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
+                var stf = await permission.GetFirstAvailableStudentPermissionFeeAsync(ctx);
+
                 var courseFee = permission.Course?.CourseFee;
-                decimal? courseSplitRatio = courseFee?.SplitRatio;
-                decimal? teacherSplitRatio = permission.Teacher?.TeacherSettlement?.SplitRatio;
+                decimal? courseSplitRatio = stf?.CourseSplitRatio ?? courseFee?.SplitRatio ?? null;
+                decimal? teacherSplitRatio = stf?.TeacherSplitRatio ?? permission.Teacher?.TeacherSettlement?.SplitRatio ?? null;
 
                 // 正規化為 0~1
                 decimal? normalizedCourseRatio = courseSplitRatio.HasValue 
@@ -137,7 +139,7 @@ namespace DoorWebApp.Controllers
 
                 int tuitionFee = courseFee?.Amount ?? 0;
                 int materialFee = courseFee?.MaterialFee ?? 0;
-                int totalAmount = tuitionFee + materialFee;
+                int totalAmount = stf?.TotalAmount ?? tuitionFee + materialFee;
                 decimal totalHours = 4;
 
                 // 優先查找最近一筆 StudentPermissionFee 的 TotalAmount
@@ -152,26 +154,7 @@ namespace DoorWebApp.Controllers
                     totalAmount = latestPermissionFee.TotalAmount;
                 }
 
-                // 查找同一學生權限的最近一筆 AttendanceFee（按建立時間排序）
-                decimal sourceHoursTotalAmount;
-                var latestFee = await ctx.TblAttendanceFee
-                    .Where(af => af.Attendance != null 
-                        && af.Attendance.StudentPermissionId == AttendDTO.studentPermissionId
-                        && af.SourceHoursTotalAmount > 0)
-                    .OrderByDescending(af => af.CreatedTime)
-                    .FirstOrDefaultAsync();
-
-                if (latestFee != null)
-                {
-                    // 使用最近一筆的原始時數總金額
-                    sourceHoursTotalAmount = latestFee.SourceHoursTotalAmount;
-                }
-                else
-                {
-                    // 沒有歷史記錄，使用課程費用計算
-                    sourceHoursTotalAmount = totalAmount / totalHours;
-                }
-
+                decimal sourceHoursTotalAmount = totalAmount / totalHours;
                 int teacherShare = (int)Math.Round(totalAmount * (1 - minSplitRatio), MidpointRounding.AwayFromZero);
                 decimal SplitHourAmount = Math.Round((sourceHoursTotalAmount * (1 - minSplitRatio)), 2, MidpointRounding.AwayFromZero);
 
