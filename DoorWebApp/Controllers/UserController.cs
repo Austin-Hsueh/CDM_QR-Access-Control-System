@@ -1505,7 +1505,13 @@ namespace DoorWebApp.Controllers
                 int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
                 string OperatorUsername = User.Identity?.Name ?? "N/A";
                 log.LogInformation($"[{Request.Path}] GetPermissionSetting : id={OperatorId}, username={OperatorUsername})");
-                DateTime now = DateTime.Now;
+                DateTime now = DateTime.Now.AddDays(-1);
+                now = new DateTime(
+                    2025, 12, 18,
+                    now.Hour,
+                    now.Minute,
+                    now.Second
+                );
                 int day = (int)now.DayOfWeek;
                 if (day == 0)
                     day = 7;
@@ -1529,7 +1535,7 @@ namespace DoorWebApp.Controllers
                 var QRCodeData = ctx.TbQRCodeStorages.FromSqlRaw(@"SELECT q.* 
                                                             FROM tblqrcodestorage q
                                                             LEFT JOIN tblqrcodestoragetbluser qu ON qu.QRCodesId = q.Id 
-                                                            WHERE UsersId = @UsersId AND q.ModifiedTime >= CONCAT(CURDATE(), ' 00:00:00') ",
+                                                            WHERE UsersId = @UsersId AND q.ModifiedTime >= CONCAT('2025-12-18', ' 00:00:00') ",
                                                             new MySqlConnector.MySqlParameter("@UsersId", UserId))
                                                      .Select(x => new
                                                      {
@@ -1627,6 +1633,41 @@ namespace DoorWebApp.Controllers
                     .Select(int.Parse)  // Convert each day string to integer
                     .ToList();  // Convert to List<int>
 
+                // 查詢課表記錄
+                List<ResScheduleDTO> schedules = new List<ResScheduleDTO>();
+                if (QRCodeData != null)
+                {
+                    schedules = ctx.TblSchedule
+                        .Where(s => s.StudentPermission.UserId == UserId)
+                        .Where(s => !s.IsDelete)
+                        .Where(s =>
+                            (
+                            (string.Compare(s.StartTime, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0 &&
+                            string.Compare(s.EndTime, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0)
+                            ||
+                            (string.Compare(s.StartTime, QRCodeData.ModifiedTime.ToString("HH:mm")) <= 0 &&
+                            string.Compare(s.EndTime, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0)
+                            )
+                            &&
+                            (string.Compare(s.ScheduleDate, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) == 0))
+                        .OrderBy(s => s.ScheduleDate)
+                        .ThenBy(s => s.StartTime)
+                        .Select(s => new ResScheduleDTO
+                        {
+                            ScheduleId = s.Id,
+                            StudentPermissionId = s.StudentPermissionId,
+                            ClassroomId = s.ClassroomId,
+                            ScheduleDate = s.ScheduleDate,
+                            StartTime = s.StartTime,
+                            EndTime = s.EndTime,
+                            CourseMode = s.CourseMode,
+                            ScheduleMode = s.ScheduleMode,
+                            Status = s.Status,
+                            Remark = s.Remark
+                        })
+                        .ToList();
+                }
+
                 // Map the result to ManyPermissionsDTO
                 var userPermissions = new ManyPermissionsDTO
                 {
@@ -1638,6 +1679,7 @@ namespace DoorWebApp.Controllers
                     qrcode = qrcode,
                     permissions = Permissions,
                     studentpermissions = StudentPermissions,
+                    schedules = schedules,
                     groupIds = userPermission.PermissionGroups
                         .Select(y => y.Id)
                         .ToList()  // Convert the IEnumerable<int> to List<int>
