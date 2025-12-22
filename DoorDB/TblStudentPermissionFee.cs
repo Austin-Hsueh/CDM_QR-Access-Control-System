@@ -39,6 +39,18 @@ namespace DoorDB
         public int TotalAmount { get; set; }
 
         /// <summary>
+        /// 老師拆帳比 (百分比，例如: 0.7 代表 70%)
+        /// </summary>
+        [Comment("老師拆帳比")]
+        public decimal? TeacherSplitRatio { get; set; }
+
+        /// <summary>
+        /// 課程拆帳比 (百分比，例如: 0.3 代表 30%)
+        /// </summary>
+        [Comment("課程拆帳比")]
+        public decimal? CourseSplitRatio { get; set; }
+
+        /// <summary>
         /// 是否刪除
         /// </summary>
         [Required]
