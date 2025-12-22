@@ -68,9 +68,9 @@ class APIService {
 
     this.axiosInstance = axios.create({
       // baseURL: "http://system.clair-de-musique-tw.com/api",
-       baseURL: "http://localhost:8080/api",
+      // baseURL: "http://localhost:8080/api",
       // baseURL: "http://localhost:80/api",
-      //baseURL: "/api",
+      baseURL: "/api",
     });
 
     this.axiosInstance.interceptors.request.use((config) => {

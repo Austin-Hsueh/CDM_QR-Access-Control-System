@@ -268,8 +268,8 @@ const props = defineProps<Props>();
 // Emits 定義 - 使用函數簽章語法
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
-  (e: 'edit', row: AttendanceRecord): void;
-  (e: 'delete', row: AttendanceRecord): void;
+  edit: [row: AttendanceRecord];
+  delete: [row: AttendanceRecord];
 }>();
 
 // 更新值的方法
