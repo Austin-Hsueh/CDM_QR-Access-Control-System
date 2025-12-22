@@ -2,6 +2,7 @@ using DoorDB;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using NLog.Targets;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -221,6 +222,23 @@ namespace DoorWebApp.Controllers
                 var sp = att.StudentPermission;
                 if (sp == null || sp.IsDelete) continue;
 
+                var permissions = _ctx.TblStudentPermission
+                    .Where(sp => !sp.IsDelete
+                                 && sp.UserId == sp.UserId
+                                 && sp.CourseId == sp.CourseId)
+                    .Include(sp => sp.Course)                 // 課程名稱
+                        .ThenInclude(c => c.CourseFee)        // 課程費用 + 教材費
+                    .Include(sp => sp.StudentPermissionFees)  // 學生權限費用列表
+                        .ThenInclude(spf => spf.Payment)       // 已收金額 & 結帳單號 (一對一)
+                    .Include(sp => sp.Attendances)            // 課程一~四
+                    .ToList();
+                var combinedFees = permissions
+                    .SelectMany(sp => sp.StudentPermissionFees ?? new List<TblStudentPermissionFee>())
+                    .Where(spf => !spf.IsDelete)
+                    .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
+                    .ThenBy(spf => spf.Id)
+                    .ToList();
+
                 // 檢查是否有未刪除的學生權限費用記錄
                 var hasStudentPermissionFee = sp.StudentPermissionFees?.Any(f => !f.IsDelete) ?? false;
                 if (!hasStudentPermissionFee)
@@ -237,7 +255,7 @@ namespace DoorWebApp.Controllers
                 int feeGroupIndex = attendanceIndex / 4;
 
                 // 取得該組對應的 StudentPermissionFee（排除已刪除的記錄）
-                var sortedFees = sp.StudentPermissionFees?.Where(f => !f.IsDelete).OrderBy(f => f.Id).ToList() ?? new List<TblStudentPermissionFee>();
+                var sortedFees = combinedFees.Where(f => !f.IsDelete).OrderBy(f => f.Id).ToList() ?? new List<TblStudentPermissionFee>();
                 var correspondingFee = feeGroupIndex < sortedFees.Count ? sortedFees[feeGroupIndex] : null;
 
                 if (!includePaid)
@@ -448,6 +466,23 @@ namespace DoorWebApp.Controllers
                 var sp = att.StudentPermission;
                 if (sp == null || sp.IsDelete) continue;
 
+                var permissions = _ctx.TblStudentPermission
+                    .Where(sp => !sp.IsDelete
+                                 && sp.UserId == sp.UserId
+                                 && sp.CourseId == sp.CourseId)
+                    .Include(sp => sp.Course)                 // 課程名稱
+                        .ThenInclude(c => c.CourseFee)        // 課程費用 + 教材費
+                    .Include(sp => sp.StudentPermissionFees)  // 學生權限費用列表
+                        .ThenInclude(spf => spf.Payment)       // 已收金額 & 結帳單號 (一對一)
+                    .Include(sp => sp.Attendances)            // 課程一~四
+                    .ToList();
+                var combinedFees = permissions
+                    .SelectMany(sp => sp.StudentPermissionFees ?? new List<TblStudentPermissionFee>())
+                    .Where(spf => !spf.IsDelete)
+                    .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
+                    .ThenBy(spf => spf.Id)
+                    .ToList();
+
                 // 檢查是否有未刪除的學生權限費用記錄
                 var hasStudentPermissionFee = sp.StudentPermissionFees?.Any(f => !f.IsDelete) ?? false;
                 if (!hasStudentPermissionFee)
@@ -464,7 +499,7 @@ namespace DoorWebApp.Controllers
                 int feeGroupIndex = attendanceIndex / 4;
 
                 // 取得該組對應的 StudentPermissionFee（排除已刪除的記錄）
-                var sortedFees = sp.StudentPermissionFees?.Where(f => !f.IsDelete).OrderBy(f => f.Id).ToList() ?? new List<TblStudentPermissionFee>();
+                var sortedFees = combinedFees.Where(f => !f.IsDelete).OrderBy(f => f.Id).ToList() ?? new List<TblStudentPermissionFee>();
                 var correspondingFee = feeGroupIndex < sortedFees.Count ? sortedFees[feeGroupIndex] : null;
 
                 if (!includePaid)
