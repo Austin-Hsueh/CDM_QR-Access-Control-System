@@ -1,5 +1,6 @@
 using DoorDB;
 using DoorDB.Enums;
+using DoorWebApp.Extensions;
 using DoorWebApp.Models;
 using DoorWebApp.Models.DTO;
 using Microsoft.AspNetCore.Authorization;
@@ -65,9 +66,12 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
+                // 使用擴展方法取得對應的費用
+                var correspondingFee = await attendance.GetCorrespondingStudentPermissionFeeAsync(ctx);
+
                 var courseFee = attendance.StudentPermission?.Course?.CourseFee;
-                decimal? courseSplitRatio = courseFee?.SplitRatio;
-                decimal? teacherSplitRatio = attendance.StudentPermission?.Teacher?.TeacherSettlement?.SplitRatio;
+                decimal? courseSplitRatio = correspondingFee?.CourseSplitRatio ?? courseFee?.SplitRatio ?? null;
+                decimal? teacherSplitRatio = correspondingFee?.TeacherSplitRatio ?? attendance.StudentPermission?.Teacher?.TeacherSettlement?.SplitRatio ?? null;
 
                 // 正規化為 0~1
                 decimal? normalizedCourseRatio = courseSplitRatio.HasValue 
@@ -98,30 +102,11 @@ namespace DoorWebApp.Controllers
 
                 int tuitionFee = courseFee?.Amount ?? 0;
                 int materialFee = courseFee?.MaterialFee ?? 0;
-                int totalAmount = tuitionFee + materialFee;
+                int totalAmount = correspondingFee?.TotalAmount ?? tuitionFee + materialFee;
                 decimal totalHours = 4;
 
                 // 查找同一學生權限的最近一筆 AttendanceFee（按建立時間排序）
-                decimal sourceHoursTotalAmount;
-                int? currentFeeId = attendance.AttendanceFee?.Id;
-                var latestFee = await ctx.TblAttendanceFee
-                    .Where(af => af.Attendance != null 
-                        && af.Attendance.StudentPermissionId == attendance.StudentPermissionId
-                        && af.SourceHoursTotalAmount > 0
-                        && (!currentFeeId.HasValue || af.Id != currentFeeId.Value))  // 排除當前記錄
-                    .OrderByDescending(af => af.CreatedTime)
-                    .FirstOrDefaultAsync();
-
-                if (latestFee != null)
-                {
-                    // 使用最近一筆的原始時數總金額
-                    sourceHoursTotalAmount = latestFee.SourceHoursTotalAmount;
-                }
-                else
-                {
-                    // 沒有歷史記錄，使用課程費用計算
-                    sourceHoursTotalAmount = totalAmount / totalHours;
-                }
+                decimal sourceHoursTotalAmount = totalAmount / totalHours;
 
                 int defaultAmount = (int)Math.Round((sourceHoursTotalAmount * totalHours * (1 - minSplitRatio)) / totalHours, MidpointRounding.AwayFromZero);
 
@@ -348,9 +333,9 @@ namespace DoorWebApp.Controllers
 
                 // 2. 計算課程拆帳比和老師拆帳比
                 var courseFee = permission.Course?.CourseFee;
-                decimal? courseSplitRatio = courseFee?.SplitRatio;
-                decimal? teacherSplitRatio = permission.Teacher?.TeacherSettlement?.SplitRatio;
-                
+                decimal? courseSplitRatio = permissionFee.CourseSplitRatio ?? courseFee?.SplitRatio ?? null;
+                decimal? teacherSplitRatio = permissionFee.TeacherSplitRatio ?? permission.Teacher?.TeacherSettlement?.SplitRatio ?? null;
+
                 if (permission.Teacher != null && permission.Teacher.TeacherSettlement == null)
                 {
                     log.LogWarning($"[PaymentDetail] Teacher (Id: {permission.Teacher.Id}) has no TeacherSettlement record");
@@ -555,6 +540,7 @@ namespace DoorWebApp.Controllers
                     .Include(sp => sp.Course)
                         .ThenInclude(c => c.CourseFee)
                     .Include(sp => sp.Teacher)
+                        .ThenInclude(spf => spf.TeacherSettlement)
                     .Include(sp => sp.StudentPermissionFees)
                         .ThenInclude(spf => spf.Payment)
                     .Include(sp => sp.Attendances)
@@ -571,6 +557,8 @@ namespace DoorWebApp.Controllers
                     StudentPermissionId = nowStudentPermission != null ? nowStudentPermission.Id : req.StudentPermissionId,
                     PaymentDate = nowUtc8, // 繳款日自動設為今天
                     TotalAmount = totalAmount,
+                    CourseSplitRatio = courseFee?.SplitRatio ?? null,
+                    TeacherSplitRatio = permission.Teacher?.TeacherSettlement?.SplitRatio ?? null,
                     IsDelete = false,
                     CreatedTime = DateTime.Now,
                     ModifiedTime = DateTime.Now

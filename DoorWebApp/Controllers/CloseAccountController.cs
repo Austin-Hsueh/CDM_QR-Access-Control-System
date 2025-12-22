@@ -8,6 +8,7 @@ using DoorWebApp.Models.DTO;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
 using QuestPDF.Helpers;
+using DoorWebApp.Extensions;
 
 namespace DoorWebApp.Controllers
 {
@@ -275,11 +276,13 @@ namespace DoorWebApp.Controllers
                             $"Create Attendance: AttendanceId={newAttendance.Id}, StudentPermissionId={schedule.StudentPermissionId}, Date={date}",
                             OperatorUsername);
 
+                        var stf = await schedule.StudentPermission.GetFirstAvailableStudentPermissionFeeAsync(ctx);
+
                         // 計算費用參數（參考 AttendController.AddAttend 邏輯）
                         var permission = schedule.StudentPermission;
                         var courseFee = permission?.Course?.CourseFee;
-                        decimal? courseSplitRatio = courseFee?.SplitRatio;
-                        decimal? teacherSplitRatio = permission?.Teacher?.TeacherSettlement?.SplitRatio;
+                        decimal? courseSplitRatio = stf?.CourseSplitRatio ?? courseFee?.SplitRatio ?? null;
+                        decimal? teacherSplitRatio = stf?.TeacherSplitRatio ?? permission.Teacher?.TeacherSettlement?.SplitRatio ?? null;
 
                         // 正規化為 0~1
                         decimal? normalizedCourseRatio = courseSplitRatio.HasValue
@@ -310,38 +313,10 @@ namespace DoorWebApp.Controllers
 
                         int tuitionFee = courseFee?.Amount ?? 0;
                         int materialFee = courseFee?.MaterialFee ?? 0;
-                        int totalAmount = tuitionFee + materialFee;
+                        int totalAmount = stf?.TotalAmount ?? tuitionFee + materialFee;
                         decimal totalHours = 4;
 
-                        // 優先查找最近一筆 StudentPermissionFee 的 TotalAmount
-                        var latestPermissionFee = await ctx.TblStudentPermissionFee
-                            .Where(spf => spf.StudentPermissionId == schedule.StudentPermissionId
-                                && !spf.IsDelete)
-                            .OrderByDescending(spf => spf.PaymentDate)
-                            .FirstOrDefaultAsync();
-
-                        if (latestPermissionFee != null && latestPermissionFee.TotalAmount > 0)
-                        {
-                            totalAmount = latestPermissionFee.TotalAmount;
-                        }
-
-                        // 查找同一學生權限的最近一筆 AttendanceFee
-                        decimal sourceHoursTotalAmount;
-                        var latestFee = await ctx.TblAttendanceFee
-                            .Where(af => af.Attendance != null
-                                && af.Attendance.StudentPermissionId == schedule.StudentPermissionId
-                                && af.SourceHoursTotalAmount > 0)
-                            .OrderByDescending(af => af.CreatedTime)
-                            .FirstOrDefaultAsync();
-
-                        if (latestFee != null)
-                        {
-                            sourceHoursTotalAmount = latestFee.SourceHoursTotalAmount;
-                        }
-                        else
-                        {
-                            sourceHoursTotalAmount = totalAmount / totalHours;
-                        }
+                        decimal sourceHoursTotalAmount  = totalAmount / totalHours;
 
                         decimal SplitHourAmount = Math.Round((sourceHoursTotalAmount * (1 - minSplitRatio)), 2, MidpointRounding.AwayFromZero);
 
