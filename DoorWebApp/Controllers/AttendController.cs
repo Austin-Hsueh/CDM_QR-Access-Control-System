@@ -189,9 +189,9 @@ namespace DoorWebApp.Controllers
                 {
                     AttendanceId = NewAttend.Id,
                     Hours = 1,
-                    Amount = SplitHourAmount,
+                    Amount = AttendDTO.attendanceType == 2 ? 0 : SplitHourAmount,
                     AdjustmentAmount = 0M,
-                    SourceHoursTotalAmount = sourceHoursTotalAmount,
+                    SourceHoursTotalAmount = AttendDTO.attendanceType == 2 ? 0 : sourceHoursTotalAmount,
                     UseSplitRatio = minSplitRatio,
                     CreatedTime = DateTime.Now,
                     ModifiedTime = DateTime.Now
