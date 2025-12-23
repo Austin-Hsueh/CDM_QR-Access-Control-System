@@ -278,7 +278,7 @@ namespace DoorWebApp.Examples
             // 取得所有費用的填充狀態
             var statuses = await studentPermission.GetFeeAttendanceStatusAsync(ctx);
 
-            Console.WriteLine($"=== {studentPermission.User?.Name} - {studentPermission.Course?.Name} ===");
+            Console.WriteLine($"=== {studentPermission.User?.DisplayName} - {studentPermission.Course?.Name} ===");
             Console.WriteLine($"共 {statuses.Count} 筆費用\n");
 
             foreach (var status in statuses)

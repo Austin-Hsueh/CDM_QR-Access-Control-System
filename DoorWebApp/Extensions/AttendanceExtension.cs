@@ -51,8 +51,7 @@ namespace DoorWebApp.Extensions
             // 取得所有該組的出席記錄（按日期排序）
             var combinedAttendances = await ctx.TblAttendance
                 .Where(a => !a.IsDelete 
-                    && a.StudentPermissionId.HasValue
-                    && sameGroupPermissions.Contains(a.StudentPermissionId.Value))
+                    && sameGroupPermissions.Contains(a.StudentPermissionId))
                 .OrderBy(a => a.AttendanceDate)
                 .ToListAsync();
 
@@ -120,8 +119,7 @@ namespace DoorWebApp.Extensions
             // 取得所有該組的出席記錄（按日期排序）
             var combinedAttendances = ctx.TblAttendance
                 .Where(a => !a.IsDelete
-                    && a.StudentPermissionId.HasValue
-                    && sameGroupPermissions.Contains(a.StudentPermissionId.Value))
+                    && sameGroupPermissions.Contains(a.StudentPermissionId))
                 .OrderBy(a => a.AttendanceDate)
                 .ToList();
 
@@ -187,8 +185,7 @@ namespace DoorWebApp.Extensions
             // 取得所有該組的出席記錄（按日期排序）
             var combinedAttendances = await ctx.TblAttendance
                 .Where(a => !a.IsDelete
-                    && a.StudentPermissionId.HasValue
-                    && sameGroupPermissions.Contains(a.StudentPermissionId.Value))
+                    && sameGroupPermissions.Contains(a.StudentPermissionId))
                 .OrderBy(a => a.AttendanceDate)
                 .ToListAsync();
 
@@ -258,8 +255,7 @@ namespace DoorWebApp.Extensions
             // 3. 取得所有該組的出席記錄（按日期排序）
             var combinedAttendances = await ctx.TblAttendance
                 .Where(a => !a.IsDelete
-                    && a.StudentPermissionId.HasValue
-                    && sameGroupPermissions.Contains(a.StudentPermissionId.Value))
+                    && sameGroupPermissions.Contains(a.StudentPermissionId))
                 .OrderBy(a => a.AttendanceDate)
                 .ToListAsync();
 
@@ -327,8 +323,7 @@ namespace DoorWebApp.Extensions
             // 3. 取得所有該組的出席記錄（按日期排序）
             var combinedAttendances = ctx.TblAttendance
                 .Where(a => !a.IsDelete
-                    && a.StudentPermissionId.HasValue
-                    && sameGroupPermissions.Contains(a.StudentPermissionId.Value))
+                    && sameGroupPermissions.Contains(a.StudentPermissionId))
                 .OrderBy(a => a.AttendanceDate)
                 .ToList();
 
@@ -397,8 +392,7 @@ namespace DoorWebApp.Extensions
             // 3. 取得所有該組的出席記錄（按日期排序）
             var combinedAttendances = await ctx.TblAttendance
                 .Where(a => !a.IsDelete
-                    && a.StudentPermissionId.HasValue
-                    && sameGroupPermissions.Contains(a.StudentPermissionId.Value))
+                    && sameGroupPermissions.Contains(a.StudentPermissionId))
                 .OrderBy(a => a.AttendanceDate)
                 .ToListAsync();
 
