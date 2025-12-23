@@ -66,7 +66,7 @@ namespace DoorWebApp.Controllers
         }
 
         /// <summary>
-        /// 新增課程
+        /// 新增簽到
         /// </summary>
         /// <returns></returns>
         [HttpPost("v1/Attend")]

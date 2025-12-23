@@ -223,14 +223,19 @@ namespace DoorWebApp.Controllers
                 if (sp == null || sp.IsDelete) continue;
 
                 var permissions = _ctx.TblStudentPermission
-                    .Where(sp => !sp.IsDelete
-                                 && sp.UserId == sp.UserId
-                                 && sp.CourseId == sp.CourseId)
+                    .Where(sp1 => !sp1.IsDelete
+                                 && sp1.UserId == sp.UserId
+                                 && sp1.CourseId == sp.CourseId)
                     .Include(sp => sp.Course)                 // 課程名稱
                         .ThenInclude(c => c.CourseFee)        // 課程費用 + 教材費
                     .Include(sp => sp.StudentPermissionFees)  // 學生權限費用列表
                         .ThenInclude(spf => spf.Payment)       // 已收金額 & 結帳單號 (一對一)
                     .Include(sp => sp.Attendances)            // 課程一~四
+                    .ToList();
+                var combinedAttendances = permissions
+                    .SelectMany(sp => sp.Attendances ?? new List<TblAttendance>())
+                    .Where(a => !a.IsDelete)
+                    .OrderBy(a => a.AttendanceDate)
                     .ToList();
                 var combinedFees = permissions
                     .SelectMany(sp => sp.StudentPermissionFees ?? new List<TblStudentPermissionFee>())
@@ -247,7 +252,7 @@ namespace DoorWebApp.Controllers
                 }
 
                 // 找出當前 attendance 在該 StudentPermission 中的索引（依日期排序）
-                var spAttendances = attendancesByPermission.GetValueOrDefault(att.StudentPermissionId) ?? new List<TblAttendance>();
+                var spAttendances = combinedAttendances;
                 var attendanceIndex = spAttendances.FindIndex(a => a.Id == att.Id);
                 if (attendanceIndex < 0) attendanceIndex = 0;
 
@@ -277,7 +282,7 @@ namespace DoorWebApp.Controllers
 
                 var user = sp.User;
                 var studentName = user?.DisplayName ?? user?.Username ?? $"學生 {sp.UserId}";
-                var instrument = sp.Course?.CourseFee?.FeeCode ?? sp.Course?.Name ?? "-";
+                var instrument = sp.Course?.Name ?? "-";
 
                 var fee = att.AttendanceFee;
                 var hours = fee?.Hours > 0 ? fee.Hours : 1m;
@@ -477,14 +482,19 @@ namespace DoorWebApp.Controllers
                 if (sp == null || sp.IsDelete) continue;
 
                 var permissions = _ctx.TblStudentPermission
-                    .Where(sp => !sp.IsDelete
-                                 && sp.UserId == sp.UserId
-                                 && sp.CourseId == sp.CourseId)
+                    .Where(sp1 => !sp1.IsDelete
+                                 && sp1.UserId == sp.UserId
+                                 && sp1.CourseId == sp.CourseId)
                     .Include(sp => sp.Course)                 // 課程名稱
                         .ThenInclude(c => c.CourseFee)        // 課程費用 + 教材費
                     .Include(sp => sp.StudentPermissionFees)  // 學生權限費用列表
                         .ThenInclude(spf => spf.Payment)       // 已收金額 & 結帳單號 (一對一)
                     .Include(sp => sp.Attendances)            // 課程一~四
+                    .ToList();
+                var combinedAttendances = permissions
+                    .SelectMany(sp => sp.Attendances ?? new List<TblAttendance>())
+                    .Where(a => !a.IsDelete)
+                    .OrderBy(a => a.AttendanceDate)
                     .ToList();
                 var combinedFees = permissions
                     .SelectMany(sp => sp.StudentPermissionFees ?? new List<TblStudentPermissionFee>())
@@ -501,7 +511,7 @@ namespace DoorWebApp.Controllers
                 }
 
                 // 找出當前 attendance 在該 StudentPermission 中的索引（依日期排序）
-                var spAttendances = attendancesByPermission.GetValueOrDefault(att.StudentPermissionId) ?? new List<TblAttendance>();
+                var spAttendances = combinedAttendances;
                 var attendanceIndex = spAttendances.FindIndex(a => a.Id == att.Id);
                 if (attendanceIndex < 0) attendanceIndex = 0;
 
