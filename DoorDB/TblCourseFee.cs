@@ -78,6 +78,12 @@ namespace DoorDB
         public int OpenCourseAmount { get; set; } = 0;
 
         /// <summary>
+        /// 課程說明
+        /// </summary>
+        [Comment("課程說明")]
+        public string? Remark { get; set; }
+
+        /// <summary>
         /// 建立時間
         /// </summary>
         [Required]

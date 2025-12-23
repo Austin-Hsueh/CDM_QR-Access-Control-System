@@ -846,7 +846,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('refundList')">🔄 取得學生退款資訊</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createRefund')">↩️ 新增或編輯退款記錄</button>
 
-                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;"> 使用者管理</div>
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📝 使用者管理</div>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('addUser')">👤 新增使用者</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('updateUser')">✏️ 更新使用者</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('getAllUsersWithRoles')">📋 查詢所有使用者</button>
@@ -861,7 +861,10 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceFee')">✏️ 單堂老師費用修改</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('attendanceGroup')">📊 查詢學生權限GROUP詳細資料</button>
 
-                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;"> 關帳管理</div>
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📝 簽到管理</div>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('studentCheckIn')">✅ 學生簽到</button>
+
+                            <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">📝 關帳管理</div>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('dailyStatus')">🔍 取得簽到清單</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('checkInAll')">✅ 全部簽到</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('getCloseAccount')">💰 取得關帳資料</button>
@@ -3620,6 +3623,85 @@ Content-Type: application/json
                     `;
                     break;
 
+                case 'studentCheckIn':
+                    html = `
+                        <h2 style="color: #667eea;">✅ 學生簽到</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>POST /api/v1/Attend</code></p>
+                            <p><strong>說明：</strong>建立一筆學生簽到記錄 (TblAttendance)，支援出席/缺席/請假三種類型</p>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數 (ReqCreateAttendanceDTO)</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>attendanceDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">簽到日期 (格式: yyyy-MM-dd)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>attendanceType</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">簽到類型 (0=缺席, 1=出席, 2=請假)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>modifiedUserId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">操作者 ID</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>result</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">結果代碼 (1=成功)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">訊息</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>content</code></td><td style="padding: 8px; border: 1px solid #ddd;">object?</td><td style="padding: 8px; border: 1px solid #ddd;">建立成功時的簽到記錄</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ attendanceId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">簽到記錄 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ studentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ attendanceDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">簽到日期</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ attendanceType</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">簽到類型 (0/1/2)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ checkInTime</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">簽到時間 (HH:mm)</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">📝 請求範例</h3>
+                            <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">POST /api/v1/Attend
+Content-Type: application/json
+
+{
+  "studentPermissionId": 1661,
+  "attendanceDate": "2025-12-23",
+  "attendanceType": 1,
+  "modifiedUserId": 2
+}</pre>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-top: 10px;">
+                                <div><label>學生權限 ID: <input type="number" id="testAttendPermissionId" value="1661" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>簽到日期: <input type="date" id="testAttendDate" value="2025-12-23" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>類型: 
+                                    <select id="testAttendType" style="width: 100%; padding: 6px;">
+                                        <option value="1">出席</option>
+                                        <option value="0">缺席</option>
+                                        <option value="2">請假</option>
+                                    </select>
+                                </label></div>
+                                <div><label>操作者 ID: <input type="number" id="testAttendUserId" value="2" style="width: 100%; padding: 6px;" /></label></div>
+                            </div>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testCreateAttend()">執行測試</button>
+                            <div id="testResult-studentCheckIn" style="margin-top: 10px;"></div>
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-studentCheckIn" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
+                        </div>
+                    `;
+                    break;
+
                 case 'updatePermissionFee':
                     html = `
                         <h2 style="color: #667eea;">✏️ 編輯或刪除 學生權限費用記錄</h2>
@@ -6272,6 +6354,57 @@ Response:
 
                 setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
             } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                rawDiv.textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        async function testCreateAttend() {
+            const studentPermissionId = parseInt(document.getElementById('testAttendPermissionId').value || '0', 10);
+            const attendanceDate = document.getElementById('testAttendDate').value;
+            const attendanceType = parseInt(document.getElementById('testAttendType').value || '1', 10);
+            const modifiedUserId = parseInt(document.getElementById('testAttendUserId').value || '0', 10);
+
+            const resultDiv = document.getElementById('testResult-studentCheckIn');
+            const rawDiv = document.getElementById('rawData-studentCheckIn');
+            resultDiv.innerHTML = '<div class="loading">建立中...</div>';
+            rawDiv.textContent = '';
+
+            if (!studentPermissionId || !attendanceDate || !modifiedUserId) {
+                resultDiv.innerHTML = '<div class="error">❌ 請填入學生權限 ID、日期與操作者 ID</div>';
+                return;
+            }
+
+            try {
+                const body = {
+                    studentPermissionId,
+                    attendanceDate,
+                    attendanceType,
+                    modifiedUserId
+                };
+
+                const res = await apiFetch('/api/v1/Attend', {
+                    method: 'POST',
+                    body
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '建立失敗');
+                }
+
+                const info = data.content || {};
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 簽到成功</div>
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <p><strong>簽到 ID：</strong>${info.attendanceId ?? '-'}</p>
+                        <p><strong>日期：</strong>${info.attendanceDate ?? attendanceDate}</p>
+                        <p><strong>類型：</strong>${attendanceType === 1 ? '出席' : attendanceType === 0 ? '缺席' : '請假'}</p>
+                    </div>
+                `;
+                rawDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
                 resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
                 rawDiv.textContent = `錯誤: ${err.message}`;
             }
