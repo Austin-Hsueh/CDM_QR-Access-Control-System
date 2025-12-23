@@ -55,7 +55,8 @@ namespace DoorWebApp.Controllers
                         materialFee = course.CourseFee != null ? course.CourseFee.MaterialFee : null,
                         hours = course.CourseFee != null ? course.CourseFee.Hours : null,
                         splitRatio = course.CourseFee != null ? course.CourseFee.SplitRatio : null,
-                        openCourseAmount = course.CourseFee != null ? course.CourseFee.OpenCourseAmount : null
+                        openCourseAmount = course.CourseFee != null ? course.CourseFee.OpenCourseAmount : null,
+                        remark = course.CourseFee != null ? course.CourseFee.Remark : null
                     })
                     .ToList();
 
@@ -119,7 +120,8 @@ namespace DoorWebApp.Controllers
                     materialFee = targetCourseEntity.CourseFee != null ? targetCourseEntity.CourseFee.MaterialFee : null,
                     hours = targetCourseEntity.CourseFee != null ? targetCourseEntity.CourseFee.Hours : null,
                     splitRatio = targetCourseEntity.CourseFee != null ? targetCourseEntity.CourseFee.SplitRatio : null,
-                    openCourseAmount = targetCourseEntity.CourseFee != null ? targetCourseEntity.CourseFee.OpenCourseAmount : null
+                    openCourseAmount = targetCourseEntity.CourseFee != null ? targetCourseEntity.CourseFee.OpenCourseAmount : null,
+                    remark = targetCourseEntity.CourseFee != null ? targetCourseEntity.CourseFee.Remark : null
                 };
 
                 return Ok(res);
@@ -214,6 +216,7 @@ namespace DoorWebApp.Controllers
                         Hours = CourseDTO.hours ?? 0,
                         SplitRatio = CourseDTO.splitRatio ?? 0,
                         OpenCourseAmount = CourseDTO.openCourseAmount ?? 0,
+                        Remark = CourseDTO.remark,
                         CreatedTime = DateTime.Now,
                         ModifiedTime = DateTime.Now
                     };
@@ -323,7 +326,18 @@ namespace DoorWebApp.Controllers
                 log.LogInformation($"[{Request.Path}] Update Course success: Id={CourseEntity.Id}");
 
                 // 4. 更新或新增課程收費資料
-                if (!string.IsNullOrEmpty(CourseDTO.feeCode) || CourseDTO.amount.HasValue)
+                var hasCourseFeePayload =
+                    !string.IsNullOrEmpty(CourseDTO.feeCode) ||
+                    CourseDTO.amount.HasValue ||
+                    CourseDTO.materialFee.HasValue ||
+                    CourseDTO.hours.HasValue ||
+                    CourseDTO.splitRatio.HasValue ||
+                    CourseDTO.openCourseAmount.HasValue ||
+                    CourseDTO.sortOrder.HasValue ||
+                    CourseDTO.category != null ||
+                    !string.IsNullOrEmpty(CourseDTO.remark);
+
+                if (hasCourseFeePayload)
                 {
                     var existingCourseFee = await ctx.TblCourseFee
                         .FirstOrDefaultAsync(x => x.CourseId == CourseDTO.courseId);
@@ -355,12 +369,13 @@ namespace DoorWebApp.Controllers
                         existingCourseFee.Hours = CourseDTO.hours ?? existingCourseFee.Hours;
                         existingCourseFee.SplitRatio = CourseDTO.splitRatio ?? existingCourseFee.SplitRatio;
                         existingCourseFee.OpenCourseAmount = CourseDTO.openCourseAmount ?? existingCourseFee.OpenCourseAmount;
+                        existingCourseFee.Remark = CourseDTO.remark ?? existingCourseFee.Remark;
                         existingCourseFee.ModifiedTime = DateTime.Now;
 
                         await ctx.SaveChangesAsync();
                         log.LogInformation($"[{Request.Path}] Update CourseFee success: CourseId={CourseDTO.courseId}");
                     }
-                    else
+                    else if (!string.IsNullOrEmpty(CourseDTO.feeCode) || CourseDTO.amount.HasValue)
                     {
                         // 新增課程收費
                         // 檢查 FeeCode 是否重複
@@ -390,6 +405,7 @@ namespace DoorWebApp.Controllers
                             Hours = CourseDTO.hours ?? 0,
                             SplitRatio = CourseDTO.splitRatio ?? 0,
                             OpenCourseAmount = CourseDTO.openCourseAmount ?? 0,
+                            Remark = CourseDTO.remark,
                             CreatedTime = DateTime.Now,
                             ModifiedTime = DateTime.Now
                         };
@@ -500,6 +516,7 @@ namespace DoorWebApp.Controllers
                         Hours = sourceCourse.CourseFee.Hours,
                         SplitRatio = sourceCourse.CourseFee.SplitRatio,
                         OpenCourseAmount = sourceCourse.CourseFee.OpenCourseAmount,
+                        Remark = sourceCourse.CourseFee.Remark,
                         CreatedTime = DateTime.Now,
                         ModifiedTime = DateTime.Now
                     };

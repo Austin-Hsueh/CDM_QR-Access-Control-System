@@ -14,5 +14,6 @@
         public decimal? hours { get; set; }
         public decimal? splitRatio { get; set; }
         public int? openCourseAmount { get; set; }
+        public string? remark { get; set; }
     }
 }

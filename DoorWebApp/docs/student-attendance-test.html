@@ -317,6 +317,10 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                                 <label style="display: block; margin-bottom: 4px; font-weight: bold;">開放課程費用:</label>
                                 <input type="number" id="dialogOpenCourseAmount" placeholder="0" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
                             </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 4px; font-weight: bold;">課程說明:</label>
+                                <textarea id="dialogRemark" placeholder="課程備註/描述" rows="3" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; resize: vertical;"></textarea>
+                            </div>
                         </div>
                         <div id="courseDialogError" class="error" style="display:none; margin-top: 12px;"></div>
                         <div style="margin-top: 20px; display: flex; gap: 8px; justify-content: flex-end;">
@@ -1172,7 +1176,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                 if (courses.length === 0) {
                     contentDiv.innerHTML = '<div class="empty">沒有課程資料</div>';
                 } else {
-                    let html = '<table><thead><tr><th>課程 ID</th><th>課程名稱</th><th>課程類型</th><th>收費編號</th><th>費用</th><th>教材費</th><th>時數</th><th>拆帳比例</th><th>操作</th></tr></thead><tbody>';
+                    let html = '<table><thead><tr><th>課程 ID</th><th>課程名稱</th><th>課程類型</th><th>收費編號</th><th>費用</th><th>教材費</th><th>時數</th><th>拆帳比例</th><th>課程說明</th><th>操作</th></tr></thead><tbody>';
                     courses.forEach((course) => {
                         const cid = course.id || course.courseId;
                         const cname = (course.name || course.courseName || '').replace(/'/g, "\\'");
@@ -1185,6 +1189,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             <td>${course.materialFee !== null && course.materialFee !== undefined ? '$' + course.materialFee : '-'}</td>
                             <td>${course.hours !== null && course.hours !== undefined ? course.hours : '-'}</td>
                             <td>${course.splitRatio !== null && course.splitRatio !== undefined ? (course.splitRatio * 100).toFixed(0) + '%' : '-'}</td>
+                            <td>${course.remark ? course.remark.replace(/</g,'&lt;').replace(/>/g,'&gt;') : '-'}</td>
                             <td>
                                 ${cid ? `<button class="btn-small btn-primary" onclick="loadCourseDetail(${cid})" style="margin: 2px;">查看</button>` : ''}
                                 ${cid ? `<button class="btn-small" onclick="editCourse(${cid})" style="margin: 2px; background: #67c23a; color: white;">編輯</button>` : ''}
@@ -1253,6 +1258,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             <div><strong>時數：</strong>${course.hours !== null && course.hours !== undefined ? course.hours : '-'}</div>
                             <div><strong>拆帳比例：</strong>${feeRatio}</div>
                             <div><strong>開放課程費用：</strong>${course.openCourseAmount !== null && course.openCourseAmount !== undefined ? '$' + course.openCourseAmount : '-'}</div>
+                            <div><strong>課程說明：</strong>${course.remark || '-'}</div>
                         </div>`;
                 }
                 status.textContent = '完成';
@@ -1362,6 +1368,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
             document.getElementById('dialogHours').value = '';
             document.getElementById('dialogSplitRatio').value = '';
             document.getElementById('dialogOpenCourseAmount').value = '';
+            document.getElementById('dialogRemark').value = '';
             document.getElementById('courseDialogError').style.display = 'none';
             document.getElementById('courseDialog').style.display = 'flex';
         }
@@ -1385,6 +1392,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                 document.getElementById('dialogHours').value = course.hours || '';
                 document.getElementById('dialogSplitRatio').value = course.splitRatio || '';
                 document.getElementById('dialogOpenCourseAmount').value = course.openCourseAmount || '';
+                document.getElementById('dialogRemark').value = course.remark || '';
                 document.getElementById('courseDialogError').style.display = 'none';
                 document.getElementById('courseDialog').style.display = 'flex';
             } catch (err) {
@@ -1418,7 +1426,8 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                 materialFee: document.getElementById('dialogMaterialFee').value ? parseFloat(document.getElementById('dialogMaterialFee').value) : null,
                 hours: document.getElementById('dialogHours').value ? parseFloat(document.getElementById('dialogHours').value) : null,
                 splitRatio: document.getElementById('dialogSplitRatio').value ? parseFloat(document.getElementById('dialogSplitRatio').value) : null,
-                openCourseAmount: document.getElementById('dialogOpenCourseAmount').value ? parseFloat(document.getElementById('dialogOpenCourseAmount').value) : null
+                openCourseAmount: document.getElementById('dialogOpenCourseAmount').value ? parseFloat(document.getElementById('dialogOpenCourseAmount').value) : null,
+                remark: document.getElementById('dialogRemark').value ? document.getElementById('dialogRemark').value.trim() : null
             };
 
             try {
@@ -3909,6 +3918,7 @@ Content-Type: application/json
                                     <tr style="background: #fff3cd;"><td style="padding: 8px; border: 1px solid #ddd;"><code>hours</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">課程時數</td></tr>
                                     <tr style="background: #fff3cd;"><td style="padding: 8px; border: 1px solid #ddd;"><code>splitRatio</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">拆帳比例 (0-1)</td></tr>
                                     <tr style="background: #fff3cd;"><td style="padding: 8px; border: 1px solid #ddd;"><code>openCourseAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">開放課程費用</td></tr>
+                                    <tr style="background: #fff3cd;"><td style="padding: 8px; border: 1px solid #ddd;"><code>remark</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">課程說明 / 備註 (可空)</td></tr>
                                 </tbody>
                             </table>
 
@@ -3988,6 +3998,7 @@ Content-Type: application/json
                                     <tr style="background: #fff3cd;"><td style="padding: 8px; border: 1px solid #ddd;"><code>hours</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">課程時數</td></tr>
                                     <tr style="background: #fff3cd;"><td style="padding: 8px; border: 1px solid #ddd;"><code>splitRatio</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">拆帳比例 (0-1)</td></tr>
                                     <tr style="background: #fff3cd;"><td style="padding: 8px; border: 1px solid #ddd;"><code>openCourseAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">開放課程費用</td></tr>
+                                    <tr style="background: #fff3cd;"><td style="padding: 8px; border: 1px solid #ddd;"><code>remark</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">課程說明 / 備註 (可空)</td></tr>
                                 </tbody>
                             </table>
 
@@ -4057,6 +4068,7 @@ Content-Type: application/json
                                     <tr style="background: #fff3cd;"><td style="padding: 8px; border: 1px solid #ddd;"><code>hours</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">課程時數 (可空=不修改)</td></tr>
                                     <tr style="background: #fff3cd;"><td style="padding: 8px; border: 1px solid #ddd;"><code>splitRatio</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">拆帳比例 0-1 (可空=不修改)</td></tr>
                                     <tr style="background: #fff3cd;"><td style="padding: 8px; border: 1px solid #ddd;"><code>openCourseAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">開放課程費用 (可空=不修改)</td></tr>
+                                    <tr style="background: #fff3cd;"><td style="padding: 8px; border: 1px solid #ddd;"><code>remark</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">課程說明 / 備註 (可空=不修改)</td></tr>
                                 </tbody>
                             </table>
 
@@ -4076,18 +4088,20 @@ Content-Type: application/json
 Content-Type: application/json
 
 {
-  "courseId": 15,
-  "courseName": "小提琴進階班",
-  "courseTypeId": 1,
-  "isDelete": false,
-  "category": "團體班",
-  "sortOrder": 150,
-  "amount": 15000,
-  "materialFee": 800,
-  "hours": 16,
-  "splitRatio": 0.40
-}</pre>
+    "courseId": 15,
+    "courseName": "小提琴進階班",
+    "courseTypeId": 1,
+    "isDelete": false,
+    "category": "團體班",
+    "sortOrder": 150,
+    "amount": 15000,
+    "materialFee": 800,
+    "hours": 16,
+    "splitRatio": 0.40,
+    "openCourseAmount": 15000,
+    "remark": "每週六 2hr，共 8 週"
 
+</pre>
                             <h3 style="margin-top: 20px;">📤 回應欄位</h3>
                             <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
                                 <thead>
@@ -4151,7 +4165,7 @@ Content-Type: application/json
                             <div class="info">
                                 <ul style="margin-left: 20px; line-height: 1.8;">
                                     <li><strong>課程基本資訊：</strong>名稱、類型、啟用狀態</li>
-                                    <li><strong>收費資訊：</strong>類別、排序、金額、教材費、時數、拆帳比例、開放課程費用</li>
+                                    <li><strong>收費資訊：</strong>類別、排序、金額、教材費、時數、拆帳比例、開放課程費用、課程說明</li>
                                     <li><strong>新課程名稱：</strong>若留空自動生成為「來源課程名稱 - 副本」</li>
                                 </ul>
                             </div>
@@ -4415,6 +4429,15 @@ Content-Type: application/json
                                     <li>課程列表包含學生編號、學生名稱、課程名稱、教室、上下課時間</li>
                                 </ul>
                             </div>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 10px;">
+                                <div><label>日期: <input type="date" id="testDailyStatusDate" value="2025-12-23" style="width: 100%; padding: 6px;" /></label></div>
+                                <div style="align-self: end;"><button class="btn-primary" onclick="testDailyStatus()">執行測試</button></div>
+                            </div>
+                            <div id="testResult-dailyStatus" style="margin-top: 10px;"></div>
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-dailyStatus" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
                         </div>
                     `;
                     break;
@@ -4514,6 +4537,15 @@ Content-Type: application/json
                                     <li><strong>營業收入計算：</strong>所有該日期 tblPayment 的 Pay + DiscountAmount 之和</li>
                                 </ul>
                             </div>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 10px;">
+                                <div><label>日期: <input type="date" id="testCloseAccountDate" value="2025-12-23" style="width: 100%; padding: 6px;" /></label></div>
+                                <div style="align-self: end;"><button class="btn-primary" onclick="testGetCloseAccount()">執行測試</button></div>
+                            </div>
+                            <div id="testResult-getCloseAccount" style="margin-top: 10px;"></div>
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-getCloseAccount" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
                         </div>
                     `;
                     break;
@@ -4627,6 +4659,16 @@ Content-Type: application/json
 
 # 或只查詢最近 30 天（不帶參數）
 GET /api/v1/CloseAccount</pre>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-top: 10px;">
+                                <div><label>開始日期: <input type="date" id="testListStartDate" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>結束日期: <input type="date" id="testListEndDate" style="width: 100%; padding: 6px;" /></label></div>
+                                <div style="align-self: end;"><button class="btn-primary" onclick="testListCloseAccount()">執行測試</button></div>
+                            </div>
+                            <div id="testResult-listCloseAccount" style="margin-top: 10px;"></div>
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-listCloseAccount" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
                         </div>
                     `;
                     break;
@@ -6230,6 +6272,137 @@ Response:
 
                 setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
             } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                rawDiv.textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        // ========== API 文檔測試：關帳管理 ==========
+
+        async function testDailyStatus() {
+            const date = document.getElementById('testDailyStatusDate').value;
+            const resultDiv = document.getElementById('testResult-dailyStatus');
+            const rawDiv = document.getElementById('rawData-dailyStatus');
+            resultDiv.innerHTML = '<div class="loading">查詢中...</div>';
+            rawDiv.textContent = '';
+
+            if (!date) {
+                resultDiv.innerHTML = '<div class="error">❌ 請選擇日期</div>';
+                return;
+            }
+
+            try {
+                const res = await apiFetch(`/api/v1/CloseAccount/DailyStatus/${date}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                const content = data.content || data;
+
+                const total = content.totalSchedules ?? 0;
+                const checked = content.checkedInCount ?? 0;
+                const notChecked = content.notCheckedInCount ?? Math.max(total - checked, 0);
+                const canClose = !!content.canCloseAccount;
+
+                resultDiv.innerHTML = `
+                    <div class="${canClose ? 'success' : 'info'}">${canClose ? '✅ 可以關帳' : 'ℹ️ 尚有未簽到課程'}</div>
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <p><strong>日期：</strong>${content.queryDate || date}</p>
+                        <p><strong>總課堂數：</strong>${total}；<strong>已簽到：</strong>${checked}；<strong>未簽到：</strong>${notChecked}</p>
+                        ${Array.isArray(content.notCheckedInSchedules) && content.notCheckedInSchedules.length ? `
+                        <div style="margin-top: 8px;">
+                            <p style="margin: 0 0 6px 0;"><strong>未簽到課程（前 5 筆）：</strong></p>
+                            <ul style="margin: 0 0 0 18px;">
+                                ${content.notCheckedInSchedules.slice(0, 5).map(s => `<li>${(s.studentName || '-')}/${(s.courseName || '-')}/${(s.classroomName || '-')}</li>`).join('')}
+                            </ul>
+                        </div>` : ''}
+                    </div>
+                `;
+
+                rawDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                rawDiv.textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        async function testGetCloseAccount() {
+            const date = document.getElementById('testCloseAccountDate').value;
+            const resultDiv = document.getElementById('testResult-getCloseAccount');
+            const rawDiv = document.getElementById('rawData-getCloseAccount');
+            resultDiv.innerHTML = '<div class="loading">查詢中...</div>';
+            rawDiv.textContent = '';
+
+            if (!date) {
+                resultDiv.innerHTML = '<div class="error">❌ 請選擇日期</div>';
+                return;
+            }
+
+            try {
+                const res = await apiFetch(`/api/v1/CloseAccount/Detail/${date}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                const info = data.content || data;
+
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 取得成功</div>
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <p><strong>關帳日期：</strong>${(info.closeDate || date)}</p>
+                        <p><strong>昨日零用金：</strong>¥${info.yesterdayPettyIncome ?? 0}</p>
+                        <p><strong>營業收入：</strong>¥${info.businessIncome ?? 0}</p>
+                        <p><strong>關帳結算金額：</strong>¥${info.closeAccountAmount ?? 0}</p>
+                        <p><strong>提存金額：</strong>¥${info.depositAmount ?? 0}</p>
+                        <p><strong>零用金結餘：</strong>¥${info.pettyIncome ?? 0}</p>
+                    </div>
+                `;
+
+                rawDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                rawDiv.textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        async function testListCloseAccount() {
+            const startDate = document.getElementById('testListStartDate').value;
+            const endDate = document.getElementById('testListEndDate').value;
+            const resultDiv = document.getElementById('testResult-listCloseAccount');
+            const rawDiv = document.getElementById('rawData-listCloseAccount');
+            resultDiv.innerHTML = '<div class="loading">查詢中...</div>';
+            rawDiv.textContent = '';
+
+            try {
+                const params = [];
+                if (startDate) params.push(`startDate=${encodeURIComponent(startDate)}`);
+                if (endDate) params.push(`endDate=${encodeURIComponent(endDate)}`);
+                const qs = params.length ? `?${params.join('&')}` : '';
+                const res = await apiFetch(`/api/v1/CloseAccount${qs}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                const list = data.content || data || [];
+
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 查詢成功，共 ${Array.isArray(list) ? list.length : 0} 筆</div>
+                    ${Array.isArray(list) && list.length ? `
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px; max-height: 220px; overflow-y: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                            <thead><tr style="background:#e6f7ff;"><th style="text-align:left; padding:6px;">日期</th><th style="text-align:right; padding:6px;">營業收入</th><th style="text-align:right; padding:6px;">關帳金額</th><th style="text-align:right; padding:6px;">提存</th><th style="text-align:right; padding:6px;">零用金</th></tr></thead>
+                            <tbody>
+                                ${list.slice(0, 10).map(x => `
+                                    <tr style="border-bottom:1px solid #eee;">
+                                        <td style="padding:6px;">${x.closeDate || '-'}</td>
+                                        <td style="padding:6px; text-align:right;">¥${x.businessIncome ?? 0}</td>
+                                        <td style="padding:6px; text-align:right;">¥${x.closeAccountAmount ?? 0}</td>
+                                        <td style="padding:6px; text-align:right;">¥${x.depositAmount ?? 0}</td>
+                                        <td style="padding:6px; text-align:right;">¥${x.pettyIncome ?? 0}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        ${list.length > 10 ? `<div style="margin-top:6px; color:#718096;">... 及其他 ${list.length - 10} 筆</div>` : ''}
+                    </div>` : ''}
+                `;
+
+                rawDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
                 resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
                 rawDiv.textContent = `錯誤: ${err.message}`;
             }
