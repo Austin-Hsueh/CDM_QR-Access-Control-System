@@ -71,149 +71,23 @@ namespace DoorWebApp.Extensions
             if (attendanceIndex == -1)
                 return null;
 
-            // 5. 根據索引計算對應的費用（每 4 筆出席對應 1 筆費用）
-            int feeIndex = attendanceIndex / 4;
-
-            // 6. 回傳對應的費用記錄
-            return feeIndex < combinedFees.Count ? combinedFees[feeIndex] : null;
-        }
-
-        /// <summary>
-        /// 根據 Attendance 找到對應的 StudentPermissionFee (同步版本)
-        /// 依「相同學生 + 相同課程」分組查詢，取得該組對應的費用記錄
-        /// </summary>
-        /// <param name="attendance">出席記錄</param>
-        /// <param name="ctx">資料庫上下文</param>
-        /// <returns>對應的 StudentPermissionFee，若無則回傳 null</returns>
-        public static TblStudentPermissionFee? GetCorrespondingStudentPermissionFee(
-            this TblAttendance attendance,
-            DoorDbContext ctx)
-        {
-            if (attendance == null || attendance.StudentPermissionId == null)
-                return null;
-
-            // 載入 StudentPermission (如果尚未載入)
-            if (attendance.StudentPermission == null)
+            // 5. 根據每筆費用的 Hours 動態切分出席記錄，找到對應的費用
+            int currentStart = 0;
+            foreach (var fee in combinedFees)
             {
-                ctx.Entry(attendance)
-                    .Reference(a => a.StudentPermission)
-                    .Load();
+                int hours = fee.Hours > 0 ? (int)fee.Hours : 4; // 防止 Hours=0
+                int currentEnd = currentStart + hours;
+
+                if (attendanceIndex >= currentStart && attendanceIndex < currentEnd)
+                {
+                    return fee;
+                }
+
+                currentStart = currentEnd;
             }
 
-            var studentPermission = attendance.StudentPermission;
-            if (studentPermission == null)
-                return null;
-
-            // 1. 依「相同學生 + 相同課程」分組查詢所有學生權限
-            var sameGroupPermissions = ctx.TblStudentPermission
-                .Where(sp => !sp.IsDelete
-                    && sp.UserId == studentPermission.UserId
-                    && sp.CourseId == studentPermission.CourseId)
-                .Select(sp => sp.Id)
-                .ToList();
-
-            if (!sameGroupPermissions.Any())
-                return null;
-
-            // 2. 合併「相同學生 + 相同課程」的簽到與費用，統一分組
-            // 取得所有該組的出席記錄（按日期排序）
-            var combinedAttendances = ctx.TblAttendance
-                .Where(a => !a.IsDelete
-                    && sameGroupPermissions.Contains(a.StudentPermissionId))
-                .OrderBy(a => a.AttendanceDate)
-                .ToList();
-
-            // 3. 取得該組對應的 StudentPermissionFee（排除已刪除的記錄，按繳款日期排序）
-            var combinedFees = ctx.TblStudentPermissionFee
-                .Where(spf => !spf.IsDelete
-                    && sameGroupPermissions.Contains(spf.StudentPermissionId))
-                .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
-                .ThenBy(spf => spf.Id)
-                .ToList();
-
-            if (!combinedFees.Any())
-                return null;
-
-            // 4. 找出當前 attendance 在 combinedAttendances 中的索引位置
-            int attendanceIndex = combinedAttendances.FindIndex(a => a.Id == attendance.Id);
-            if (attendanceIndex == -1)
-                return null;
-
-            // 5. 根據索引計算對應的費用（每 4 筆出席對應 1 筆費用）
-            int feeIndex = attendanceIndex / 4;
-
-            // 6. 回傳對應的費用記錄
-            return feeIndex < combinedFees.Count ? combinedFees[feeIndex] : null;
-        }
-
-        /// <summary>
-        /// 取得 Attendance 在同組中的位置資訊
-        /// </summary>
-        /// <param name="attendance">出席記錄</param>
-        /// <param name="ctx">資料庫上下文</param>
-        /// <returns>包含位置資訊的物件</returns>
-        public static async Task<AttendancePositionInfo?> GetAttendancePositionInfoAsync(
-            this TblAttendance attendance,
-            DoorDbContext ctx)
-        {
-            if (attendance == null || attendance.StudentPermissionId == null)
-                return null;
-
-            // 載入 StudentPermission (如果尚未載入)
-            if (attendance.StudentPermission == null)
-            {
-                await ctx.Entry(attendance)
-                    .Reference(a => a.StudentPermission)
-                    .LoadAsync();
-            }
-
-            var studentPermission = attendance.StudentPermission;
-            if (studentPermission == null)
-                return null;
-
-            // 依「相同學生 + 相同課程」分組查詢所有學生權限
-            var sameGroupPermissions = await ctx.TblStudentPermission
-                .Where(sp => !sp.IsDelete
-                    && sp.UserId == studentPermission.UserId
-                    && sp.CourseId == studentPermission.CourseId)
-                .Select(sp => sp.Id)
-                .ToListAsync();
-
-            if (!sameGroupPermissions.Any())
-                return null;
-
-            // 取得所有該組的出席記錄（按日期排序）
-            var combinedAttendances = await ctx.TblAttendance
-                .Where(a => !a.IsDelete
-                    && sameGroupPermissions.Contains(a.StudentPermissionId))
-                .OrderBy(a => a.AttendanceDate)
-                .ToListAsync();
-
-            // 取得該組對應的 StudentPermissionFee
-            var combinedFees = await ctx.TblStudentPermissionFee
-                .Where(spf => !spf.IsDelete
-                    && sameGroupPermissions.Contains(spf.StudentPermissionId))
-                .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
-                .ThenBy(spf => spf.Id)
-                .ToListAsync();
-
-            // 找出當前 attendance 的位置
-            int attendanceIndex = combinedAttendances.FindIndex(a => a.Id == attendance.Id);
-            if (attendanceIndex == -1)
-                return null;
-
-            int feeIndex = attendanceIndex / 4;
-            int positionInFee = attendanceIndex % 4; // 在該費用中的位置 (0-3)
-
-            return new AttendancePositionInfo
-            {
-                AttendanceIndex = attendanceIndex,
-                FeeIndex = feeIndex,
-                PositionInFee = positionInFee + 1, // 轉換為 1-4
-                TotalAttendances = combinedAttendances.Count,
-                TotalFees = combinedFees.Count,
-                CorrespondingFee = feeIndex < combinedFees.Count ? combinedFees[feeIndex] : null
-            };
+            // 找不到對應費用
+            return null;
         }
 
         /// <summary>
@@ -249,9 +123,6 @@ namespace DoorWebApp.Extensions
                 .ThenBy(spf => spf.Id)
                 .ToListAsync();
 
-            if (!combinedFees.Any())
-                return null;
-
             // 3. 取得所有該組的出席記錄（按日期排序）
             var combinedAttendances = await ctx.TblAttendance
                 .Where(a => !a.IsDelete
@@ -259,167 +130,64 @@ namespace DoorWebApp.Extensions
                 .OrderBy(a => a.AttendanceDate)
                 .ToListAsync();
 
-            // 4. 檢查每個費用，找出第一個還沒塞滿 4 個出席記錄的
-            for (int feeIndex = 0; feeIndex < combinedFees.Count; feeIndex++)
+            // 4. 檢查每個費用，找出第一個還沒塞滿 Hours 的出席記錄的
+            if (combinedFees.Any())
             {
-                // 計算這個費用對應的出席記錄範圍
-                int startIndex = feeIndex * 4;
-                int endIndex = startIndex + 4;
-                
-                // 計算這個費用已經有多少個出席記錄
-                int attendanceCount = 0;
-                for (int i = startIndex; i < endIndex && i < combinedAttendances.Count; i++)
+                int currentStart = 0;
+                foreach (var fee in combinedFees)
                 {
-                    attendanceCount++;
-                }
+                    int hours = fee.Hours > 0 ? (int)fee.Hours : 4; // 防止 Hours=0
+                    int currentEnd = currentStart + hours;
 
-                // 如果還沒滿 4 個，回傳這個費用
-                if (attendanceCount < 4)
-                {
-                    return combinedFees[feeIndex];
+                    // 計算這個費用已經有多少個出席記錄
+                    int attendanceCount = 0;
+                    for (int i = currentStart; i < currentEnd && i < combinedAttendances.Count; i++)
+                    {
+                        attendanceCount++;
+                    }
+
+                    // 如果還沒滿，回傳這個費用
+                    if (attendanceCount < hours)
+                    {
+                        return fee;
+                    }
+
+                    currentStart = currentEnd;
                 }
             }
 
-            // 所有費用都已滿，回傳 null
-            return null;
-        }
+            // 5. 所有費用都已滿，建立新的 StudentPermissionFee
+            // 讀取課程費用資訊
+            var courseFee = await ctx.TblCourseFee
+                .Where(cf => cf.CourseId == studentPermission.CourseId)
+                .FirstOrDefaultAsync();
 
-        /// <summary>
-        /// 根據 StudentPermission 找到對應組別中最早的還沒塞滿 4 個出席記錄的 StudentPermissionFee (同步版本)
-        /// 依「相同學生 + 相同課程」分組查詢
-        /// </summary>
-        /// <param name="studentPermission">學生權限</param>
-        /// <param name="ctx">資料庫上下文</param>
-        /// <returns>還沒塞滿的費用記錄，若無則回傳 null</returns>
-        public static TblStudentPermissionFee? GetFirstAvailableStudentPermissionFee(
-            this TblStudentPermission studentPermission,
-            DoorDbContext ctx)
-        {
-            if (studentPermission == null)
+            if (courseFee == null)
                 return null;
 
-            // 1. 依「相同學生 + 相同課程」分組查詢所有學生權限
-            var sameGroupPermissions = ctx.TblStudentPermission
-                .Where(sp => !sp.IsDelete
-                    && sp.UserId == studentPermission.UserId
-                    && sp.CourseId == studentPermission.CourseId)
-                .Select(sp => sp.Id)
-                .ToList();
+            // 計算新費用的金額
+            int tuitionFee = courseFee.Amount;
+            int materialFee = courseFee.MaterialFee;
+            int totalAmount = tuitionFee + materialFee;
 
-            if (!sameGroupPermissions.Any())
-                return null;
-
-            // 2. 取得該組對應的 StudentPermissionFee（按繳款日期排序，從最早的開始）
-            var combinedFees = ctx.TblStudentPermissionFee
-                .Where(spf => !spf.IsDelete
-                    && sameGroupPermissions.Contains(spf.StudentPermissionId))
-                .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
-                .ThenBy(spf => spf.Id)
-                .ToList();
-
-            if (!combinedFees.Any())
-                return null;
-
-            // 3. 取得所有該組的出席記錄（按日期排序）
-            var combinedAttendances = ctx.TblAttendance
-                .Where(a => !a.IsDelete
-                    && sameGroupPermissions.Contains(a.StudentPermissionId))
-                .OrderBy(a => a.AttendanceDate)
-                .ToList();
-
-            // 4. 檢查每個費用，找出第一個還沒塞滿 4 個出席記錄的
-            for (int feeIndex = 0; feeIndex < combinedFees.Count; feeIndex++)
+            // 建立新的 StudentPermissionFee
+            var newFee = new TblStudentPermissionFee
             {
-                // 計算這個費用對應的出席記錄範圍
-                int startIndex = feeIndex * 4;
-                int endIndex = startIndex + 4;
+                StudentPermissionId = studentPermission.Id,
+                TotalAmount = totalAmount,
+                Hours = courseFee.Hours,  // 設置課程時數
+                TeacherSplitRatio = null, // 會在建立時決定
+                CourseSplitRatio = courseFee.SplitRatio,
+                PaymentDate = null, // 根據需求設為 null
+                CreatedTime = DateTime.Now,
+                ModifiedTime = DateTime.Now,
+                IsDelete = false
+            };
 
-                // 計算這個費用已經有多少個出席記錄
-                int attendanceCount = 0;
-                for (int i = startIndex; i < endIndex && i < combinedAttendances.Count; i++)
-                {
-                    attendanceCount++;
-                }
+            ctx.TblStudentPermissionFee.Add(newFee);
+            await ctx.SaveChangesAsync();
 
-                // 如果還沒滿 4 個，回傳這個費用
-                if (attendanceCount < 4)
-                {
-                    return combinedFees[feeIndex];
-                }
-            }
-
-            // 所有費用都已滿，回傳 null
-            return null;
-        }
-
-        /// <summary>
-        /// 根據 StudentPermission 取得該組所有費用的出席記錄填充狀態
-        /// </summary>
-        /// <param name="studentPermission">學生權限</param>
-        /// <param name="ctx">資料庫上下文</param>
-        /// <returns>費用填充狀態列表</returns>
-        public static async Task<List<FeeAttendanceStatus>> GetFeeAttendanceStatusAsync(
-            this TblStudentPermission studentPermission,
-            DoorDbContext ctx)
-        {
-            var result = new List<FeeAttendanceStatus>();
-
-            if (studentPermission == null)
-                return result;
-
-            // 1. 依「相同學生 + 相同課程」分組查詢所有學生權限
-            var sameGroupPermissions = await ctx.TblStudentPermission
-                .Where(sp => !sp.IsDelete
-                    && sp.UserId == studentPermission.UserId
-                    && sp.CourseId == studentPermission.CourseId)
-                .Select(sp => sp.Id)
-                .ToListAsync();
-
-            if (!sameGroupPermissions.Any())
-                return result;
-
-            // 2. 取得該組對應的 StudentPermissionFee（按繳款日期排序）
-            var combinedFees = await ctx.TblStudentPermissionFee
-                .Where(spf => !spf.IsDelete
-                    && sameGroupPermissions.Contains(spf.StudentPermissionId))
-                .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
-                .ThenBy(spf => spf.Id)
-                .ToListAsync();
-
-            if (!combinedFees.Any())
-                return result;
-
-            // 3. 取得所有該組的出席記錄（按日期排序）
-            var combinedAttendances = await ctx.TblAttendance
-                .Where(a => !a.IsDelete
-                    && sameGroupPermissions.Contains(a.StudentPermissionId))
-                .OrderBy(a => a.AttendanceDate)
-                .ToListAsync();
-
-            // 4. 計算每個費用的出席記錄狀態
-            for (int feeIndex = 0; feeIndex < combinedFees.Count; feeIndex++)
-            {
-                int startIndex = feeIndex * 4;
-                int endIndex = startIndex + 4;
-
-                var attendancesForFee = new List<TblAttendance>();
-                for (int i = startIndex; i < endIndex && i < combinedAttendances.Count; i++)
-                {
-                    attendancesForFee.Add(combinedAttendances[i]);
-                }
-
-                result.Add(new FeeAttendanceStatus
-                {
-                    Fee = combinedFees[feeIndex],
-                    FeeIndex = feeIndex,
-                    AttendanceCount = attendancesForFee.Count,
-                    IsFull = attendancesForFee.Count >= 4,
-                    RemainingSlots = 4 - attendancesForFee.Count,
-                    Attendances = attendancesForFee
-                });
-            }
-
-            return result;
+            return newFee;
         }
     }
 
@@ -439,7 +207,7 @@ namespace DoorWebApp.Extensions
         public int FeeIndex { get; set; }
 
         /// <summary>
-        /// 在該費用中的位置（1-4）
+        /// 在該費用中的位置（1-based）
         /// </summary>
         public int PositionInFee { get; set; }
 
@@ -459,9 +227,9 @@ namespace DoorWebApp.Extensions
         public TblStudentPermissionFee? CorrespondingFee { get; set; }
 
         /// <summary>
-        /// 是否為該費用的最後一次出席（第 4 次）
+        /// 是否為該費用的最後一次出席（依 Hours 判定）
         /// </summary>
-        public bool IsLastAttendanceOfFee => PositionInFee == 4;
+        public bool IsLastAttendanceOfFee => CorrespondingFee != null && PositionInFee == (int)(CorrespondingFee.Hours > 0 ? CorrespondingFee.Hours : 4);
 
         /// <summary>
         /// 是否為該費用的第一次出席
@@ -490,12 +258,12 @@ namespace DoorWebApp.Extensions
         public int AttendanceCount { get; set; }
 
         /// <summary>
-        /// 是否已滿（4 筆出席）
+        /// 是否已滿（依 Hours 判斷）
         /// </summary>
         public bool IsFull { get; set; }
 
         /// <summary>
-        /// 剩餘可填充的出席記錄數量
+        /// 剩餘可填充的出席記錄數量（依 Hours 判斷）
         /// </summary>
         public int RemainingSlots { get; set; }
 
@@ -505,13 +273,13 @@ namespace DoorWebApp.Extensions
         public List<TblAttendance> Attendances { get; set; } = new List<TblAttendance>();
 
         /// <summary>
-        /// 填充進度百分比（0-100）
+        /// 填充進度百分比（0-100，依 Hours 計算）
         /// </summary>
-        public decimal ProgressPercentage => (decimal)AttendanceCount / 4 * 100;
+        public decimal ProgressPercentage => Fee != null && Fee.Hours > 0 ? (decimal)AttendanceCount / Fee.Hours * 100 : 0;
 
         /// <summary>
-        /// 填充進度文字（例如：3/4）
+        /// 填充進度文字（例如：3/4，依 Hours 計算）
         /// </summary>
-        public string ProgressText => $"{AttendanceCount}/4";
+        public string ProgressText => Fee != null && Fee.Hours > 0 ? $"{AttendanceCount}/{Fee.Hours}" : $"{AttendanceCount}/0";
     }
 }

@@ -103,12 +103,11 @@ namespace DoorWebApp.Controllers
                 int tuitionFee = courseFee?.Amount ?? 0;
                 int materialFee = courseFee?.MaterialFee ?? 0;
                 int totalAmount = correspondingFee?.TotalAmount ?? tuitionFee + materialFee;
-                decimal totalHours = 4;
+                decimal totalHours = (correspondingFee?.Hours != 0 ? correspondingFee?.Hours ?? 4 : 4);
 
                 // 查找同一學生權限的最近一筆 AttendanceFee（按建立時間排序）
                 decimal sourceHoursTotalAmount = totalAmount / totalHours;
-
-                int defaultAmount = (int)Math.Round((sourceHoursTotalAmount * totalHours * (1 - minSplitRatio)) / totalHours, MidpointRounding.AwayFromZero);
+                decimal SplitHourAmount = Math.Round((sourceHoursTotalAmount * (1 - minSplitRatio)), 2, MidpointRounding.AwayFromZero);
 
                 // 記錄修改前的值用於審計
                 var originalHours = attendance.AttendanceFee?.Hours;
@@ -122,7 +121,7 @@ namespace DoorWebApp.Controllers
                 };
 
                 fee.Hours = dto.Hours ?? (fee.Hours != 0 ? fee.Hours : 1);
-                fee.Amount = dto.Amount ?? defaultAmount;
+                fee.Amount = dto.Amount ?? SplitHourAmount;
                 fee.AdjustmentAmount = dto.AdjustmentAmount ?? fee.AdjustmentAmount;
                 fee.SourceHoursTotalAmount = sourceHoursTotalAmount;  // 原始時數總金額（優先使用最近一筆）
                 fee.UseSplitRatio = minSplitRatio;  // 使用的拆帳比
@@ -171,7 +170,7 @@ namespace DoorWebApp.Controllers
         [HttpGet("v1/StudentAttendance/{studentPermissionId}")]
         public IActionResult GetStudentAttendance(int studentPermissionId)
         {
-            var res = new APIResponse<List<ResStudentAttendanceDTO>>();
+            var res = new APIResponse<ResStudentAttendanceListDTO>();
 
             try
             {
@@ -179,6 +178,7 @@ namespace DoorWebApp.Controllers
                 var spTarget = ctx.TblStudentPermission
                     .Where(sp => sp.Id == studentPermissionId && !sp.IsDelete)
                     .Include(sp => sp.Course)
+                        .ThenInclude(c => c.CourseFee)
                     .FirstOrDefault();
 
                 if (spTarget == null)
@@ -197,7 +197,8 @@ namespace DoorWebApp.Controllers
                         .ThenInclude(c => c.CourseFee)        // 課程費用 + 教材費
                     .Include(sp => sp.StudentPermissionFees)  // 學生權限費用列表
                         .ThenInclude(spf => spf.Payment)       // 已收金額 & 結帳單號 (一對一)
-                    .Include(sp => sp.Attendances)            // 課程一~四
+                    .Include(sp => sp.Attendances)            // 課程簽到紀錄
+                    .Include(sp => sp.Schedules)              // 用於判定當前權限
                     .ToList();
 
                 var list = new List<ResStudentAttendanceDTO>();
@@ -216,14 +217,29 @@ namespace DoorWebApp.Controllers
                     .ThenBy(spf => spf.Id)
                     .ToList();
 
+                // 取最大 Hours (費用 > 課程設定 > 預設 4)
+                var feeHoursMax = combinedFees.Any()
+                    ? combinedFees.Max(f => (int)Math.Max(1, Math.Ceiling(f.Hours != 0 ? (double)f.Hours : 4)))
+                    : 0;
+                var courseHours = (int)Math.Max(0, Math.Ceiling((double)(spTarget.Course?.CourseFee?.Hours ?? 0)));
+                var maxHours = Math.Max(feeHoursMax, courseHours);
+                if (maxHours <= 0)
+                {
+                    maxHours = 4;
+                }
+
                 int feeIndexGlobal = 0;
+                int tempIndex = 0;
                 foreach (var fee in combinedFees)
                 {
-                    int startIndex = feeIndexGlobal * 4;
-                    string? att1 = FormatAttendance(combinedAttendances.ElementAtOrDefault(startIndex));
-                    string? att2 = FormatAttendance(combinedAttendances.ElementAtOrDefault(startIndex + 1));
-                    string? att3 = FormatAttendance(combinedAttendances.ElementAtOrDefault(startIndex + 2));
-                    string? att4 = FormatAttendance(combinedAttendances.ElementAtOrDefault(startIndex + 3));
+                    // 根據該費用的 Hours 來切分簽到記錄
+                    int hours = (int)Math.Max(1, Math.Ceiling(fee?.Hours != 0 ? (double)(fee?.Hours ?? 4) : 4));
+                    
+                    var attendances = new List<string?>();
+                    for (int i = 0; i < hours; i++)
+                    {
+                        attendances.Add(FormatAttendance(combinedAttendances.ElementAtOrDefault(tempIndex++)));
+                    }
 
                     var payment = fee.Payment;
                     var hasPayment = payment != null && !payment.IsDelete;
@@ -246,18 +262,25 @@ namespace DoorWebApp.Controllers
                         ReceivedAmount = received,
                         OutstandingAmount = outstanding,
                         ReceiptNumber = receiptNumber,
-                        Attendance1 = att1,
-                        Attendance2 = att2,
-                        Attendance3 = att3,
-                        Attendance4 = att4
+                        Attendances = attendances
                     });
 
                     feeIndexGlobal++;
                 }
 
+                var nowStudentPermission = permissions
+                    .Where(x => x.Schedules.Count > 0)
+                    .OrderBy(sp => sp.Id)
+                    .LastOrDefault();
+
                 res.result = APIResultCode.success;
                 res.msg = "success";
-                res.content = list;
+                res.content = new ResStudentAttendanceListDTO
+                {
+                    NowStudentPermissionId = nowStudentPermission?.Id ?? studentPermissionId,
+                    MaxHours = maxHours,
+                    Attendances = list
+                };
                 return Ok(res);
             }
             catch (Exception ex)
@@ -385,7 +408,7 @@ namespace DoorWebApp.Controllers
                 int feeSeriesIndex = allFees.FindIndex(f => f.Id == studentPermissionFeeId);
                 if (feeSeriesIndex < 0) feeSeriesIndex = 0; // 防守性編程
 
-                // 5. 取得對應該序號的簽到記錄（每4筆一組）
+                // 5. 取得對應該序號的簽到記錄（根據每個 fee 的 Hours 動態計算）
                 // 合併「相同學生 + 相同課程」的簽到與費用，統一分組
                 var combinedAttendances = permissions
                     .SelectMany(sp => sp.Attendances ?? new List<TblAttendance>())
@@ -394,15 +417,24 @@ namespace DoorWebApp.Controllers
                     .ToList();
                 var allAttendances = combinedAttendances;
 
-                int startIndex = feeSeriesIndex * 4;
+                // 計算當前費用之前所有費用的 Hours 總和，以確定起始索引
+                int startIndex = 0;
+                for (int i = 0; i < feeSeriesIndex; i++)
+                {
+                    int hours = (int)Math.Max(1, Math.Ceiling(allFees[i].Hours != 0 ? (double)allFees[i].Hours : 4));
+                    startIndex += hours;
+                }
+
+                // 取得當前費用的 Hours
+                int currentFeeHours = (int)Math.Max(1, Math.Ceiling(permissionFee.Hours != 0 ? (double)permissionFee.Hours : 4));
+                
                 var groupAttendances = allAttendances
                     .Skip(startIndex)
-                    .Take(4)
+                    .Take(currentFeeHours)
                     .ToList();
 
                 // 計算上課時數（從該組簽到記錄累加）
                 var attendances = groupAttendances
-                    .Where(a => a.AttendanceType == 1) // 只計算出席的記錄
                     .ToList();
 
                 // 老師可分得金額 B = T * (1 - r)（保留兩位小數）
@@ -547,7 +579,11 @@ namespace DoorWebApp.Controllers
                         .ThenInclude(a => a.AttendanceFee)
                     .Include(sp => sp.Schedules)
                     .ToList();
-                var nowStudentPermission = permissions.Where(x => x.Schedules.Count >= 0).LastOrDefault();
+
+                var nowStudentPermission = permissions
+                    .Where(x => x.Schedules.Count > 0)
+                    .OrderBy(sp => sp.Id)
+                    .LastOrDefault();
 
                 // 取得當前 UTC+8 時間作為繳款日期
                 var nowUtc8 = DateTime.UtcNow.AddHours(8);
@@ -557,6 +593,7 @@ namespace DoorWebApp.Controllers
                     StudentPermissionId = nowStudentPermission != null ? nowStudentPermission.Id : req.StudentPermissionId,
                     PaymentDate = nowUtc8, // 繳款日自動設為今天
                     TotalAmount = totalAmount,
+                    Hours = courseFee?.Hours ?? 4,  // 設置課程時數，預設 4 小時
                     CourseSplitRatio = courseFee?.SplitRatio ?? null,
                     TeacherSplitRatio = permission.Teacher?.TeacherSettlement?.SplitRatio ?? null,
                     IsDelete = false,
@@ -588,14 +625,6 @@ namespace DoorWebApp.Controllers
             var culture = new CultureInfo("zh-TW");
             culture.DateTimeFormat.Calendar = new TaiwanCalendar();
             return dt.Value.ToString("yyy/MM/dd", culture);
-        }
-
-        // 嘗試將 yyyy/MM/dd 或 yyyy-MM-dd 字串轉成 DateTime
-        private static DateTime? ParseDateOrNull(string? s)
-        {
-            if (string.IsNullOrWhiteSpace(s)) return null;
-            if (DateTime.TryParse(s, out var dt)) return dt;
-            return null;
         }
 
         /// <summary>

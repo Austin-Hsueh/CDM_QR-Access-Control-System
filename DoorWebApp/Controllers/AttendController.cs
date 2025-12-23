@@ -140,19 +140,7 @@ namespace DoorWebApp.Controllers
                 int tuitionFee = courseFee?.Amount ?? 0;
                 int materialFee = courseFee?.MaterialFee ?? 0;
                 int totalAmount = stf?.TotalAmount ?? tuitionFee + materialFee;
-                decimal totalHours = 4;
-
-                // 優先查找最近一筆 StudentPermissionFee 的 TotalAmount
-                var latestPermissionFee = await ctx.TblStudentPermissionFee
-                    .Where(spf => spf.StudentPermissionId == AttendDTO.studentPermissionId
-                        && !spf.IsDelete)
-                    .OrderByDescending(spf => spf.PaymentDate)
-                    .FirstOrDefaultAsync();
-
-                if (latestPermissionFee != null && latestPermissionFee.TotalAmount > 0)
-                {
-                    totalAmount = latestPermissionFee.TotalAmount;
-                }
+                decimal totalHours = (stf?.Hours != 0 ? stf?.Hours ?? 4 : 4);
 
                 decimal sourceHoursTotalAmount = totalAmount / totalHours;
                 int teacherShare = (int)Math.Round(totalAmount * (1 - minSplitRatio), MidpointRounding.AwayFromZero);

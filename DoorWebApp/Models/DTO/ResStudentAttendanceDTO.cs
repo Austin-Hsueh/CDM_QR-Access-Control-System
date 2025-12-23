@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace DoorWebApp.Models.DTO
 {
@@ -34,16 +35,7 @@ namespace DoorWebApp.Models.DTO
         /// <summary>結帳單號（取最近一筆付款的 ReceiptNumber）</summary>
         public string? ReceiptNumber { get; set; }
 
-        /// <summary>課程一</summary>
-        public string? Attendance1 { get; set; }
-
-        /// <summary>課程二</summary>
-        public string? Attendance2 { get; set; }
-
-        /// <summary>課程三</summary>
-        public string? Attendance3 { get; set; }
-
-        /// <summary>課程四</summary>
-        public string? Attendance4 { get; set; }
+        /// <summary>簽到記錄列表（根據該費用的 Hours 決定數量）</summary>
+        public List<string?> Attendances { get; set; } = new List<string?>();
     }
 }

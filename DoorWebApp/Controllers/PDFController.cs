@@ -251,11 +251,21 @@ namespace DoorWebApp.Controllers
                 var attendanceIndex = spAttendances.FindIndex(a => a.Id == att.Id);
                 if (attendanceIndex < 0) attendanceIndex = 0;
 
-                // 計算屬於第幾組（每4筆一組）
-                int feeGroupIndex = attendanceIndex / 4;
-
-                // 取得該組對應的 StudentPermissionFee（排除已刪除的記錄）
+                // 依各筆費用的 Hours 動態計算所屬組別
                 var sortedFees = combinedFees.Where(f => !f.IsDelete).OrderBy(f => f.Id).ToList() ?? new List<TblStudentPermissionFee>();
+                int feeGroupIndex = 0;
+                int accIndex = 0;
+                for (int i = 0; i < sortedFees.Count; i++)
+                {
+                    int hoursPerFee = (int)Math.Max(1, Math.Ceiling(sortedFees[i].Hours != 0 ? (double)sortedFees[i].Hours : 4));
+                    if (attendanceIndex < accIndex + hoursPerFee)
+                    {
+                        feeGroupIndex = i;
+                        break;
+                    }
+                    accIndex += hoursPerFee;
+                    feeGroupIndex = i + 1;
+                }
                 var correspondingFee = feeGroupIndex < sortedFees.Count ? sortedFees[feeGroupIndex] : null;
 
                 if (!includePaid)
@@ -495,11 +505,21 @@ namespace DoorWebApp.Controllers
                 var attendanceIndex = spAttendances.FindIndex(a => a.Id == att.Id);
                 if (attendanceIndex < 0) attendanceIndex = 0;
 
-                // 計算屬於第幾組（每4筆一組）
-                int feeGroupIndex = attendanceIndex / 4;
-
-                // 取得該組對應的 StudentPermissionFee（排除已刪除的記錄）
+                // 依各筆費用的 Hours 動態計算所屬組別
                 var sortedFees = combinedFees.Where(f => !f.IsDelete).OrderBy(f => f.Id).ToList() ?? new List<TblStudentPermissionFee>();
+                int feeGroupIndex = 0;
+                int accIndex = 0;
+                for (int i = 0; i < sortedFees.Count; i++)
+                {
+                    int hoursPerFee = (int)Math.Max(1, Math.Ceiling(sortedFees[i].Hours != 0 ? (double)sortedFees[i].Hours : 4));
+                    if (attendanceIndex < accIndex + hoursPerFee)
+                    {
+                        feeGroupIndex = i;
+                        break;
+                    }
+                    accIndex += hoursPerFee;
+                    feeGroupIndex = i + 1;
+                }
                 var correspondingFee = feeGroupIndex < sortedFees.Count ? sortedFees[feeGroupIndex] : null;
 
                 if (!includePaid)
@@ -523,11 +543,12 @@ namespace DoorWebApp.Controllers
                 var salaryAmount = (fee?.Amount ?? 0) + (fee?.AdjustmentAmount ?? 0);
                 var sourceHoursTotalAmount = fee?.SourceHoursTotalAmount ?? 0m;
 
-                // 計算學費欠費：attendancefee對應的tblstudentpermissionfee金額/4 - tblpayment金額/4
+                // 計算學費欠費：依當前費用的 Hours 動態分攤
                 if (correspondingFee != null)
                 {
-                    var receivablePerLesson = correspondingFee.TotalAmount / 4m;
-                    var paidPerLesson = (correspondingFee.Payment?.Pay ?? 0) / 4m;
+                    int currentFeeHours = (int)Math.Max(1, Math.Ceiling(correspondingFee.Hours != 0 ? (double)correspondingFee.Hours : 4));
+                    var receivablePerLesson = currentFeeHours > 0 ? correspondingFee.TotalAmount / (decimal)currentFeeHours : correspondingFee.TotalAmount;
+                    var paidPerLesson = currentFeeHours > 0 ? (correspondingFee.Payment?.Pay ?? 0) / (decimal)currentFeeHours : (correspondingFee.Payment?.Pay ?? 0);
                     var arrearsPerLesson = Math.Max(receivablePerLesson - paidPerLesson, 0);
                     builder.AddArrears(att.Id, arrearsPerLesson);
                 }

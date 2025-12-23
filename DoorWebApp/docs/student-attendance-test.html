@@ -649,10 +649,6 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">繳款日期：</label>
                             <input type="date" id="updateFeePaymentDate" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" />
                         </div>
-                        <div>
-                            <label style="display: block; font-size: 12px; color: #666; margin-bottom: 4px;">總金額：</label>
-                            <input type="number" id="updateFeeTotalAmount" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" placeholder="留空不改" />
-                        </div>
                     </div>
                     <div style="display: flex; gap: 12px; align-items: center;">
                         <label style="display: flex; align-items: center; gap: 6px;">
@@ -1965,21 +1961,16 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 
-                // 確保 attendanceData 是陣列
-                let arrData = data?.content;
-                if (!Array.isArray(arrData)) {
-                    if (Array.isArray(data)) {
-                        arrData = data;
-                    } else {
-                        arrData = [];
-                    }
-                }
-                attendanceData = arrData;
+                const content = data?.content || {};
+                const maxHours = content.maxHours ?? null;
+                const nowPermissionId = content.nowStudentPermissionId ?? '-';
+                attendanceData = content.attendances || content.Attendances || [];
                 
                 if (!attendanceData || attendanceData.length === 0) {
                     contentDiv.innerHTML = '<div class="empty">沒有學生權限或費用紀錄</div>';
                 } else {
-                    let html = '<table><thead><tr><th>序號</th><th>學生權限ID</th><th>StudentPermissionFeeId</th><th>課程名稱</th><th>繳款日</th><th>應收金額</th><th>已收金額</th><th>剩餘欠款</th><th>結帳單號</th><th>課程一</th><th>課程二</th><th>課程三</th><th>課程四</th><th>操作</th></tr></thead><tbody>';
+                    let html = `<div style="margin-bottom:8px; color:#4a5568; font-size:13px;">當前學生權限 ID：${nowPermissionId} ｜ 最大簽到時數：${maxHours ?? '-'} </div>`;
+                    html += '<table><thead><tr><th>序號</th><th>學生權限ID</th><th>StudentPermissionFeeId</th><th>課程名稱</th><th>繳款日</th><th>應收金額</th><th>已收金額</th><th>剩餘欠款</th><th>結帳單號</th><th>簽到紀錄</th><th>操作</th></tr></thead><tbody>';
                     attendanceData.forEach(record => {
                         html += `<tr>
                             <td>${record.serialNo || '-'}</td>
@@ -1991,10 +1982,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             <td>${record.receivedAmount || '0'}</td>
                             <td>${record.outstandingAmount || '0'}</td>
                             <td>${record.receiptNumber || '-'}</td>
-                            <td>${record.attendance1 || '-'}</td>
-                            <td>${record.attendance2 || '-'}</td>
-                            <td>${record.attendance3 || '-'}</td>
-                            <td>${record.attendance4 || '-'}</td>
+                            <td>${(record.attendances || record.Attendances || []).map(a => a || '-').join('<br>')}</td>
                             <td><button class="btn-primary btn-small" onclick="viewAttendanceDetail(${(record.studentPermissionFeeId ?? record.StudentPermissionFeeId) || 0})">查看細項</button></td>
                         </tr>`;
                     });
@@ -3248,7 +3236,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             <div style="background: #f0f9ff; border-left: 4px solid #667eea; padding: 12px; border-radius: 4px; margin-top: 10px;">
                                 <ul style="margin-left: 20px; line-height: 1.8;">
                                     <li><strong>分組維度：</strong>以 <code>studentPermissionId</code> 為單位；一個學生權限可對應多筆學生權限費用</li>
-                                    <li><strong>費用對應：</strong>每 4 筆簽到對應一筆 StudentPermissionFee；應收/已收/欠款依該筆費用計算</li>
+                                    <li><strong>費用對應：</strong>每筆費用對應課程設定的 Hours 筆簽到；應收/已收/欠款依該筆費用計算</li>
                                     <li><strong>一對多關係：</strong>一個權限 (StudentPermission) 可能有多筆費用 (StudentPermissionFee)</li>
                                     <li><strong>排序輸出：</strong>依權限建立時間或 Id 排序，方便辨識最新一期權限</li>
                                     <li><strong>與 GROUP 的關聯：</strong>同學生 + 同課程的多期權限會在 GROUP API 聚合，這裡僅提供單筆權限摘要</li>
@@ -3270,7 +3258,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                                 </tbody>
                             </table>
 
-                            <h3 style="margin-top: 20px;">📤 回應欄位 (ResStudentAttendanceDTO)</h3>
+                            <h3 style="margin-top: 20px;">📤 回應欄位 (content 結構)</h3>
                             <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
                                 <thead>
                                     <tr style="background: #667eea; color: white;">
@@ -3280,19 +3268,22 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>serialNo</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">序號</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限 ID</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionFeeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限費用 ID</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>courseName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">課程名稱</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>paymentDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">繳款日 (民國年格式: 114/02/27)</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>receivableAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">應收金額 (學費+教材)</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>receivedAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">已收金額</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>outstandingAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">欠款金額</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>receiptNumber</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">結帳單號</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>attendance1</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">第一筆簽到紀錄摘要</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>attendance2</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">第二筆簽到紀錄摘要</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>attendance3</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">第三筆簽到紀錄摘要</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>attendance4</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">第四筆簽到紀錄摘要</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>result</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">結果代碼 (1=成功)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">訊息</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>content</code></td><td style="padding: 8px; border: 1px solid #ddd;">object</td><td style="padding: 8px; border: 1px solid #ddd;">成功時的回傳資料</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ nowStudentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">同學生+課程的最新學生權限 ID（找不到則回退為請求的 Id）</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ maxHours</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">相關費用中最大的 Hours（至少 4）</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>└ attendances</code></td><td style="padding: 8px; border: 1px solid #ddd;">array</td><td style="padding: 8px; border: 1px solid #ddd;">簽到摘要列表</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ serialNo</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">序號</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ studentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ studentPermissionFeeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限費用 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ courseName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">課程名稱</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ paymentDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">繳款日 (民國年格式: 114/02/27)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ receivableAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">應收金額 (學費+教材)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ receivedAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">已收金額</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ outstandingAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">欠款金額</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ receiptNumber</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">結帳單號</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ attendances</code></td><td style="padding: 8px; border: 1px solid #ddd;">string[]</td><td style="padding: 8px; border: 1px solid #ddd;">簽到紀錄摘要列表（依課程時數順序）</td></tr>
                                 </tbody>
                             </table>
 
@@ -3310,14 +3301,9 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                                     <li><strong>合併費用記錄：</strong>
                                         <br/>將該學生在該課程下所有學生權限的費用紀錄<strong>按繳款日期升序</strong>合併為一個清單
                                     </li>
-                                    <li><strong>映射費用與簽到（每 4 筆一組）：</strong>
-                                        <br/>每一筆費用記錄對應<strong>全域簽到清單中連續的 4 筆簽到紀錄</strong>
-                                        <br/>範例：
-                                        <ul style="margin-left: 20px;">
-                                            <li>費用 1：對應簽到 [1, 2, 3, 4]</li>
-                                            <li>費用 2：對應簽到 [5, 6, 7, 8]</li>
-                                            <li>費用 3：對應簽到 [9, 10, 11, 12]</li>
-                                        </ul>
+                                    <li><strong>映射費用與簽到（依 Hours 筆一組）：</strong>
+                                        <br/>每一筆費用記錄對應<strong>全域簽到清單中連續的 Hours 筆簽到紀錄</strong>（Hours 由課程設定，例如 4 或 8）
+                                        <br/>範例 (Hours=4)：費用 1：[1,2,3,4]；費用 2：[5,6,7,8]；費用 3：[9,10,11,12]
                                     </li>
                                     <li><strong>金額計算：</strong>
                                         <br/><code>已收金額 = 付款金額 + 折扣金額</code>
@@ -5352,14 +5338,20 @@ Response:
                     throw new Error(data.msg || '查詢失敗');
                 }
 
-                const records = data.content || [];
+                const content = data.content || {};
+                const records = content.attendances || [];
+                const nowPermissionId = content.nowStudentPermissionId ?? '-';
+                const maxHours = content.maxHours ?? '-';
                 resultDiv.innerHTML = `
-                    <div class="success">✅ 查詢成功，共 ${records.length} 筆記錄</div>
-                    <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px; max-height: 200px; overflow-y: auto;">
+                    <div class="success">✅ 查詢成功</div>
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px; max-height: 260px; overflow-y: auto;">
+                        <p style="margin: 0 0 6px 0; color: #4a5568;">當前學生權限 ID：${nowPermissionId} ｜ 最大簽到時數：${maxHours}</p>
+                        <p style="margin: 0 0 6px 0; color: #4a5568;">列表筆數：${records.length}</p>
                         ${records.slice(0, 3).map(r => `
                             <div style="border-bottom: 1px solid #e2e8f0; padding: 8px 0;">
                                 <p><strong>課程:</strong> ${r.courseName}</p>
                                 <p><strong>應收:</strong> ￥${r.receivableAmount} | <strong>已收:</strong> ￥${r.receivedAmount} | <strong>欠款:</strong> ￥${r.outstandingAmount}</p>
+                                <p style="color:#4a5568; margin:4px 0 0 0;">簽到：${(r.attendances || []).join('、') || '-'}</p>
                             </div>
                         `).join('')}
                         ${records.length > 3 ? `<p style="color: #718096; margin-top: 8px;">... 及其他 ${records.length - 3} 筆</p>` : ''}
