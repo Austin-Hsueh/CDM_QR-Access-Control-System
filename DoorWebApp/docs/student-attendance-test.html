@@ -1846,13 +1846,13 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                         });
                     }
                     
-                    // 顯示該權限下的課表記錄
+                    // 顯示該權限下的課表記錄（含 QRCode 摘要）
                     if (perm.schedules && perm.schedules.length > 0) {
                         perm.schedules.forEach(sch => {
                             tableHtml += `
                                 <tr style="background: #fff9e6; font-size: 11px;">
                                     <td colspan="8" style="padding: 6px 8px; border: 1px solid #eee;">
-                                        <strong>📅 課表ID ${sch.scheduleId}：</strong> 日期 ${sch.scheduleDate || '-'} | 時間 ${sch.timeFrom || '-'} ~ ${sch.timeTo || '-'} | 教室ID ${sch.classroomId || '-'} | 狀態 ${sch.status || '-'}
+                                        <strong>📅 課表ID ${sch.scheduleId}：</strong> 日期 ${sch.scheduleDate || '-'} | 時間 ${sch.timeFrom || '-'} ~ ${sch.timeTo || '-'} | 教室ID ${sch.classroomId || '-'} | 狀態 ${sch.status || '-'} | QR 更新 ${sch.qrcode && sch.qrcode.modifiedTime ? new Date(sch.qrcode.modifiedTime).toLocaleString('zh-TW') : '-'} | QR Txt ${sch.qrcode && sch.qrcode.qrcodeTxt ? '有 ' + sch.qrcode.qrcodeTxt : '無'}
                                     </td>
                                 </tr>
                             `;
@@ -5321,8 +5321,16 @@ Content-Type: application/json
                                     <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>timeTo</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">結束時間</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>classroomId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">教室 ID</td></tr>
                                     <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>status</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">課表狀態</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>qrcode</code></td><td style="padding: 8px; border: 1px solid #ddd;">object?</td><td style="padding: 8px; border: 1px solid #ddd;">該學生於門禁系統的最近一筆 QRCode（若有），包含 <code>qrcodeTxt</code> / <code>qrCodeData</code> / <code>modifiedTime</code></td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;<code>qrcode.qrcodeTxt</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">門禁 QRCode 文字內容</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;<code>qrcode.qrCodeData</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">門禁 QRCode Base64 圖片</td></tr>
+                                    <tr style="background: #fafafa;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;<code>qrcode.modifiedTime</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">QRCode 更新時間</td></tr>
                                 </tbody>
                             </table>
+
+                            <div style="background: #eef7ff; border-left: 4px solid #3182ce; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 13px; color: #2b6cb0;">
+                                <strong>qrcode 說明：</strong>每筆課表會回傳該學生於門禁系統的最近一筆 QRCode（含文字、Base64、更新時間，來源 QRCodeStorage）。若多筆，取最新一筆；若無則為 null。裝置可據此判斷是否需刷新 QR 圖像。
+                            </div>
 
                             <h3 style="margin-top: 20px;">💡 使用場景</h3>
                             <div style="background: #fff8e1; padding: 12px; border-radius: 4px; margin: 10px 0; border-left: 4px solid #fbc02d;">
@@ -5393,7 +5401,12 @@ Response:
             "timeFrom": "09:00",
             "timeTo": "10:30",
             "classroomId": 2,
-            "status": 1
+                        "status": 1,
+                        "qrcode": {
+                            "qrcodeTxt": "u=3|c=15|...",
+                            "qrCodeData": "data:image/png;base64,iVBORw0...",
+                            "modifiedTime": "2025-01-05T09:15:23"
+                        }
           },
           {
             "scheduleId": 102,
@@ -5401,7 +5414,12 @@ Response:
             "timeFrom": "09:00",
             "timeTo": "10:30",
             "classroomId": 2,
-            "status": 1
+                        "status": 1,
+                        "qrcode": {
+                            "qrcodeTxt": "u=3|c=15|...",
+                            "qrCodeData": "data:image/png;base64,iVBORw0...",
+                            "modifiedTime": "2025-01-12T08:55:02"
+                        }
           }
         ]
       }

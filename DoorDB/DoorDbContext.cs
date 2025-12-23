@@ -23,6 +23,7 @@ namespace DoorDB
         public virtual DbSet<TblRole> TblRoles { set; get; } = null!;
         public virtual DbSet<TblUser> TblUsers { set; get; } = null!;
         public virtual DbSet<TblQRCodeStorage> TbQRCodeStorages { set; get; } = null!;
+        public virtual DbSet<TblQRcodeStorageLog> TblQRcodeStorageLog { set; get; } = null!;
 
         public virtual DbSet<TblCourse> TbCourses { set; get; } = null!;
         public virtual DbSet<AccessEventLog> AccessEventLog { get; set; } = null!;

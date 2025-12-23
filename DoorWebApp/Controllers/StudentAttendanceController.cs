@@ -748,6 +748,47 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
+                // 2-1. 取得該學生最新一筆 QRCode（按 ModifiedTime 降序）
+                var userQrcodesFromStorage = ctx.TbQRCodeStorages
+                    .Include(x => x.Users)
+                    .Where(x => x.Users.Any(u => u.Id == spTarget.UserId))
+                    .OrderByDescending(x => x.ModifiedTime)
+                    .Select(x => new
+                    {
+                        id = x.Id,
+                        qrcodeTxt = x.qrcodeTxt,
+                        modifiedTime = x.ModifiedTime
+                    })
+                    .FirstOrDefault();
+
+                // 2-2. 取得該學生 QRCode 的歷史日誌（若有 QRCodeStorage 記錄）
+                var userQrcodes = new List<dynamic>();
+                
+                if (userQrcodesFromStorage != null)
+                {
+                    var userQrcodesLog = ctx.TblQRcodeStorageLog
+                        .AsNoTracking()
+                        .Where(x => x.Id == userQrcodesFromStorage.id)
+                        .OrderByDescending(x => x.ModifiedTime)
+                        .Select(x => new
+                        {
+                            qrcodeTxt = x.qrcodeTxt,
+                            modifiedTime = x.ModifiedTime
+                        })
+                        .ToList();
+
+                    // 合併 Storage 和 Log（Log 優先，因為可能有更多歷史記錄）
+                    userQrcodes.AddRange(userQrcodesLog.Select(x => (dynamic)x));
+                    userQrcodes.Add((dynamic)new { userQrcodesFromStorage.qrcodeTxt, userQrcodesFromStorage.modifiedTime });
+                    
+                    // 去重並按時間排序
+                    userQrcodes = userQrcodes
+                        .GroupBy(x => new { x.modifiedTime, x.qrcodeTxt })
+                        .Select(g => g.First())
+                        .OrderByDescending(x => x.modifiedTime)
+                        .ToList();
+                }
+
                 // 2. 查詢相同學生+相同課程的所有權限
                 var permissions = ctx.TblStudentPermission
                     .Where(sp => !sp.IsDelete
@@ -829,14 +870,23 @@ namespace DoorWebApp.Controllers
                             .Where(s => !s.IsDelete)
                             .OrderBy(s => s.ScheduleDate)
                             .ThenBy(s => s.StartTime)
-                            .Select(s => new
+                            .Select(s =>
                             {
-                                scheduleId = s.Id,
-                                scheduleDate = s.ScheduleDate,
-                                timeFrom = s.StartTime,
-                                timeTo = s.EndTime,
-                                classroomId = s.ClassroomId,
-                                status = s.Status
+                                DateTime scheduleDate;
+                                DateTime.TryParse(s.ScheduleDate, out scheduleDate);
+
+                                var matchedQrcode = userQrcodes.FirstOrDefault(q => q.modifiedTime.Date == scheduleDate.Date);
+
+                                return new
+                                {
+                                    scheduleId = s.Id,
+                                    scheduleDate = s.ScheduleDate,
+                                    timeFrom = s.StartTime,
+                                    timeTo = s.EndTime,
+                                    classroomId = s.ClassroomId,
+                                    status = s.Status,
+                                    qrcode = matchedQrcode
+                                };
                             })
                             .ToList() as IEnumerable<object>) ?? new List<object>()
                     }).ToList()
