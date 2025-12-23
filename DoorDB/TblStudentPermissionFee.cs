@@ -51,6 +51,12 @@ namespace DoorDB
         public decimal? CourseSplitRatio { get; set; }
 
         /// <summary>
+        /// 課程時數（總小時數，預設 4 小時）
+        /// </summary>
+        [Comment("課程時數")]
+        public decimal Hours { get; set; } = 4;
+
+        /// <summary>
         /// 是否刪除
         /// </summary>
         [Required]
