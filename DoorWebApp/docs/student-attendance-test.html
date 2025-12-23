@@ -90,61 +90,75 @@
                 <h4 style="color: #ff9800; margin-bottom: 10px;">1️⃣ 初始化階段</h4>
                 <ul style="margin-left: 20px; color: #333;">
                     <li><strong>建立老師/學生/課程:</strong> 透過後台管理界面或 API 在 tblUsers (角色為教師/學生)、tblCourse、tblCourseType、tblCourseFee 等表中新增基本資料。</li>
-                    <li><strong>設定課程收費:</strong> 在 tblCourseFee 中定義課程金額、材料費、拆帳比 (SplitRatio)。</li>
+                    <li><strong>設定課程收費:</strong> 在 tblCourseFee 中定義課程金額、材料費、時數、拆帳比 (SplitRatio: 0-1 或百分比)。</li>
+                    <li><strong>設定老師拆帳:</strong> 在 tblTeacherSettlement 中定義老師的拆帳比 (SplitRatio)，用於自動費用計算。</li>
+                    <li><strong>建立教室:</strong> 在 tblClassroom 中新增教室資訊，供課表安排使用。</li>
                 </ul>
 
                 <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">2️⃣ 權限授予階段</h4>
                 <ul style="margin-left: 20px; color: #333;">
-                    <li><strong>新增學生權限 (tblStudentPermission):</strong> 指定學生、老師、課程、教室、上課日期/時間、課表模式 (Schedule Mode)、上課模式 (Course Mode)。系統自動根據週期設定在 tblSchedule 中生成課程表。</li>
-                    <li><strong>建立學生權限費用 (tblStudentPermissionFee):</strong> 每筆 StudentPermission 在新增時或手動建立對應的費用記錄，記錄該期課程的「定額」與「繳款」狀態。一個 StudentPermission 可對應多筆 StudentPermissionFee (按課程週期分組)。</li>
+                    <li><strong>新增學生門禁時間 (tblStudentPermission):</strong> 指定學生、老師、課程、教室、上課日期/時間 (DateFrom~DateTo)、星期 (Days: 1-7)、課表模式 (ScheduleMode: 1=週固定,2=雙週,3=單次)、上課模式 (CourseMode: 1=現場,2=視訊)。系統自動根據週期設定在 tblSchedule 中生成課程表。</li>
+                    <li><strong>建立學生權限費用 (tblStudentPermissionFee):</strong> 每筆 StudentPermission 在新增時建立對應的費用記錄，記錄該期課程的「應收金額」(TotalAmount)、「課程時數」(Hours)、「繳款期限」(PaymentDueDate)。一個 StudentPermission 可對應多筆 StudentPermissionFee (按課程週期分組，例如每月一期)。</li>
                 </ul>
 
                 <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">3️⃣ 簽到紀錄階段</h4>
                 <ul style="margin-left: 20px; color: #333;">
-                    <li><strong>建立上課紀錄 (tblAttendance):</strong> 老師或管理員為每堂課建立簽到記錄，記錄上課日期、類型 (出席/病假/事假)、修改者。</li>
-                    <li><strong>記錄簽到費用 (tblAttendanceFee):</strong> 對應每筆 Attendance，記錄該堂課的「實際上課時數」(Hours)、「單堂學費」(Amount)、「增減金額」(AdjustmentAmount)，以及「來源實收」(SourceHoursTotalAmount)。</li>
-                    <li><strong>分組對應:</strong> 系統依 StudentPermission 的所有 Attendance 日期排序，每 4 筆簽到對應一筆 StudentPermissionFee，用以判斷該組簽到是否已繳款。</li>
+                    <li><strong>建立上課紀錄 (tblAttendance):</strong> 老師或管理員為每堂課建立簽到記錄，記錄上課日期、類型 (1=出席, 0=缺席, 2=請假)、修改者 (ModifiedUserId)、修改時間。</li>
+                    <li><strong>自動計算簽到費用 (tblAttendanceFee):</strong> 系統為每筆 Attendance 自動建立對應的 tblAttendanceFee，記錄：
+                        <br/>— Hours (實際上課時數，例如 1.5 小時，依 Attendance.Type 與課程設定判斷)
+                        <br/>— Amount (單堂學費，即該次上課應收的金額，已含拆帳比計算)
+                        <br/>— AdjustmentAmount (增減金額，可由人工調整，正數為增加、負數為減少)
+                        <br/>— UseSplitRatio (實際使用的拆帳比，先正規化課程拆帳比與老師拆帳比 [若>1則÷100]，再取最小值 [若都無則為0]，最後限制在 0~1)
+                        <br/>— SourceHoursTotalAmount (原始時數總金額 = 該次上課的基礎費用，未含 AdjustmentAmount，用於追蹤原始計算值)
+                        <br/>— 費用計算邏輯：最終費用 = Amount + AdjustmentAmount
+                    </li>
+                    <li><strong>分組對應:</strong> 系統依 StudentPermission 的所有 Attendance 日期排序，多筆簽到累積對應至一筆 StudentPermissionFee，用以判斷該期簽到是否已繳款。</li>
                 </ul>
 
                 <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">4️⃣ 繳款管理階段</h4>
                 <ul style="margin-left: 20px; color: #333;">
-                    <li><strong>建立繳款記錄 (tblPayment):</strong> 當學生繳款時，在 tblPayment 中建立一筆記錄，記錄「繳款日期」(PayDate)、「繳款金額」(Pay)、「折扣」(DiscountAmount)、「備註」(Remark)，並與對應的 StudentPermissionFee 關聯 (一對一)。</li>
-                    <li><strong>更新費用狀態:</strong> StudentPermissionFee 記錄繳款後，其 Payment 欄位被填充，系統以此判斷該組課程是否「已繳費」。</li>
+                    <li><strong>建立繳款記錄 (tblPayment):</strong> 當學生繳款時，在 tblPayment 中建立一筆記錄，記錄「繳款日期」(PayDate)、「繳款金額」(Pay)、「折扣」(DiscountAmount)、「備註」(Remark)，並與對應的 StudentPermissionFee 關聯 (1:1 唯一對應)。系統自動產生「收據編號」(ReceiptNumber)，格式為 {民國年:3位}B{月份:2位}{序號:4位} (例如 114B060091)，每月獨立編號。</li>
+                    <li><strong>更新費用狀態:</strong> StudentPermissionFee 記錄繳款後，其 Payment 欄位被填充，TotalActualAmount 同時更新為繳款金額 - 折扣。系統以此判斷該期課程是否「已繳費」。</li>
+                    <li><strong>費用與簽到對應:</strong> 同一 StudentPermission 的多筆簽到 (tblAttendance) 累積費用後，對應至一筆 StudentPermissionFee，當該費用被繳款時 (tblPayment)，即代表該組簽到已完成結算。一個 StudentPermission 可產生多筆 StudentPermissionFee (按課程週期或手動分組)，每筆獨立計費與繳款。</li>
                 </ul>
 
                 <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">5️⃣ 查詢與報表階段</h4>
                 <ul style="margin-left: 20px; color: #333;">
-                    <li><strong>學生權限列表查詢 (tblStudentPermission):</strong> 查詢特定學生的所有已授予權限及其簽到摘要，包括「簽到次數」、「未繳費次數」等，透過 GET /api/v1/StudentAttendance/{userId}。</li>
-                    <li><strong>簽到詳細查詢 (tblAttendance + tblAttendanceFee + tblPayment):</strong> 查詢特定 StudentPermission 的所有簽到記錄及最近繳款資訊，透過 GET /api/v1/StudentAttendance/Detail/{studentPermissionId}。</li>
-                    <li><strong>上課拆帳明細表 (PDF):</strong> 依老師與日期統計所有簽到金額、時數，聚合成每位老師的薪資表，透過 GET /api/pdf/v1/SalaryReport。</li>
-                    <li><strong>公司獲利彙總表 (PDF):</strong> 按老師分組統計實收學費、應付薪資（折帳薪資）、毛利，學費欠費基於 tblPayment 判斷是否繳款，透過 GET /api/pdf/v1/CompanyProfitSummary。</li>
+                    <li><strong>學生權限列表查詢:</strong> 透過 GET /api/v1/StudentAttendance/{userId} 查詢特定學生的所有已授予權限及其簽到摘要，包括「總簽到次數」、「已繳費期數」、「未繳費期數」等統計。</li>
+                    <li><strong>簽到詳細查詢:</strong> 透過 GET /api/v1/StudentAttendance/Detail/{studentPermissionId} 查詢特定權限的所有簽到記錄及對應的 tblAttendanceFee，並顯示該權限的所有 StudentPermissionFee 與繳款狀態。</li>
+                    <li><strong>單堂費用詳情:</strong> 透過介面查詢單堂簽到的詳細費用計算過程，包括拆帳比、基礎金額、時數、調整金額等。</li>
+                    <li><strong>上課拆帳明細表 (PDF):</strong> 透過 GET /api/pdf/v1/SalaryReport 依老師與日期範圍統計所有簽到金額、時數，聚合成每位老師的薪資表、應付金額、稅前稅後等。</li>
+                    <li><strong>公司獲利彙總表 (PDF):</strong> 透過 GET /api/pdf/v1/CompanyProfitSummary 按老師分組統計：實收學費 (基於 tblPayment)、應付薪資、毛利、淨收入。未繳費判斷基於 StudentPermissionFee.Payment 關聯是否填充。<strong>加總後若有小數，毛利/淨收入對外輸出採無條件進位 (ceil)</strong>。</li>
+                    <li><strong>營業日總表 (PDF):</strong> 透過 GET /api/pdf/v1/DailyReport 生成指定日期的營業日總表，含零用金管理、簽到統計、營業收入明細。</li>
                 </ul>
 
                 <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">6️⃣ 退款管理階段</h4>
                 <ul style="margin-left: 20px; color: #333;">
-                    <li><strong>查詢退款資訊:</strong> 透過 GET /api/v1/StudentRefund/{studentPermissionFeeId} 取得單筆費用的退款摘要（含應收、已收、折扣、已退金額、收據號）。資料來源涵蓋 tblStudentPermissionFee、tblPayment、tblRefund。</li>
-                    <li><strong>新增/更新退款:</strong> 透過 POST /api/v1/StudentRefund 建立或更新退款記錄（對齊繳費收據編號規則，如 114B120091），寫入 tblRefund，並記錄審計。</li>
-                    <li><strong>金額關聯:</strong> 退款不改變原繳款紀錄（tblPayment），但系統報表在計算「實收/未收」與「淨收入」時會一併考量退款金額。</li>
+                    <li><strong>查詢退款資訊:</strong> 透過 GET /api/v1/StudentRefund/{studentPermissionFeeId} 取得單筆費用的退款摘要，包括應收金額、已收金額、折扣、已退金額、收據編號、退款日期。資料來源涵蓋 tblStudentPermissionFee、tblPayment、tblRefund 的聯合查詢。</li>
+                    <li><strong>新增/更新退款 (tblRefund):</strong> 透過 POST /api/v1/StudentRefund 建立或更新退款記錄，包括退款日期、退款金額、退款原因、結帳單號。遵循與 tblPayment 相同的收據編號規則 (114B{月}{序號})，寫入 tblRefund，並自動記錄到 tblAuditLog。</li>
+                    <li><strong>金額關聯:</strong> 退款不改變原繳款紀錄 (tblPayment)，但系統報表在計算「實收/未收」與「淨利潤」時會自動一併考量退款金額 (實收 = Pay - RefundAmount)。</li>
+                    <li><strong>1:1 對應:</strong> StudentPermissionFee 與 Refund 保持 1:1 關聯 (若存在)，支援單筆費用完全或部分退款。</li>
                 </ul>
 
-                <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">7️⃣ 關帳流程</h4>
+                <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">7️⃣ 日終關帳流程 ⭐ 新增自動化</h4>
                 <ul style="margin-left: 20px; color: #333;">
-                    <li><strong>查詢當日簽到狀態:</strong> GET /api/v1/CloseAccount/DailyStatus/{date} 回傳當日課表、簽到統計與是否可關帳（CanCloseAccount）。</li>
-                    <li><strong>批量簽到（可選）:</strong> POST /api/v1/CloseAccount/CheckInAll/{date} 將當日未簽到課程自動建立 tblAttendance 與對應 tblAttendanceFee（依課程費用/拆帳比計算），並寫入審計。</li>
-                    <li><strong>儲存關帳:</strong> POST /api/v1/CloseAccount，輸入日期與提存金額（DepositAmount）。系統自動計算：
-                        <br/>— 昨日零用金結餘（YesterdayPettyIncome）
-                        <br/>— 今日營業收入（BusinessIncome = 當日所有 Payment 的 Pay + DiscountAmount）
-                        <br/>— 關帳結算金額（CloseAccountAmount = 昨日零用金 + 今日營業收入）
-                        <br/>— 零用金結餘（PettyIncome = 結算金額 − 提存金額）
-                        <br/>並寫入 tblCloseAccount 與審計。</li>
-                    <li><strong>查詢關帳資料:</strong> GET /api/v1/CloseAccount/Detail/{date} 取得單日關帳內容；GET /api/v1/CloseAccount 可依日期區間查列表。</li>
-                    <li><strong>營業日總表 PDF:</strong> 可由「營業日總表 PDF」區塊測試/預覽，每日關帳資料與明細匯出報表。</li>
+                    <li><strong>查詢當日簽到狀態:</strong> 透過 GET /api/v1/CloseAccount/DailyStatus/{date} 回傳當日全校課表清單、每堂課的簽到狀況、統計資訊 (課程總數、已簽到、未簽到) 與是否可關帳 (CanCloseAccount) 標誌。</li>
+                    <li><strong>批量簽到（可選）:</strong> 透過 POST /api/v1/CloseAccount/CheckInAll/{date} 將當日所有未簽到的課程自動建立 tblAttendance 與對應的 tblAttendanceFee。費用計算遵循標準邏輯 (基於 CourseFee 與拆帳比自動計算)，並寫入 tblAuditLog 記錄該批操作。</li>
+                    <li><strong>儲存關帳 (tblCloseAccount):</strong> 透過 POST /api/v1/CloseAccount 在所有簽到完成後儲存關帳記錄。輸入日期與提存金額 (DepositAmount)。系統自動計算：
+                        <br/>— 昨日零用金結餘 (YesterdayPettyIncome)：取前一日 tblCloseAccount.PettyIncome
+                        <br/>— 今日營業收入 (BusinessIncome)：當日所有 tblPayment 的 Pay 加總 + DiscountAmount 總和
+                        <br/>— 關帳結算金額 (CloseAccountAmount = YesterdayPettyIncome + BusinessIncome)
+                        <br/>— 零用金結餘 (PettyIncome = CloseAccountAmount − DepositAmount)
+                        <br/>並寫入 tblCloseAccount 與 tblAuditLog。</li>
+                    <li><strong>查詢關帳資料:</strong> 透過 GET /api/v1/CloseAccount/Detail/{date} 取得單日完整關帳內容；透過 GET /api/v1/CloseAccount (可帶 startDate, endDate 參數) 查詢日期範圍內的關帳列表，支援分頁。</li>
+                    <li><strong>營業日總表 PDF 匯出:</strong> 透過 GET /api/pdf/v1/DailyReport/{date} 生成營業日總表 PDF，含關帳資料、簽到明細、零用金管理統計，可用於會計對帳。</li>
                 </ul>
 
                 <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">8️⃣ 軟刪除與審計</h4>
                 <ul style="margin-left: 20px; color: #333;">
-                    <li><strong>軟刪除機制:</strong> tblStudentPermission、tblAttendance、tblStudentPermissionFee 等核心表都使用 IsDelete 欄位而非物理刪除，確保資料可溯源。</li>
-                    <li><strong>審計日誌 (tblAuditLog):</strong> 重要操作 (新增、編輯、刪除課程、建立/修改費用等) 會被記錄在審計表中，包括操作時間、操作人、操作類型、影響的記錄 ID 等。</li>
+                    <li><strong>軟刪除機制 (IsDelete):</strong> tblStudentPermission、tblAttendance、tblStudentPermissionFee、tblPayment、tblRefund 等核心表都使用 IsDelete 欄位 (布林值) 進行邏輯刪除，而非物理刪除，確保資料完整可溯源。查詢時預設篩選 IsDelete=false。</li>
+                    <li><strong>審計日誌 (tblAuditLog):</strong> 所有重要操作均記錄在審計表中，包括新增/編輯/刪除課程、建立/修改費用、簽到、繳款、退款、關帳等。每筆審計記錄包含：TableName (表名)、RecordId (記錄ID)、OperationType (操作類型)、OldValue/NewValue (JSON 格式)、OperationTime (時間戳)、OperationUserId (操作人)、IPAddress (來源IP)。</li>
+                    <li><strong>歷史追蹤:</strong> tblAttendanceFee 與 tblStudentPermissionFee 中的 CourseSplitRatio、TeacherSplitRatio 欄位保留當時快照值，支援費用計算邏輯變更後仍能追溯歷史。</li>
                 </ul>
 
                 <h4 style="color: #ff9800; margin-bottom: 10px; margin-top: 16px;">💾 核心資料表關係圖</h4>
@@ -4281,7 +4295,7 @@ Content-Type: application/json
                             <h3>📖 API 概述</h3>
                             <p><strong>端點:</strong><code>GET /api/pdf/v1/CompanyProfitSummary?startDate={yyyy-MM-dd}&endDate={yyyy-MM-dd}&teacherId={id}&includePaid={bool}</code></p>
                             <p><strong>控制器:</strong><code>PDFController</code></p>
-                            <p><strong>說明:</strong>依結算日期區間產生公司獲利彙總表 PDF，按老師分組統計。實收學費由薪資回推拆帳比金額，應付薪資等同折帳薪資，毛利為實收減應付薪資。</p>
+                            <p><strong>說明:</strong>依結算日期區間產生公司獲利彙總表 PDF，按老師分組統計。實收學費由薪資回推拆帳比金額，應付薪資等同折帳薪資，毛利為實收減應付薪資。<strong>所有金額加總後若出現小數，毛利與淨收入對外輸出一律無條件進位 (ceil)</strong>。</p>
 
                             <h3 style="margin-top: 20px;">📥 查詢參數</h3>
                             <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">

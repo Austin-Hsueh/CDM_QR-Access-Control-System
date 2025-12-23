@@ -828,6 +828,7 @@ namespace DoorWebApp.Controllers
                 .Include(p => p.StudentPermissionFee)
                     .ThenInclude(spf => spf.StudentPermission)
                         .ThenInclude(sp => sp.Course)
+                            .ThenInclude(sp => sp.CourseFee)
                 .Where(p => p.PayDate == dateStr && !p.IsDelete)
                 .ToListAsync();
 
@@ -957,13 +958,14 @@ namespace DoorWebApp.Controllers
                     ?? payment.StudentPermissionFee?.StudentPermission?.User?.Username 
                     ?? "未知";
                 var studentCode = payment.StudentPermissionFee?.StudentPermission?.User?.Username ?? "-";
-                
+
+                var feeCode = payment.StudentPermissionFee?.StudentPermission?.Course?.CourseFee?.FeeCode + "-" ?? "";
                 var courseId = payment.StudentPermissionFee?.StudentPermission?.CourseId ?? 0;
                 var courseName = payment.StudentPermissionFee?.StudentPermission?.Course?.Name ?? "-";
                 var courseAmount = payment.StudentPermissionFee?.TotalAmount ?? (payment.Pay + payment.DiscountAmount);
                 
                 // 結帳備註：學費:課程編號-課程名稱 金額*1=金額
-                var remark = $"[學費:{courseId}-{courseName} {courseAmount}*1={courseAmount}]";
+                var remark = $"[學費:{feeCode}{courseName} {courseAmount}*1={courseAmount}]";
                 
                 if (!string.IsNullOrEmpty(payment.Remark))
                 {

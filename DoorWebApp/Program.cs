@@ -133,16 +133,20 @@ namespace DoorWebApp
                     .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 0 * * ?")));
 
                 // 設定第三個工作 - 定期處理出席表費用
-                /*
                 var attendanceFeeJobKey = new JobKey("ScheduledJobAttendanceFee");
                 q.AddJob<ScheduledJobAttendanceFee>(opts => opts.WithIdentity(attendanceFeeJobKey));
                 
-                // 定時觸發器 - 每小時執行一次 (Cron: 0 0 * * * ? = 每小時的整點)
+                // 定時觸發器 - 每 5 分鐘執行一次 (Cron: 0 0/5 * * * ?)
                 q.AddTrigger(opts => opts
                     .ForJob(attendanceFeeJobKey)
                     .WithIdentity("ScheduledJobAttendanceFee-trigger")
-                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0 * * * ?")));
-                */
+                    .WithSchedule(CronScheduleBuilder.CronSchedule("0 0/5 * * * ?")));
+
+                // 啟動時立即執行一次的觸發器
+                q.AddTrigger(opts => opts
+                    .ForJob(attendanceFeeJobKey)
+                    .WithIdentity("ScheduledJobAttendanceFee-startup-trigger")
+                    .StartNow());
             });
 
             // �K�[ Quartz �D���A��

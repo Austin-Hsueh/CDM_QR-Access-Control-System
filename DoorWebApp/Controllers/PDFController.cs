@@ -148,22 +148,31 @@ namespace DoorWebApp.Controllers
                             var index = 1;
                             foreach (var row in sample.Rows)
                             {
-                                table.Cell().Element(BodyCell).Text(index.ToString());
-                                table.Cell().Element(BodyCell).Text(row.StudentName);
-                                table.Cell().Element(BodyCell).Text(row.Instrument);
+                                var lessonChunks = Chunk(row.Lessons, 8);
 
-                                for (var i = 0; i < 8; i++)
+                                for (var chunkIndex = 0; chunkIndex < lessonChunks.Count; chunkIndex++)
                                 {
-                                    var lesson = i < row.Lessons.Count ? row.Lessons[i] : null;
-                                    var text = lesson == null ? string.Empty : $"{lesson.Date}\n{lesson.Amount:0.00}";
-                                    table.Cell().Element(BodyCell).Text(text);
+                                    var chunk = lessonChunks[chunkIndex];
+                                    var isFirst = chunkIndex == 0;
+                                    var isLast = chunkIndex == lessonChunks.Count - 1;
+
+                                    table.Cell().Element(BodyCell).Text(isFirst ? index.ToString() : string.Empty);
+                                    table.Cell().Element(BodyCell).Text(isFirst ? row.StudentName : string.Empty);
+                                    table.Cell().Element(BodyCell).Text(isFirst ? row.Instrument : string.Empty);
+
+                                    for (var i = 0; i < 8; i++)
+                                    {
+                                        var lesson = i < chunk.Count ? chunk[i] : null;
+                                        var text = lesson == null ? string.Empty : $"{lesson.Date}\n{lesson.Amount:0.00}";
+                                        table.Cell().Element(BodyCell).Text(text);
+                                    }
+
+                                    var special = isFirst && row.SpecialBonus.HasValue ? $"{row.SpecialBonus:0.00}" : string.Empty;
+                                    table.Cell().Element(BodyCell).Text(special);
+
+                                    var totalText = isLast ? $"{row.Lessons.Count} ({row.TotalHours:0.0}H)\n${row.TotalAmount:0.00}" : string.Empty;
+                                    table.Cell().Element(BodyCell).Text(totalText);
                                 }
-
-                                var special = row.SpecialBonus.HasValue ? $"{row.SpecialBonus:0.00}" : string.Empty;
-                                table.Cell().Element(BodyCell).Text(special);
-
-                                var totalText = $"{row.Lessons.Count} ({row.TotalHours:0.0}H)\n${row.TotalAmount:0.00}";
-                                table.Cell().Element(BodyCell).Text(totalText);
 
                                 index++;
                             }
@@ -327,6 +336,25 @@ namespace DoorWebApp.Controllers
             if (string.IsNullOrWhiteSpace(s)) return null;
             if (DateTime.TryParse(s, out var dt)) return dt;
             return null;
+        }
+
+        private static List<List<T>> Chunk<T>(IReadOnlyList<T> source, int size)
+        {
+            var result = new List<List<T>>();
+            if (size <= 0 || source.Count == 0) return result;
+
+            for (var i = 0; i < source.Count; i += size)
+            {
+                var sliceSize = Math.Min(size, source.Count - i);
+                var segment = new List<T>(sliceSize);
+                for (var j = 0; j < sliceSize; j++)
+                {
+                    segment.Add(source[i + j]);
+                }
+                result.Add(segment);
+            }
+
+            return result;
         }
 
         private static string FormatPeriod(DateTime start, DateTime end)
@@ -553,14 +581,10 @@ namespace DoorWebApp.Controllers
                 var salaryAmount = (fee?.Amount ?? 0) + (fee?.AdjustmentAmount ?? 0);
                 var sourceHoursTotalAmount = fee?.SourceHoursTotalAmount ?? 0m;
 
-                // 計算學費欠費：依當前費用的 Hours 動態分攤
-                if (correspondingFee != null)
+                // 計算學費欠費
+                if (correspondingFee?.Payment == null)
                 {
-                    int currentFeeHours = (int)Math.Max(1, Math.Ceiling(correspondingFee.Hours != 0 ? (double)correspondingFee.Hours : 4));
-                    var receivablePerLesson = currentFeeHours > 0 ? correspondingFee.TotalAmount / (decimal)currentFeeHours : correspondingFee.TotalAmount;
-                    var paidPerLesson = currentFeeHours > 0 ? (correspondingFee.Payment?.Pay ?? 0) / (decimal)currentFeeHours : (correspondingFee.Payment?.Pay ?? 0);
-                    var arrearsPerLesson = Math.Max(receivablePerLesson - paidPerLesson, 0);
-                    builder.AddArrears(att.Id, arrearsPerLesson);
+                    builder.AddArrears(att.Id, sourceHoursTotalAmount);
                 }
 
                 builder.AddLesson(sp.UserId, hours, salaryAmount, sourceHoursTotalAmount);
@@ -573,16 +597,16 @@ namespace DoorWebApp.Controllers
 
             var totalStudents = rows.Sum(r => r.StudentCount);
             var totalLessons = rows.Sum(r => r.LessonCount);
-            var totalLessonArrears = rows.Sum(r => r.LessonArrears);
-            var totalReceived = rows.Sum(r => r.ReceivedAmount);
-            var totalSplitSalary = rows.Sum(r => r.SplitSalary);
-            var totalAdvanceSalary = rows.Sum(r => r.AdvanceSalary);
-            var totalHealthInsurance = rows.Sum(r => r.HealthInsurance);
-            var totalDeposit = rows.Sum(r => r.Deposit);
-            var totalSalary = rows.Sum(r => r.SalaryAmount);
-            var totalAdvancedSalary = rows.Sum(r => r.AdvancedSalary);
-            var totalSupplementSalary = rows.Sum(r => r.SupplementSalary);
-            var totalProfit = rows.Sum(r => r.Profit);
+            var totalLessonArrears = Ceil(rows.Sum(r => r.LessonArrears));
+            var totalReceived = Ceil(rows.Sum(r => r.ReceivedAmount));
+            var totalSplitSalary = Ceil(rows.Sum(r => r.SplitSalary));
+            var totalAdvanceSalary = Ceil(rows.Sum(r => r.AdvanceSalary));
+            var totalHealthInsurance = Ceil(rows.Sum(r => r.HealthInsurance));
+            var totalDeposit = Ceil(rows.Sum(r => r.Deposit));
+            var totalSalary = Ceil(rows.Sum(r => r.SalaryAmount));
+            var totalAdvancedSalary = Ceil(rows.Sum(r => r.AdvancedSalary));
+            var totalSupplementSalary = Ceil(rows.Sum(r => r.SupplementSalary));
+            var totalProfit = Ceil(rows.Sum(r => r.Profit));
 
             var period = FormatPeriod(start, end);
 
@@ -745,26 +769,37 @@ namespace DoorWebApp.Controllers
                 var arrears = _totalArrears;
                 var receivedAmount = _totalReceived;
                 var profit = receivedAmount - _totalSalary; // 公司毛利 = 實收 - 應付薪資
-                var profitRate = receivedAmount > 0 ? (profit / receivedAmount * 100) : 0;
+
+                // 對外輸出採無條件進位
+                var roundedArrears = Ceil(arrears);
+                var roundedReceived = Ceil(receivedAmount);
+                var roundedSalary = Ceil(_totalSalary);
+                var roundedProfit = Ceil(profit);
+                var roundedProfitRate = roundedReceived > 0 ? (roundedProfit / roundedReceived * 100) : 0;
 
                 return new ProfitRow
                 {
                     TeacherName = TeacherName,
                     StudentCount = _studentIds.Count,
                     LessonCount = _totalHours,
-                    LessonArrears = arrears,      // 堂數欠費
-                    ReceivedAmount = receivedAmount,
-                    SplitSalary = _totalSalary,   // 折帳薪資
+                    LessonArrears = roundedArrears,      // 堂數欠費
+                    ReceivedAmount = roundedReceived,
+                    SplitSalary = roundedSalary,   // 折帳薪資
                     AdvanceSalary = 0,            // 預支薪資（暂无数据）
                     HealthInsurance = 0,          // 二代健保（暂无数据）
                     Deposit = 0,                  // 保證金（暂无数据）
-                    SalaryAmount = _totalSalary,  // 應付薪資
+                    SalaryAmount = roundedSalary,  // 應付薪資
                     AdvancedSalary = 0,           // 代墊薪資（暂无数据）
                     SupplementSalary = 0,         // 補發薪資（暂无数据）
-                    Profit = profit,
-                    ProfitRate = profitRate
+                    Profit = roundedProfit,
+                    ProfitRate = roundedProfitRate
                 };
             }
+        }
+
+        private static decimal Ceil(decimal value)
+        {
+            return Math.Ceiling(value);
         }
 
         private class ProfitRow

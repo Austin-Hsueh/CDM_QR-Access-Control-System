@@ -111,7 +111,7 @@ public class ScheduledJobAttendanceFee : IJob
                     int tuitionFee = courseFee?.Amount ?? 0;
                     int materialFee = courseFee?.MaterialFee ?? 0;
                     int totalAmount = stf?.TotalAmount ?? tuitionFee + materialFee;
-                    decimal totalHours = stf?.Hours ?? 4;
+                    decimal totalHours = (stf?.Hours != 0 ? stf?.Hours ?? 4 : 4);
 
                     decimal sourceHoursTotalAmount = totalAmount / totalHours;
                     decimal splitHourAmount = Math.Round((sourceHoursTotalAmount * (1 - minSplitRatio)), 2, MidpointRounding.AwayFromZero);
@@ -121,9 +121,9 @@ public class ScheduledJobAttendanceFee : IJob
                     {
                         AttendanceId = attendance.Id,
                         Hours = 1,
-                        Amount = splitHourAmount,
+                        Amount = attendance.AttendanceType == 2 ? 0 : splitHourAmount,
                         AdjustmentAmount = 0M,
-                        SourceHoursTotalAmount = sourceHoursTotalAmount,
+                        SourceHoursTotalAmount = attendance.AttendanceType == 2 ? 0 : sourceHoursTotalAmount,
                         UseSplitRatio = minSplitRatio,
                         CreatedTime = now,
                         ModifiedTime = now
