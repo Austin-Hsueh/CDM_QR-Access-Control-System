@@ -1528,14 +1528,15 @@ namespace DoorWebApp.Controllers
 
                 var userPermission = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == UserId).FirstOrDefault();
 
-                var QRCodeData = ctx.TbQRCodeStorages.FromSqlRaw(@"SELECT q.* 
+                var QRCodeData = ctx.TbQRCodeStorages.FromSqlRaw(@"SELECT q.*
                                                             FROM tblqrcodestorage q
-                                                            LEFT JOIN tblqrcodestoragetbluser qu ON qu.QRCodesId = q.Id 
+                                                            LEFT JOIN tblqrcodestoragetbluser qu ON qu.QRCodesId = q.Id
                                                             WHERE UsersId = @UsersId AND q.ModifiedTime >= CONCAT(CURDATE(), ' 00:00:00') ",
                                                             new MySqlConnector.MySqlParameter("@UsersId", UserId))
                                                      .Select(x => new
                                                      {
                                                          x.QRCodeData,
+                                                         x.qrcodeTxt,
                                                          x.ModifiedTime
                                                      }
                                                      ).FirstOrDefault();
@@ -1623,6 +1624,7 @@ namespace DoorWebApp.Controllers
                 }
 
                 string qrcode = QRCodeData == null ? "" : QRCodeData.QRCodeData.ToString();
+                string qrcodeTxt = QRCodeData == null ? "" : QRCodeData.qrcodeTxt.ToString();
 
                 var days = userPermission.Days
                     .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
@@ -1678,6 +1680,7 @@ namespace DoorWebApp.Controllers
                     timeto = userPermission.TimeTo,
                     days = days,  // Set the converted list of days
                     qrcode = qrcode,
+                    qrcodeTxt = qrcodeTxt,
                     permissions = Permissions,
                     studentpermissions = StudentPermissions,
                     schedules = schedules,

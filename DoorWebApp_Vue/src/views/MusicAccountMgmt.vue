@@ -9,11 +9,11 @@
         <AccountUserMgmtVue ref="AccountUserMgmtRef" v-if="userInfoStore.userId == 51"/>
         <AccountOnerUserMgmt v-else/>
       </el-tab-pane>
-      <el-tab-pane :label="t('Courses Settings')" >
-        <CoursesMgmt v-if="userInfoStore.userId == 51"/>
+      <el-tab-pane :label="t('Courses Settings')" v-if="userInfoStore.userId == 51">
+        <CoursesMgmt />
       </el-tab-pane>
-      <el-tab-pane label="教室設定" >
-        <ClassRoomMgmt v-if="userInfoStore.userId == 51"/>
+      <el-tab-pane label="教室設定" v-if="userInfoStore.userId == 51">
+        <ClassRoomMgmt />
       </el-tab-pane>
 
 
