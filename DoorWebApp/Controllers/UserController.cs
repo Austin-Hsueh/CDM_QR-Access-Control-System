@@ -1671,6 +1671,11 @@ namespace DoorWebApp.Controllers
                     qrcode = "";
                 }
 
+                log.LogInformation($"[{Request.Path}] DEBUG QRCODE now:{now.ToString() ?? ""} " +
+                    $"UserId:{UserId} , " +
+                    $"qrcodeTxt:{qrcodeTxt} , " +
+                    $"ModifiedTime:{QRCodeData?.ModifiedTime.ToString() ?? ""}");
+
                 // Map the result to ManyPermissionsDTO
                 var userPermissions = new ManyPermissionsDTO
                 {
