@@ -1664,6 +1664,11 @@ namespace DoorWebApp.Controllers
                         .ToList();
                 }
 
+                if (!schedules.Any())
+                {
+                    qrcode = "";
+                }
+
                 // Map the result to ManyPermissionsDTO
                 var userPermissions = new ManyPermissionsDTO
                 {
