@@ -6,13 +6,12 @@
     </div>
 
     <el-tabs type="border-card">
-      <!-- <el-tab-pane :label="t('Access QR Code')" style="display: flex;flex-direction: row;gap: 10px;" ></el-tab-pane> -->
         <el-tab-pane :label="t('Access QR Code')">
         <el-card style="max-width: 300px">
-          <span v-if="ifCodeError">QRcode將於上課前2分鐘顯示</span>
+          <span v-if="ifCodeError">QRcode將於上課前10分鐘顯示</span>
           <div v-if="ifCodeLoad">
             <span>可通行時間</span><br>
-            <span>{{dayNames}}</span><br>
+            <span>{{ pass.scheduleDate }} {{ dayOfWeek }}</span><br>
             <span>{{ pass.timefrom }}~{{ pass.timeto }}</span>
           </div>
           <el-divider style="margin: 15px 0;"/> 
@@ -20,37 +19,6 @@
           <el-divider style="margin: 15px 0;"/>
           <span>※ 無法使用時重新整理網頁</span>
         </el-card>
-        <!-- <el-card style="width: 350px;">
-          <el-form class="col-4" :inline="true" label-width="100px"  ref="settingAccessTimeForm" label-position="top" style="width:100%;">
-              <el-form-item label="課程區間" prop="datepicker"  style="width: 100%;">
-                <el-date-picker
-                  type="daterange"
-                  range-separator="至"
-                  start-placeholder="開始日期"
-                  end-placeholder="結束日期"
-                />
-              </el-form-item>
-              <el-form-item style="margin-top: auto;">
-                <el-button type="primary" @click="settingForm()">搜尋</el-button>
-              </el-form-item>
-            </el-form>
-            <h4 style="font-weight: bold;padding-bottom: 8px;text-decoration: underline;">簽到表</h4><br>
-            <el-table name="userInfoTable" style="width: 100%" :data="transposeTable(Info)">
-              <el-table-column :label="t('Term')" prop="term" />
-              <el-table-column :label="t('PaymentDate')" prop="paymentDate" />
-              <el-table-column :label="t('PaymentStamp')" prop="paymentStamp" />
-              <el-table-column :label="t('AttendanceFirst')" prop="attendanceFirst" />
-              <el-table-column :label="t('AttendanceSecond')" prop="attendanceSecond" />
-              <el-table-column :label="t('AttendanceThird')" prop="attendanceThird" />
-              <el-table-column :label="t('AttendanceFourth')" prop="attendanceFourth" />
-              <el-table-column :label="t('AbsenceRecord')" prop="absenceRecord" />
-              <el-table-column :label="t('CourseDeadline')" prop="courseDeadline" />
-              <el-table-column prop="property" label="" width="50px;"></el-table-column>
-              <el-table-column prop="value0" label="第一期"></el-table-column>
-              <el-table-column prop="value1" label="第二期"></el-table-column>
-              <el-table-column prop="value2" label="第三期"></el-table-column>
-            </el-table>
-        </el-card> -->
       </el-tab-pane>
     </el-tabs>
   </div>
@@ -61,8 +29,6 @@ import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useUserInfoStore } from "@/stores/UserInfoStore";
 import API from "@/apis/TPSAPI";
-import { APIResultCode } from "@/models/enums/APIResultCode";
-import { pa } from "element-plus/es/locale";
 
 const { t, locale } = useI18n();
 const router = useRouter();
@@ -73,10 +39,9 @@ const imageSrc = ref('');
 const ifCodeError = ref(false);
 const ifCodeLoad = ref(false);
 const pass = ref({
-      datefrom: '',
+      scheduleDate: '',
       timefrom: '',
-      timeto: '',
-      days:[]
+      timeto: ''
 });
 
 
@@ -107,11 +72,10 @@ async function getUserSettingPermission() {
 
     console.log(getUserSettingPermission.data.content)
     const QRcodeResult = getUserSettingPermission.data.content;
-    if (QRcodeResult.studentpermissions && QRcodeResult.studentpermissions.length > 0) {
-        pass.value.datefrom = QRcodeResult.studentpermissions[0].datefrom;
-        pass.value.timefrom = QRcodeResult.studentpermissions[0].timefrom;
-        pass.value.timeto = QRcodeResult.studentpermissions[0].timeto;
-        pass.value.days = QRcodeResult.studentpermissions[0].days;
+    if (QRcodeResult.schedules && QRcodeResult.schedules.length > 0) {
+        pass.value.scheduleDate = QRcodeResult.schedules[0].scheduleDate;
+        pass.value.timefrom = QRcodeResult.schedules[0].startTime;
+        pass.value.timeto = QRcodeResult.schedules[0].endTime;
     } else {
         console.log("studentpermissions array is empty or undefined");
     }
@@ -124,12 +88,12 @@ async function getUserSettingPermission() {
 
 function scheduleGetUserSettingPermission() {
   const interval = 5 * 60 * 1000; // 每隔 5 分鐘
-  const startHour = 7;
-  const endHour = 23;
+  // const startHour = 7;
+  // const endHour = 23;
 
   const executeFunction = () => {
     const now = new Date();
-    const currentHour = now.getHours();
+    // const currentHour = now.getHours();
 
     // 7點-23點 每5分鐘問一次資料庫QRcode
     // if (currentHour >= startHour && currentHour < endHour) {
@@ -149,10 +113,12 @@ function scheduleGetUserSettingPermission() {
   setInterval(executeFunction, interval);
 }
 
-const dayNamesArray = ["", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六","星期日"];
-// 使用 computed 將 pass.days 轉換成對應的中文星期
-const dayNames = computed(() => {
-  return pass.value.days.map(day => dayNamesArray[day]).join(', ');
+// 使用 computed 將 pass.scheduleDate 轉換成對應的中文星期
+const dayOfWeek = computed(() => {
+  if (!pass.value.scheduleDate) return '';
+  const daysOfWeek = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+  const date = new Date(pass.value.scheduleDate);
+  return daysOfWeek[date.getDay()];
 });
 
 //#endregion
