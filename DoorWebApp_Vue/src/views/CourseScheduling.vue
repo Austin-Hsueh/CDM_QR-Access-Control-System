@@ -1050,6 +1050,7 @@ const eventContent = (arg: any) => {
   const teacherName = arg.event.extendedProps.teacherName || '';
   const type = arg.event.extendedProps.type || 1;
   const scheduleMode = arg.event.extendedProps.scheduleMode || 1;
+  const studentPermissionId = arg.event.extendedProps.studentPermissionId || null;
 
   // 建立容器（使用 flexbox 兩欄佈局）
   const container = document.createElement('div');
@@ -1081,7 +1082,7 @@ const eventContent = (arg: any) => {
   column1.style.fontSize = '14px';
   column1.style.overflow = 'hidden';
   column1.style.lineHeight = '1.3';
-
+  
   if (studentName) {
     const studentLine = document.createElement('div');
     studentLine.style.overflow = 'hidden';
@@ -1089,7 +1090,7 @@ const eventContent = (arg: any) => {
     studentLine.style.whiteSpace = 'nowrap';
     studentLine.style.width = '100%';
     studentLine.style.textAlign = 'center';
-    studentLine.textContent = `${studentName}`;
+    studentLine.textContent = `${studentName} (${studentPermissionId})`;
     column1.appendChild(studentLine);
   }
 
