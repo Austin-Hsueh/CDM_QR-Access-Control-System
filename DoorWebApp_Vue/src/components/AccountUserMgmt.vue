@@ -14,15 +14,6 @@
           <el-option label="約課" :value="3" />
         </el-select>
       </el-form-item>
-      <el-form-item style="width: 200px; margin-right: 5px;">
-        <el-select v-model="searchRole" aria-label="選擇模式" :placeholder="t('Role')" >
-          <el-option label="全部" :value="0" />
-          <el-option label="管理者" :value="1" />
-          <el-option label="老師" :value="2" />
-          <el-option label="學生" :value="3" />
-          <el-option label="值班人員" :value="4" />
-        </el-select>
-      </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="onFilterInputed">搜尋</el-button>
       </el-form-item>
@@ -125,20 +116,9 @@
         <el-input  show-password style="width:90%" v-model="createFormData.password"/>
       </el-form-item>
       <el-form-item :label="t('Role')" prop="roleid" >
-        <el-select v-model="createFormData.roleid" placeholder="請選擇一個角色" style="width:90%">
-          <el-option label="管理者" :value="1" />
-          <el-option label="老師" :value="2" />
+        <el-select v-model="createFormData.roleid" placeholder="請選擇一個角色" style="width:90%" disabled>
           <el-option label="學生" :value="3" />
-          <el-option label="值班人員" :value="4" />
         </el-select>
-      </el-form-item>
-      <el-form-item :label="t('Access')" prop="groupIds" v-if="false">
-        <el-checkbox-group v-model="createFormData.groupIds">
-          <el-checkbox label="大門" :value="1"/>
-          <el-checkbox label="Car教室" :value="2"/>
-          <el-checkbox label="Sunny教室" :value="3" />
-          <el-checkbox label="儲藏室" :value="4" />
-        </el-checkbox-group>
       </el-form-item>
       <el-form-item :label="t('Type')" prop="type" >
         <el-select v-model="createFormData.type" placeholder="請選擇一個角色" style="width:90%">
@@ -268,7 +248,6 @@ const currentPage4 = ref(4)
 const size = ref<ComponentSize>('default')
 const searchText = ref('')
 const searchType = ref(0)
-const searchRole = ref(0)
 const userInfoStore = useUserInfoStore();
 const showId = ref(false);
 const usersOptions = ref<M_IUsersOptions[]>([]);
@@ -496,17 +475,15 @@ const submitaddChildForm = async () => {
 
 const onFilterInputed = () => {
   console.log("Search Function");
-  if(!searchText.value || searchText.value.trim() === '' || searchType.value || searchRole.value){
+  if(!searchText.value || searchText.value.trim() === '' || searchType.value ){
     searchPagination.value.SearchText = searchText.value
     searchPagination.value.type = searchType.value
-    searchPagination.value.Role = searchRole.value
     getUsers();
   }else{
     setTimeout(()=>{
       console.log(searchText.value)
       searchPagination.value.SearchText = searchText.value
       searchPagination.value.type = searchType.value
-      searchPagination.value.Role = searchRole.value
       console.log(searchPagination.value);
       getUsers();
     }, 500);
@@ -606,7 +583,7 @@ async function getUsers() {
     // const getUsersResult = await API.getAllUsers();
 
     /** 取得使用者清單-後端分頁 */
-    const getUsersResult = await API.getAllUsers(searchPagination.value);
+    const getUsersResult = await API.getAllStudentsV2(searchPagination.value);
 
     if (getUsersResult.data.result != 1) throw new Error(getUsersResult.data.msg);
     userInfo.value = getUsersResult.data.content;
@@ -629,167 +606,6 @@ async function getUsersOptions() {
     console.error(error);
   }
 }
-//#endregion
-
-//#region MockData
-const MockData =[
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-]
 //#endregion
 
 </script>

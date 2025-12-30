@@ -5,9 +5,12 @@
       <span class="fs-4 fw-bold content-title">{{ t("Account_Mgmt_Music") }}</span>
     </div>
     <el-tabs type="border-card">
-      <el-tab-pane :label="t('Account Settings')" >
+      <!-- <el-tab-pane :label="t('Account Settings')" >
         <AccountUserMgmtVue ref="AccountUserMgmtRef" v-if="userInfoStore.userId == 51"/>
         <AccountOnerUserMgmt v-else/>
+      </el-tab-pane> -->
+      <el-tab-pane label="帳號設定(學生)" >
+        <AccountUserMgmtVue ref="AccountUserMgmtRef" v-if="userInfoStore.userId == 51"/>
       </el-tab-pane>
       <el-tab-pane label="帳號設定(老師)" v-if="userInfoStore.userId == 51">
         <AccountTeacherMgmt ref="AccountUserMgmtRef" v-if="userInfoStore.userId == 51"/>
@@ -27,7 +30,7 @@
 import { defineComponent } from "vue";
 import { useI18n } from "vue-i18n";
 import AccountUserMgmtVue from "@/components/AccountUserMgmt.vue";
-import AccountOnerUserMgmt from "@/components/AccountOnerUserMgmt.vue";
+// import AccountOnerUserMgmt from "@/components/AccountOnerUserMgmt.vue";
 import AccountTeacherMgmt from "@/components/AccountTeacherMgmt.vue";
 import CoursesMgmt from "@/components/CoursesMgmt.vue";
 import ClassRoomMgmt from "@/components/ClassRoomMgmt.vue";
@@ -38,7 +41,7 @@ const userInfoStore = useUserInfoStore();
 defineComponent({
   components: {
     AccountUserMgmtVue,
-    AccountOnerUserMgmt
+    // AccountOnerUserMgmt
   },
 });
 

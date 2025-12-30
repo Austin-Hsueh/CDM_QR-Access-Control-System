@@ -168,6 +168,120 @@ namespace DoorWebApp.Controllers
         }
 
         /// <summary>
+        /// 取得學生清單(含角色資訊)
+        /// </summary>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [HttpPost("v2/Students")]
+        public IActionResult GetAllStudentsWithRoles(ReqPagingDTO data)
+        {
+            APIResponse<PagingDTO<ResGetAllUsersInfoDTO>> res = new APIResponse<PagingDTO<ResGetAllUsersInfoDTO>>();
+
+            try
+            {
+                /// 1. 查詢
+                var UserList = ctx.TblUsers
+                    .Include(x => x.Roles)
+                    .Include(x => x.Permission)
+                    .ThenInclude(x => x.PermissionGroups)
+                    .Include(x => x.Parent)
+                    .Where(x => x.IsDelete == false)
+                    .Where(x => x.Roles.Any(r => r.Id == 3)) //僅撈取 roleId = 3 (學生)
+                    //查詢 名稱
+                    .Where(x => data.SearchText != "" ? x.DisplayName.Contains(data.SearchText) : true)
+                    .Where(x => data.type != 0 ? x.Type == data.type : true) //選課狀態
+                    .Select(x => new ResGetAllUsersInfoDTO()
+                    {
+                        userId = x.Id,
+                        username = x.Username,
+                        displayName = x.DisplayName,
+                        email = x.Email,
+                        roleId = x.Roles.FirstOrDefault().Id,
+                        roleName = x.Roles.FirstOrDefault().Name,
+                        groupNames = x.Permission.PermissionGroups
+                        .Select(y => y.Name).ToList(),
+                        groupIds = x.Permission.PermissionGroups
+                        .Select(y => y.Id).ToList(),
+                        phone = x.Phone,
+                        address = x.Address,
+                        idcard = x.IDcard,
+                        contactPerson = x.ContactPerson,
+                        contactPhone = x.ContactPhone,
+                        relationshipTitle = x.RelationshipTitle,
+                        accessTime = x.Permission.DateFrom.ToString() + " " + x.Permission.TimeFrom.ToString() + "~" + x.Permission.DateTo.ToString() + " " + x.Permission.TimeTo.ToString(),
+                        accessDays = x.Permission.Days.Replace("1", "周一").Replace("2", "周二").Replace("3", "周三").Replace("4", "周四").Replace("5", "周五").Replace("6", "周六").Replace("7", "周日"),
+                        datefrom = x.Permission.DateFrom.ToString(),
+                        dateto = x.Permission.DateTo.ToString(),
+                        timefrom = x.Permission.TimeFrom.ToString(),
+                        timeto = x.Permission.TimeTo.ToString(),
+                        days = x.Permission.Days,
+                        type = x.Type,
+                        parentId = x.ParentId,
+                        parentUsername = x.Parent != null ? x.Parent.Username : null,
+                        splitRatio = ctx.TblTeacherSettlement
+                            .Where(ts => ts.TeacherId == x.Id)
+                            .Select(ts => ts.SplitRatio)
+                            .FirstOrDefault()
+                    })
+                    .AsQueryable();
+
+
+                log.LogInformation($"[{Request.Path}] themes.Count():[{UserList.Count()}]");
+
+
+                // 2.1 一頁幾筆
+                int onePage = data.SearchPage;
+
+                // 2.2 總共幾頁
+                int totalRecords = UserList.Count();
+                log.LogInformation($"[{Request.Path}] totalRecords:[{totalRecords}]");
+                if (totalRecords == 0)
+                {
+                    res.result = APIResultCode.success;
+                    res.msg = "success 但是無資料";
+                    res.content = new PagingDTO<ResGetAllUsersInfoDTO>()
+                    {
+                        pageItems = UserList.ToList()
+                    };
+                    return Ok(res);
+                }
+
+                // 2.3 頁數進位
+                int allPages = (int)Math.Ceiling((double)totalRecords / onePage);
+                log.LogInformation($"[{Request.Path}] allPages:[{allPages}]");
+
+                // 2.4 非法頁數(不回報錯誤 則強制變為最大頁數)
+                if (allPages < data.Page)
+                {
+                    data.Page = allPages;
+                }
+
+                // 2.5 取第幾頁
+                UserList = UserList.Skip(onePage * (data.Page - 1)).Take(onePage);
+                log.LogInformation($"[{Request.Path}] [{MethodBase.GetCurrentMethod().Name}] end");
+
+
+                res.result = APIResultCode.success;
+                res.msg = "success";
+                res.content = new PagingDTO<ResGetAllUsersInfoDTO>()
+                {
+                    totalItems = totalRecords,
+                    totalPages = allPages,
+                    pageSize = onePage,
+                    pageItems = UserList.ToList()
+                };
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
+        /// <summary>
         /// 取得教師清單(含角色資訊)
         /// </summary>
         /// <returns></returns>

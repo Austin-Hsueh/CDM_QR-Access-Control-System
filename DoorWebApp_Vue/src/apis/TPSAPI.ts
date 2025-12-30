@@ -420,6 +420,10 @@ class APIService {
   getAllTeachersV2(data: SearchPaginationRequest){
     return this.axiosInstance.post<IAPIResponse<M_IUsersContent>>("v2/Teachers", data);
   }
+  
+  getAllStudentsV2(data: SearchPaginationRequest){
+    return this.axiosInstance.post<IAPIResponse<M_IUsersContent>>("v2/Students", data);
+  }
 
   /** 取得單一使用者清單 */
   getOnerUser(id: number){
