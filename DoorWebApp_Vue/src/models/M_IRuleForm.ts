@@ -11,7 +11,8 @@ export interface M_ICreateRuleForm {
   contactPerson:string;
   contactPhone:string;
   relationshipTitle:string;
-  
+  splitRatio?: number;
+
 }
 
 export interface M_IUpdateRuleForm {
@@ -28,6 +29,7 @@ export interface M_IUpdateRuleForm {
   contactPerson:string;
   contactPhone:string;
   relationshipTitle:string;
+  splitRatio?: number;
 }
 
 export interface M_IDeleteRuleForm {

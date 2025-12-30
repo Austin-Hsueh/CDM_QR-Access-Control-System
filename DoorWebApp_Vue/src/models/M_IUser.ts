@@ -24,6 +24,7 @@ export interface M_IUsers {
   contactPerson: string| null,
   contactPhone: string| null,
   relationshipTitle: string| null,
+  splitRatio?: number | null;
 
 }
 

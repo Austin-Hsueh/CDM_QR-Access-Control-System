@@ -417,6 +417,10 @@ class APIService {
     return this.axiosInstance.post<IAPIResponse<M_IUsersContent>>("v1/Users", data);
   }
 
+  getAllTeachersV2(data: SearchPaginationRequest){
+    return this.axiosInstance.post<IAPIResponse<M_IUsersContent>>("v2/Teachers", data);
+  }
+
   /** 取得單一使用者清單 */
   getOnerUser(id: number){
     return this.axiosInstance.post<IAPIResponse<M_IUsers>>(`v1/User/${id}`);
@@ -424,9 +428,11 @@ class APIService {
 
   /** 更新使用者資訊 */
   updateUsers(cmd: M_IUpdateRuleForm){
-    return this.axiosInstance.patch<IBaseAPIResponse>("v1/UpdateUser", cmd);
+    // return this.axiosInstance.patch<IBaseAPIResponse>("v1/UpdateUser", cmd);
+    return this.axiosInstance.patch<IBaseAPIResponse>("v2/UpdateUser", cmd);
   }
-
+  
+  
   getUserPermission(){    
     return this.axiosInstance.get<IAPIResponse<M_IUserinfo>>("v1/User/Permission");
   }
@@ -436,7 +442,8 @@ class APIService {
   }
 
   addUser(data: M_ICreateRuleForm){
-    return this.axiosInstance.post<IAPIResponse<number>>("v1/User", data);
+    // return this.axiosInstance.post<IAPIResponse<number>>("v1/User", data);
+    return this.axiosInstance.post<IAPIResponse<number>>("v2/User", data);
   }
 
   getUsersOptions(){

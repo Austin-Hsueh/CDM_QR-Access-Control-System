@@ -6,23 +6,6 @@
       <el-form-item style="width: 240px; margin-right: 5px;">
         <el-input v-model="searchText" clearable :placeholder="t('NameFilter')" />
       </el-form-item>
-      <el-form-item style="width: 200px; margin-right: 5px;">
-        <el-select v-model="searchType" aria-label="選擇模式" :placeholder="t('Type')" >
-          <el-option label="全部" :value="0" />
-          <el-option label="在學" :value="1" />
-          <el-option label="停課" :value="2" />
-          <el-option label="約課" :value="3" />
-        </el-select>
-      </el-form-item>
-      <el-form-item style="width: 200px; margin-right: 5px;">
-        <el-select v-model="searchRole" aria-label="選擇模式" :placeholder="t('Role')" >
-          <el-option label="全部" :value="0" />
-          <el-option label="管理者" :value="1" />
-          <el-option label="老師" :value="2" />
-          <el-option label="學生" :value="3" />
-          <el-option label="值班人員" :value="4" />
-        </el-select>
-      </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="onFilterInputed">搜尋</el-button>
       </el-form-item>
@@ -39,27 +22,14 @@
       width="100"/>
     <el-button type="primary" @click="onCreateRoleClicked">{{ t("create") }}</el-button>
     <el-col :span="24">
-      <!-- <el-table name="userInfoTable" style="width: 100%" height="400" :data="userInfo"> -->
       <el-table name="userInfoTable" style="width: 100%" height="400" :data="userInfo?.pageItems">
         <el-table-column sortable :label="t('userID')"  prop="userId" v-if="showId"/>
         <el-table-column sortable :label="t('username')"  prop="username"/>
         <el-table-column sortable :label="t('displayName')" prop="displayName" />
         <el-table-column sortable :label="t('Phone')" prop="phone"/>
-        <el-table-column sortable label="緊急聯絡人" prop="contactPerson" />
-        <el-table-column sortable label="聯絡人電話" prop="contactPhone" />
-        <el-table-column sortable :label="t('Role')">
+        <el-table-column sortable label="拆帳比例" prop="splitRatio">
           <template #default="scope">
-            {{ roleMap[scope.row.roleId as keyof typeof roleMap] }}
-          </template>
-        </el-table-column>
-        <el-table-column sortable :label="t('Type')">
-          <template #default="scope">
-            {{ typeMap[scope.row.type as keyof typeof typeMap] }}
-          </template>
-        </el-table-column>
-        <el-table-column sortable label="母帳號(id)">
-          <template #default="scope">
-            {{ scope.row.parentUsername ? `${scope.row.parentUsername} (${scope.row.parentId})` : '' }}
+            {{ scope.row.splitRatio ?? '-' }}
           </template>
         </el-table-column>
         <el-table-column width="300px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
@@ -112,41 +82,16 @@
       <el-form-item :label="t('Phone')" prop="phone"  >
         <el-input  style="width:90%" v-model="createFormData.phone"/>
       </el-form-item>
-      <el-form-item label="緊急聯絡人" prop="contactPerson"  >
-        <el-input  style="width:90%" v-model="createFormData.contactPerson"/>
-      </el-form-item>
-      <el-form-item label="聯絡人電話" prop="contactPhone"  >
-        <el-input  style="width:90%" v-model="createFormData.contactPhone"/>
-      </el-form-item>
-      <el-form-item label="關係稱謂" prop="relationshipTitle"  >
-        <el-input  style="width:90%" v-model="createFormData.relationshipTitle"/>
-      </el-form-item>
       <el-form-item :label="t('password')" prop="password"  >
         <el-input  show-password style="width:90%" v-model="createFormData.password"/>
       </el-form-item>
       <el-form-item :label="t('Role')" prop="roleid" >
-        <el-select v-model="createFormData.roleid" placeholder="請選擇一個角色" style="width:90%">
-          <el-option label="管理者" :value="1" />
+        <el-select v-model="createFormData.roleid" placeholder="請選擇一個角色" style="width:90%" disabled>
           <el-option label="老師" :value="2" />
-          <el-option label="學生" :value="3" />
-          <el-option label="值班人員" :value="4" />
         </el-select>
       </el-form-item>
-      <el-form-item :label="t('Access')" prop="groupIds" v-if="false">
-        <el-checkbox-group v-model="createFormData.groupIds">
-          <el-checkbox label="大門" :value="1"/>
-          <el-checkbox label="Car教室" :value="2"/>
-          <el-checkbox label="Sunny教室" :value="3" />
-          <el-checkbox label="儲藏室" :value="4" />
-        </el-checkbox-group>
-      </el-form-item>
-      <el-form-item :label="t('Type')" prop="type" >
-        <el-select v-model="createFormData.type" placeholder="請選擇一個角色" style="width:90%">
-          <el-option label="預設" :value="0" />
-          <el-option label="在學" :value="1" />
-          <el-option label="停課" :value="2" />
-          <el-option label="約課" :value="3" />
-        </el-select>
+      <el-form-item label="拆帳比例" prop="splitRatio">
+        <el-input-number style="width:90%" v-model="createFormData.splitRatio" :min="0" :max="1" :precision="1" :controls="false"/>
       </el-form-item>
     </el-form>
     <template #footer>
@@ -177,37 +122,12 @@
         <el-input  style="width:90%" v-model="updateFormData.password"  placeholder="若不變更密碼，留空即可。" />
       </el-form-item>
       <el-form-item :label="t('Role')" prop="role" >
-        <el-select v-model="updateFormData.roleid" placeholder="請選擇一個角色" style="width:90%">
-          <el-option label="管理者" :value="1" />
+        <el-select v-model="updateFormData.roleid" placeholder="請選擇一個角色" style="width:90%" disabled>
           <el-option label="老師" :value="2" />
-          <el-option label="學生" :value="3" />
-          <el-option label="值班人員" :value="4" />
         </el-select>
       </el-form-item>
-      <el-form-item :label="t('Type')" prop="type" v-if="updateFormData.roleid === 3">
-        <el-select v-model="updateFormData.type" placeholder="請選擇一個角色" style="width:90%">
-          <el-option label="預設" :value="0" />
-          <el-option label="在學" :value="1" />
-          <el-option label="停課" :value="2" />
-          <el-option label="約課" :value="3" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="緊急聯絡人" prop="contactPerson" v-if="updateFormData.roleid === 3">
-        <el-input  style="width:90%" v-model="updateFormData.contactPerson"/>
-      </el-form-item>
-      <el-form-item label="聯絡人電話" prop="contactPhone" v-if="updateFormData.roleid === 3">
-        <el-input  style="width:90%" v-model="updateFormData.contactPhone"/>
-      </el-form-item>
-      <el-form-item label="關係稱謂" prop="relationshipTitle" v-if="updateFormData.roleid === 3">
-        <el-input  style="width:90%" v-model="updateFormData.relationshipTitle"/>
-      </el-form-item>
-      <el-form-item :label="t('Access')" prop="Access" v-if="false">
-        <el-checkbox-group v-model="updateFormData.groupIds">
-          <el-checkbox label="大門" :value="1"/>
-          <el-checkbox label="Car教室" :value="2"/>
-          <el-checkbox label="Sunny教室" :value="3" />
-          <el-checkbox label="儲藏室" :value="4" />
-        </el-checkbox-group>
+      <el-form-item label="拆帳比例" prop="splitRatio">
+        <el-input-number style="width:90%" v-model="updateFormData.splitRatio" :min="0" :max="1" :precision="1" :controls="false"/>
       </el-form-item>
     </el-form>
     <template #footer>
@@ -219,28 +139,6 @@
   </el-dialog>
   <!-- /編輯彈窗 -->
 
-  <!-- 子帳號彈窗 -->
-  <el-dialog class="dialog"  v-model="isShowAddChildDialog" :title="`設定子帳號: ${addChildFormData.username}(${addChildFormData.parentId})`">
-    <el-form label-width="100px"  ref="addChildForm" :rules="editRules" :model="addChildFormData">
-      <el-form-item label="子帳號" >
-        <el-select style="width:90%" filterable placeholder="請選擇要綁定的子帳號" v-model="addChildFormData.childId">
-          <el-option
-            v-for="item in usersOptions"
-            :key="item.userId"
-            :label="item.displayName"
-            :value="item.userId"
-          />
-        </el-select>
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="isShowAddChildDialog = false">{{ t("Cancel") }}</el-button>
-        <el-button type="primary"  @click="submitaddChildForm()">{{ t("Confirm") }}</el-button>
-      </span>
-    </template>
-  </el-dialog>
-  <!-- /子帳號彈窗 -->
 
 </template>
 
@@ -263,12 +161,9 @@ const isShowEditRoleDialog = ref(false);
 const isShowAddChildDialog = ref(false);
 const { t } = useI18n();
 const userInfo = ref<M_IUsersContent | null>(null);  // Specify the type of the array
-// const userInfo = ref<M_IUsers[]>([]);
 const currentPage4 = ref(4)
 const size = ref<ComponentSize>('default')
 const searchText = ref('')
-const searchType = ref(0)
-const searchRole = ref(0)
 const userInfoStore = useUserInfoStore();
 const showId = ref(false);
 const usersOptions = ref<M_IUsersOptions[]>([]);
@@ -332,6 +227,7 @@ const onEdit = (item: M_IUsers) => {
   updateFormData.contactPerson = item.contactPerson ?? '';
   updateFormData.contactPhone = item.contactPhone ?? '';
   updateFormData.relationshipTitle = item.relationshipTitle ?? '';
+  updateFormData.splitRatio = item.splitRatio ?? undefined;
   isShowEditRoleDialog.value = true;
 }
 
@@ -496,17 +392,13 @@ const submitaddChildForm = async () => {
 
 const onFilterInputed = () => {
   console.log("Search Function");
-  if(!searchText.value || searchText.value.trim() === '' || searchType.value || searchRole.value){
+  if(!searchText.value || searchText.value.trim() === ''){
     searchPagination.value.SearchText = searchText.value
-    searchPagination.value.type = searchType.value
-    searchPagination.value.Role = searchRole.value
     getUsers();
   }else{
     setTimeout(()=>{
       console.log(searchText.value)
       searchPagination.value.SearchText = searchText.value
-      searchPagination.value.type = searchType.value
-      searchPagination.value.Role = searchRole.value
       console.log(searchPagination.value);
       getUsers();
     }, 500);
@@ -523,13 +415,14 @@ const createFormData = reactive<M_ICreateRuleForm>({
   email: '',
   phone: '',
   password: '',
-  roleid: 3,
-  type:1,
+  roleid: 2,
+  type:0,
   address:'', //UI不顯示，預設回寫空白
   idcard:'', //UI不顯示，預設回寫空白
   contactPerson:'',
   contactPhone:'',
-  relationshipTitle:''
+  relationshipTitle:'',
+  splitRatio: 0.0
 })
 
 // 編輯使用者表單
@@ -606,7 +499,7 @@ async function getUsers() {
     // const getUsersResult = await API.getAllUsers();
 
     /** 取得使用者清單-後端分頁 */
-    const getUsersResult = await API.getAllUsers(searchPagination.value);
+    const getUsersResult = await API.getAllTeachersV2(searchPagination.value);
 
     if (getUsersResult.data.result != 1) throw new Error(getUsersResult.data.msg);
     userInfo.value = getUsersResult.data.content;
@@ -622,174 +515,12 @@ async function getUsersOptions() {
   try {
     const getUsersOptionsResult = await API.getUsersOptions();
     if (getUsersOptionsResult.data.result != 1) throw new Error(getUsersOptionsResult.data.msg);
-    // usersOptions.value = getUsersOptionsResult.data.content;
     usersOptions.value = getUsersOptionsResult.data.content.filter(user => ![52, 54].includes(user.userId));
 
   } catch (error) {
     console.error(error);
   }
 }
-//#endregion
-
-//#region MockData
-const MockData =[
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-  {
-    accessDays: "周一,周二,周三,周四,周五,周六,周日",
-    accessTime: "2024/07/2100:00~2124/07/2124:00",
-    displayName: "Administrator",
-    email: "",
-    password: "1qaz2wsx",
-    phone: "0",
-    roleId: 1,
-    roleName: "Admin",
-    userId: 51,
-    username: "admin"
-  },
-]
 //#endregion
 
 </script>
