@@ -518,7 +518,8 @@ class APIService {
   //#region Music 課程相關
   /** 取得所有課程 */
   getCourse(){
-    return this.axiosInstance.get<IAPIResponse<any>>(`v1/Courses`);
+    // return this.axiosInstance.get<IAPIResponse<any>>(`v1/Courses`);
+    return this.axiosInstance.get<IAPIResponse<any>>(`v2/Courses`);
   }
   
   /** 取得所有分類 */
@@ -534,7 +535,7 @@ class APIService {
 
   /** 新增課程 */
   addCourse(cmd: M_ICourseOptions){
-    return this.axiosInstance.post<IBaseAPIResponse>(`v1/Course`, cmd);
+    return this.axiosInstance.post<IBaseAPIResponse>(`v2/Course`, cmd);
   }
 
   /** 新增分類 */
@@ -544,7 +545,8 @@ class APIService {
 
   /** 更新課程 */
   updateCourse(cmd: M_ICourseOptions){
-    return this.axiosInstance.patch<IBaseAPIResponse>(`v1/UpdateCourse`, cmd);
+    // return this.axiosInstance.patch<IBaseAPIResponse>(`v1/UpdateCourse`, cmd);
+    return this.axiosInstance.patch<IBaseAPIResponse>(`v2/UpdateCourse`, cmd);
   }
 
   /** 更新分類 */

@@ -1,7 +1,7 @@
 <template>
   <!-- table -->
   <el-row>
-    <el-col :span="12" style="padding: 10px;">
+    <el-col :span="8" style="padding: 10px;">
       <el-button type="primary" @click="onCreateCourseTypeClicked">新增分類</el-button>
       <el-table name="userInfoTable" style="width: 100%"  :data="courseTypeList">
         <el-table-column sortable :label="t('Course Type')"  prop="courseTypeName"/>
@@ -12,11 +12,16 @@
         </el-table-column>
       </el-table>
     </el-col>
-    <el-col :span="12" style="padding: 10px;">
+    <el-col :span="16" style="padding: 10px;">
       <el-button type="primary" @click="onCreateCourseClicked">新增課程</el-button>
       <el-table name="userInfoTable" style="width: 100%"  :data="courseList">
         <el-table-column sortable :label="t('Course Type')"  prop="courseTypeName"/>
         <el-table-column sortable :label="t('Course Name')"  prop="courseName"/>
+        <el-table-column sortable label="課程費用"  prop="amount"/>
+        <el-table-column sortable label="教材費"  prop="materialFee"/>
+        <el-table-column sortable label="課程時數"  prop="hours"/>
+        <el-table-column sortable label="預設拆帳比"  prop="splitRatio"/>
+        <el-table-column sortable label="備註"  prop="remark"/>
         <el-table-column width="170px" align="center" prop="operate" class="operateBtnGroup d-flex" :label="t('operation')">
           <template #default="{ row }: { row: any }">
             <el-button type="primary" size="small" @click="onEdit(row)"><el-icon><EditPen /></el-icon>{{ t('edit') }}</el-button>
@@ -35,6 +40,59 @@
     <el-form label-width="100px"  ref="createaddRoleForm" :rules="rules" :model="createFormData">
       <el-form-item :label="t('Course Name')" prop="courseName"  >
         <el-input style="width:90%" v-model="createFormData.courseName"/>
+      </el-form-item>
+      <el-form-item label="課程分類" prop="courseTypeId">
+        <el-select style="width:90%" v-model="createFormData.courseTypeId">
+          <el-option
+            label="=未選擇分類="
+            :value="0"
+          />
+          <el-option
+            v-for="item in courseTypeList"
+            :key="item.courseTypeId"
+            :label="item.courseTypeName"
+            :value="item.courseTypeId"
+          />
+        </el-select>
+      </el-form-item>
+      <!-- <el-form-item label="課程類別" prop="category">
+        <el-input style="width:90%" v-model="createFormData.category"/>
+      </el-form-item>
+      <el-form-item label="排序順序" prop="sortOrder">
+        <el-input-number style="width:90%" v-model="createFormData.sortOrder" :controls="false"/>
+      </el-form-item>
+      <el-form-item label="收費編號" prop="feeCode">
+        <el-input style="width:90%" v-model="createFormData.feeCode"/>
+      </el-form-item> -->
+      <el-row>
+        <el-col :span="12">
+          <el-form-item label="課程費用" prop="amount" label-width="100px">
+            <el-input-number style="width:75%" v-model="createFormData.amount" :controls="false"/>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="教材費" prop="materialFee" label-width="100px">
+            <el-input-number style="width:75%" v-model="createFormData.materialFee" :controls="false"/>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="12">
+          <el-form-item label="課程時數" prop="hours" label-width="100px">
+            <el-input-number style="width:75%" v-model="createFormData.hours" :precision="2" :controls="false"/>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="拆帳比例" prop="splitRatio" label-width="100px">
+            <el-input-number style="width:75%" v-model="createFormData.splitRatio" :min="0" :max="1" :precision="2" :step="0.01" :controls="false"/>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <!-- <el-form-item label="開放課程費用" prop="openCourseAmount">
+        <el-input-number style="width:90%" v-model="createFormData.openCourseAmount" :controls="false"/>
+      </el-form-item> -->
+      <el-form-item label="課程說明/備註" prop="remark">
+        <el-input style="width:90%" type="textarea" :rows="3" v-model="createFormData.remark"/>
       </el-form-item>
     </el-form>
     <template #footer>
@@ -65,6 +123,45 @@
             :value="item.courseTypeId"
           />
         </el-select>
+      </el-form-item>
+      <!-- <el-form-item label="課程類別" prop="category">
+        <el-input style="width:90%" v-model="updateFormData.category"/>
+      </el-form-item>
+      <el-form-item label="排序順序" prop="sortOrder">
+        <el-input-number style="width:90%" v-model="updateFormData.sortOrder" :controls="false"/>
+      </el-form-item>
+      <el-form-item label="收費編號" prop="feeCode">
+        <el-input style="width:90%" v-model="updateFormData.feeCode"/>
+      </el-form-item> -->
+      <el-row>
+        <el-col :span="12">
+          <el-form-item label="課程費用" prop="amount" >
+            <el-input-number style="width:75%" v-model="updateFormData.amount" :controls="false"/>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="教材費" prop="materialFee">
+            <el-input-number style="width:75%" v-model="updateFormData.materialFee" :controls="false"/>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="12">
+          <el-form-item label="課程時數" prop="hours" >
+            <el-input-number style="width:75%" v-model="updateFormData.hours" :precision="0" :controls="false"/>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="拆帳比例" prop="splitRatio" >
+            <el-input-number style="width:75%" v-model="updateFormData.splitRatio" :min="0" :max="1" :precision="1" :controls="false"/>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <!-- <el-form-item label="開放課程費用" prop="openCourseAmount">
+        <el-input-number style="width:90%" v-model="updateFormData.openCourseAmount" :controls="false"/>
+      </el-form-item> -->
+      <el-form-item label="課程說明/備註" prop="remark">
+        <el-input style="width:90%" type="textarea" :rows="3" v-model="updateFormData.remark"/>
       </el-form-item>
     </el-form>
     <template #footer>
@@ -151,6 +248,15 @@ const onEdit = (item: M_ICourseOptions) => {
   updateFormData.courseName = item.courseName;
   updateFormData.courseTypeId = item.courseTypeId;
   updateFormData.IsDelete = false;
+  // updateFormData.category = item.category;
+  // updateFormData.sortOrder = item.sortOrder;
+  // updateFormData.feeCode = item.feeCode;
+  updateFormData.amount = item.amount;
+  updateFormData.materialFee = item.materialFee;
+  updateFormData.hours = item.hours;
+  updateFormData.splitRatio = item.splitRatio;
+  // updateFormData.openCourseAmount = item.openCourseAmount;
+  updateFormData.remark = item.remark;
   isShowEditRoleDialog.value = true;
 }
 
@@ -358,6 +464,16 @@ const submitCourseTypeUpdateForm = async () => {
 const createaddRoleForm = ref<FormInstance>()
 const createFormData = reactive<M_ICourseOptions>({
   courseName: '',
+  courseTypeId: 0,
+  // category: undefined,
+  // sortOrder: undefined,
+  // feeCode: undefined,
+  amount: undefined,
+  materialFee: undefined,
+  hours: undefined,
+  splitRatio: undefined,
+  // openCourseAmount: undefined,
+  remark: undefined
 })
 
 // 編輯課程表單
@@ -365,7 +481,16 @@ const updateRoleForm = ref<FormInstance>()
 const updateFormData = reactive<M_ICourseOptions>({
  courseName: '',
  courseTypeId: 0,
- IsDelete: false
+ IsDelete: false,
+//  category: undefined,
+//  sortOrder: undefined,
+//  feeCode: undefined,
+ amount: undefined,
+ materialFee: undefined,
+ hours: undefined,
+ splitRatio: undefined,
+//  openCourseAmount: undefined,
+ remark: undefined
 })
 
 const deleteFormData = reactive<M_ICourseOptions>({
@@ -436,5 +561,8 @@ async function getCourseTypeOptions () {
 <style scoped>
 .el-row{
   justify-content: end;
+}
+:deep(.el-input-number .el-input__inner) {
+  text-align: left;
 }
 </style>
