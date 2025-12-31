@@ -81,3 +81,73 @@ export interface M_IResAttendance {
   attendanceType: number;       // 0=缺席, 1=出席, 2=請假
   checkInTime?: string;         // HH:mm
 }
+
+/**
+ * 學生簽到摘要項目
+ */
+export interface M_IStudentAttendanceSummary {
+  serialNo: number;
+  studentPermissionId: number;
+  studentPermissionFeeId: number;
+  courseName: string;
+  paymentDate?: string;         // 民國年格式: 114/02/27
+  receivableAmount: number;     // 應收金額
+  receivedAmount: number;       // 已收金額
+  outstandingAmount: number;    // 欠款金額
+  receiptNumber?: string;       // 結帳單號
+  attendances: string[];        // 簽到記錄摘要列表
+}
+
+/**
+ * 學生簽到記錄回應
+ */
+export interface M_IResStudentAttendance {
+  nowStudentPermissionId: number;  // 最新學生權限 ID
+  maxHours: number;                // 最大 Hours
+  attendances: M_IStudentAttendanceSummary[];
+}
+
+/**
+ * 建立繳費記錄請求
+ */
+export interface M_IReqCreatePayment {
+  studentPermissionFeeId: number;  // 學生權限費用 ID
+  pay: number;                     // 繳費金額
+  discountAmount?: number;         // 折扣金額 (預設0)
+  remark?: string;                 // 備註
+}
+
+/**
+ * 建立學生權限費用記錄請求
+ */
+export interface M_IReqCreateStudentPermissionFee {
+  studentPermissionId: number;     // 學生權限 ID
+}
+
+/**
+ * 建立學生權限費用記錄回應
+ */
+export interface M_IResCreateStudentPermissionFee {
+  feeId: number;                   // 新建立的費用記錄 ID
+  paymentDate: string;             // 繳款日 (yyyy/MM/dd 格式)
+}
+
+/**
+ * 關帳記錄項目（TblCloseAccount）
+ */
+export interface M_ICloseAccountRecord {
+  closeDate: string;               // 關帳日期 (datetime)
+  yesterdayPettyIncome: number;    // 昨日零用金結餘
+  businessIncome: number;          // 營業收入
+  closeAccountAmount: number;      // 關帳結算金額
+  depositAmount: number;           // 提存金額
+  pettyIncome: number;             // 零用金結餘
+}
+
+/**
+ * 查詢關帳記錄請求參數
+ */
+export interface M_IReqGetCloseAccounts {
+  startDate?: string;              // 開始日期 (格式: yyyy-MM-dd)
+  endDate?: string;                // 結束日期 (格式: yyyy-MM-dd)
+}

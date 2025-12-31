@@ -278,6 +278,73 @@
     </el-col>
   </el-row>
 </el-dialog>
+
+<!-- 繳費紀錄 Dialog -->
+<el-dialog
+  v-model="isShowPaymentRecordDialog"
+  title="繳費紀錄"
+  width="90%"
+>
+  <div style="margin-bottom: 15px;">
+    <el-button type="primary" size="small" @click="handleCreatePayment"><el-icon><EditPen /></el-icon>{{ '新增一期繳費' }}</el-button>
+  </div>
+  <el-table :data="paymentRecordData" border style="width: 100%">
+    <el-table-column prop="serialNo" label="序號" />
+    <el-table-column prop="courseName" label="課程名稱"/>
+    <el-table-column prop="paymentDate" label="繳款日"/>
+    <el-table-column prop="receivableAmount" label="應收金額" />
+    <el-table-column prop="receivedAmount" label="已收金額" />
+    <el-table-column prop="outstandingAmount" label="欠款金額" />
+    <el-table-column prop="receiptNumber" label="結帳單號" />
+
+    <!-- 動態簽到欄位 -->
+    <el-table-column
+      v-for="i in maxHours"
+      :key="i"
+      :label="`簽到 ${i}`"
+    >
+      <template #default="{ row }">
+        {{ row.attendances[i - 1] ?? '-' }}
+      </template>
+    </el-table-column>
+    <el-table-column align="center" class="operateBtnGroup d-flex" label="操作">
+      <template #default="{ row }: { row: any }">
+        <el-button type="primary" size="small" @click="handlePayment(row)" v-if="(row.receivedAmount === 0)"><el-icon><EditPen /></el-icon>{{ '繳費' }}</el-button>
+      </template>
+    </el-table-column>
+  </el-table>
+</el-dialog>
+
+<!-- 繳費 Dialog -->
+<el-dialog
+  v-model="isShowPaymentDialog"
+  title="繳費"
+  width="500px"
+>
+  <el-form :model="paymentFormData" label-width="120px">
+    <el-form-item label="課程名稱">
+      <el-input v-model="paymentFormData.courseName" disabled />
+    </el-form-item>
+    <el-form-item label="應收金額">
+      <el-input-number v-model="paymentFormData.receivableAmount" :min="0" disabled style="width: 100%" />
+    </el-form-item>
+    <el-form-item label="繳費金額">
+      <el-input-number v-model="paymentFormData.pay" :min="0" style="width: 100%" />
+    </el-form-item>
+    <el-form-item label="折扣金額">
+      <el-input-number v-model="paymentFormData.discountAmount" :min="0" style="width: 100%" />
+    </el-form-item>
+    <el-form-item label="備註">
+      <el-input v-model="paymentFormData.remark" type="textarea" :rows="3" />
+    </el-form-item>
+  </el-form>
+  <template #footer>
+    <span class="dialog-footer">
+      <el-button @click="isShowPaymentDialog = false">取消</el-button>
+      <el-button type="primary" @click="submitPayment">確定</el-button>
+    </span>
+  </template>
+</el-dialog>
 </template>
 
 <script setup lang="ts">
@@ -289,7 +356,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import { FormInstance, FormRules, ElMessage, ElMessageBox } from 'element-plus';
-import { Delete, Edit, CircleCheck, Money } from '@element-plus/icons-vue';
+import { Delete, Edit, CircleCheck, Money, EditPen } from '@element-plus/icons-vue';
 import { useUserInfoStore } from '@/stores/UserInfoStore';
 
 import API from '@/apis/TPSAPI';
@@ -298,6 +365,7 @@ import { M_IClassRoomOptions } from '@/models/M_IClassRoomOptions';
 import { M_IUsersOptions } from '@/models/M_IUsersOptions';
 import { M_ICourseOptions } from '@/models/M_ICourseOptions';
 import { M_ITeachersOptions } from '@/models/M_ITeachersOptions';
+import { M_IStudentAttendanceSummary } from '@/models/M_ICloseAccount';
 
 
 const classRoomList = ref<M_IClassRoomOptions[]>([]);
@@ -332,6 +400,22 @@ const courseDetail = reactive({
   startTime: '',
   endTime: '',
   studentPermissionId: 0
+});
+
+// 繳費紀錄 Dialog 控制
+const isShowPaymentRecordDialog = ref(false);
+const paymentRecordData = ref<M_IStudentAttendanceSummary[]>([]);
+const maxHours = ref(0);
+
+// 繳費 Dialog 控制
+const isShowPaymentDialog = ref(false);
+const paymentFormData = reactive({
+  studentPermissionFeeId: 0,
+  courseName: '',
+  receivableAmount: 0,
+  pay: 0,
+  discountAmount: 0,
+  remark: ''
 });
 
 // 更新模式 Dialog 控制
@@ -873,13 +957,96 @@ const handleCheckIn = async (attendanceType: number) => {
 };
 
 // 繳費紀錄
-const handlePaymentRecord = () => {
-  ElMessage.info('繳費紀錄功能開發中...');
-  // TODO: 實作繳費紀錄功能
-  console.log('繳費紀錄:', {
-    studentName: courseDetail.studentName,
-    studentPermissionId: courseDetail.studentPermissionId
-  });
+const handlePaymentRecord = async () => {
+  try {
+    const response = await API.getStudentAttendance(courseDetail.studentPermissionId);
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    const data = response.data.content;
+    paymentRecordData.value = data.attendances;
+    maxHours.value = data.maxHours;
+
+    // 顯示繳費紀錄彈窗
+    isShowPaymentRecordDialog.value = true;
+
+    console.log('繳費紀錄:', data);
+  } catch (error) {
+    ElMessage.error((error as Error).message || '查詢繳費紀錄失敗');
+  }
+};
+
+// 開啟繳費對話框
+const handlePayment = (row: M_IStudentAttendanceSummary) => {
+  paymentFormData.studentPermissionFeeId = row.studentPermissionFeeId;
+  paymentFormData.courseName = row.courseName;
+  paymentFormData.receivableAmount = row.receivableAmount;
+  paymentFormData.pay = row.receivableAmount; // 預設代入應收金額
+  paymentFormData.discountAmount = 0; // 預設為0
+  paymentFormData.remark = '';
+
+  isShowPaymentDialog.value = true;
+};
+
+// 提交繳費
+const submitPayment = async () => {
+  try {
+    const response = await API.createPayment({
+      studentPermissionFeeId: paymentFormData.studentPermissionFeeId,
+      pay: paymentFormData.pay,
+      discountAmount: paymentFormData.discountAmount,
+      remark: paymentFormData.remark
+    });
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    ElMessage.success('繳費成功');
+    isShowPaymentDialog.value = false;
+
+    // 重新載入繳費紀錄
+    await handlePaymentRecord();
+  } catch (error) {
+    ElMessage.error((error as Error).message || '繳費失敗');
+  }
+};
+
+// 新增一期繳費
+const handleCreatePayment = async () => {
+  try {
+    await ElMessageBox.confirm(
+      `確定要為學生新增一期繳費記錄嗎？`,
+      '確認新增',
+      {
+        confirmButtonText: '確定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+  } catch {
+    return; // 使用者取消
+  }
+
+  try {
+    const response = await API.createStudentPermissionFee({
+      studentPermissionId: courseDetail.studentPermissionId
+    });
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    const data = response.data.content;
+    ElMessage.success(`新增成功！費用記錄 ID: ${data.feeId}，繳款日: ${data.paymentDate}`);
+
+    // 重新載入繳費紀錄
+    await handlePaymentRecord();
+  } catch (error) {
+    ElMessage.error((error as Error).message || '新增費用記錄失敗');
+  }
 };
 
 const handleEvents = (events: any) => {

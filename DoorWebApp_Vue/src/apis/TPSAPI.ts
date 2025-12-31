@@ -3,7 +3,7 @@ import IReqUserRoleDTO from "@/models/dto/IReqUserRoleDTO";
 import IResUserInfoDTO from "@/models/dto/IResUserInfoDTO";
 import { IBaseAPIResponse } from "@/models/IBaseAPIResponse";
 import IAPIResponse from "@/models/IAPIResponse";
-import { M_IResDailyScheduleStatus, M_ICheckInAllResult, M_ICloseAccountDetail, M_ISaveCloseAccountRequest, M_IReqCreateAttendance, M_IResAttendance } from "@/models/M_ICloseAccount";
+import { M_IResDailyScheduleStatus, M_ICheckInAllResult, M_ICloseAccountDetail, M_ISaveCloseAccountRequest, M_IReqCreateAttendance, M_IResAttendance, M_IResStudentAttendance, M_IReqCreatePayment, M_IReqCreateStudentPermissionFee, M_IResCreateStudentPermissionFee, M_ICloseAccountRecord } from "@/models/M_ICloseAccount";
 import { useRouter } from "vue-router";
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import IReqLoginDTO from "@/models/dto/IReqLoginDTO";
@@ -640,6 +640,56 @@ class APIService {
   /** 建立簽到記錄 */
   createAttendance(request: M_IReqCreateAttendance) {
     return this.axiosInstance.post<IAPIResponse<M_IResAttendance>>(`v1/Attend`, request);
+  }
+
+  /** 取得學生簽到記錄摘要 */
+  getStudentAttendance(studentPermissionId: number) {
+    return this.axiosInstance.get<IAPIResponse<M_IResStudentAttendance>>(`v1/StudentAttendance/${studentPermissionId}`);
+  }
+
+  /** 建立或更新繳費記錄 */
+  createPayment(request: M_IReqCreatePayment) {
+    return this.axiosInstance.post<IAPIResponse<any>>(`v1/StudentPayment`, request);
+  }
+
+  /** 建立學生權限費用記錄 */
+  createStudentPermissionFee(request: M_IReqCreateStudentPermissionFee) {
+    return this.axiosInstance.post<IAPIResponse<M_IResCreateStudentPermissionFee>>(`v1/StudentAttendance`, request);
+  }
+
+  /** 查詢關帳記錄 */
+  getCloseAccounts(startDate?: string, endDate?: string) {
+    const params: any = {};
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+    return this.axiosInstance.get<IAPIResponse<M_ICloseAccountRecord[]>>(`v1/CloseAccount`, { params });
+  }
+
+  /** 營業日總表 PDF */
+  getDailyReportPDF(date: string) {
+    return this.axiosInstance.get(`v1/CloseAccount/DailyReport/${date}`, { responseType: 'blob' });
+  }
+
+  /** 上課拆帳明細表 PDF */
+  getSalaryReportPDF(startDate: string, endDate: string, teacherId: number, includePaid = true) {
+    const params: any = {
+      startDate,
+      endDate,
+      teacherId,
+      includePaid
+    };
+    return this.axiosInstance.get(`pdf/v1/SalaryReport`, { params, responseType: 'blob' });
+  }
+
+  /** 公司獲利彙總表 PDF */
+  getCompanyProfitSummaryPDF(startDate: string, endDate: string, teacherId: number, includePaid = true) {
+    const params: any = {
+      startDate,
+      endDate,
+      teacherId,
+      includePaid
+    };
+    return this.axiosInstance.get(`pdf/v1/CompanyProfitSummary`, { params, responseType: 'blob' });
   }
   //#endregion
   }
