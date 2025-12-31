@@ -26,14 +26,14 @@
         <el-icon><CircleCheck /></el-icon>一鍵全部簽到
       </el-button>
 
-      <!-- <el-button
+      <el-button
         type="primary"
         size="small"
         @click="handleCloseAccount"
         :disabled="!dailyScheduleStatus.canCloseAccount"
       >
         <el-icon><Check /></el-icon>{{ dailyScheduleStatus.canCloseAccount ? '今日關帳' : '無法關帳' }}
-      </el-button> -->
+      </el-button>
     </div>
   </div>
 
@@ -71,18 +71,71 @@
       </el-table>
     </el-col>
   </el-row>
+  <!-- /Table -->
+
+  <!-- 關帳彈窗 -->
+  <el-dialog class="dialog"  v-model="isShowAddRoleDialog" title="關帳">
+    <el-form label-width="100px"  ref="" :rules="rules" :model="createFormData">
+      <el-form-item label="關帳日期" prop="closeDate"  >
+        <el-input style="width:90%" v-model="createFormData.closeDate" disabled/>
+      </el-form-item>
+      <el-form-item label="昨日現金結餘" prop="yesterdayPettyIncome" >
+        <el-input  style="width:90%" v-model="createFormData.yesterdayPettyIncome" disabled/>
+      </el-form-item>
+      <el-form-item label="營業收入（學生學費）" prop="businessIncome" >
+        <el-input  style="width:90%" v-model="createFormData.businessIncome" disabled/>
+      </el-form-item>
+      <el-form-item label="關帳結算金額" prop="closeAccountAmount"  >
+        <el-input  style="width:90%" v-model="createFormData.closeAccountAmount" disabled/>
+      </el-form-item>
+      <el-form-item label="提存金額" prop="depositAmount"  >
+        <el-input-number  style="width:90%" v-model="createFormData.depositAmount" :min="0" :controls="false"/>
+      </el-form-item>
+      <el-form-item label="零用金結餘" prop="pettyIncome"  >
+        <el-input  style="width:90%" :value="computedPettyIncome" disabled/>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="isShowAddRoleDialog = false">{{ t("Cancel") }}</el-button>
+        <el-button type="primary"  @click="submitForm()">{{ t("Confirm") }}</el-button>
+      </span>
+    </template>
+  </el-dialog>
+  <!-- /關帳彈窗 -->
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, reactive, computed } from "vue";
+import { useI18n } from "vue-i18n";
 import API from '@/apis/TPSAPI';
-import { M_IResDailyScheduleStatus } from "@/models/M_ICloseAccount";
-import { ElNotification, ElMessageBox, NotificationParams } from 'element-plus';
+import { M_IResDailyScheduleStatus, M_ICloseAccountDetail } from "@/models/M_ICloseAccount";
+import { ElNotification, ElMessageBox, NotificationParams, FormInstance, FormRules } from 'element-plus';
 import { Check, CircleCheck } from '@element-plus/icons-vue';
 
+const { t } = useI18n();
 const selectedDate = ref<string>('');
 const dailyScheduleStatus = ref<M_IResDailyScheduleStatus | null>(null);
 const isCheckingInAll = ref<boolean>(false);
+const isShowAddRoleDialog = ref<boolean>(false);
+
+const createFormData = reactive<M_ICloseAccountDetail>({
+  closeDate: '',
+  yesterdayPettyIncome: 0,
+  businessIncome: 0,
+  closeAccountAmount: 0,
+  depositAmount: 0,
+  pettyIncome: 0
+});
+
+const rules = reactive<FormRules>({
+  depositAmount: [{ required: true, message: '請輸入提存金額', trigger: 'blur' }]
+});
+
+// 自動計算零用金結餘
+const computedPettyIncome = computed(() => {
+  return createFormData.closeAccountAmount - createFormData.depositAmount;
+});
 
 const handleDateChange = async (date: string) => {
   if (!date) {
@@ -179,20 +232,79 @@ const handleCheckInAll = async () => {
   }
 };
 
-const handleCloseAccount = () => {
-  if (!dailyScheduleStatus.value || !dailyScheduleStatus.value.canCloseAccount) {
+const handleCloseAccount = async () => {
+  if (!dailyScheduleStatus.value || !dailyScheduleStatus.value.canCloseAccount || !selectedDate.value) {
     return;
   }
 
-  ElNotification({
-    title: "關帳功能",
-    type: "info",
-    message: `準備關帳：${selectedDate.value}`,
-    duration: 2000,
-  });
+  let notifyParam: NotificationParams = {};
 
-  // TODO: 實作關帳邏輯
-  console.log('執行關帳:', selectedDate.value, dailyScheduleStatus.value);
+  try {
+    // 查詢關帳明細資料
+    const response = await API.getCloseAccountDetail(selectedDate.value);
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    const detail = response.data.content;
+
+    // 填充表單資料
+    createFormData.closeDate = detail.closeDate;
+    createFormData.yesterdayPettyIncome = detail.yesterdayPettyIncome;
+    createFormData.businessIncome = detail.businessIncome;
+    createFormData.closeAccountAmount = detail.closeAccountAmount;
+    createFormData.depositAmount = detail.depositAmount;
+    createFormData.pettyIncome = detail.pettyIncome;
+
+    // 顯示彈窗
+    isShowAddRoleDialog.value = true;
+
+  } catch (error) {
+    notifyParam = {
+      title: "查詢失敗",
+      type: "error",
+      message: (error as Error).message,
+      duration: 3000,
+    };
+    ElNotification(notifyParam);
+  }
+};
+
+const submitForm = async () => {
+  if (!createFormData.closeDate) return;
+
+  let notifyParam: NotificationParams = {};
+
+  try {
+    const response = await API.saveCloseAccount({
+      date: createFormData.closeDate,
+      depositAmount: createFormData.depositAmount
+    });
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    notifyParam = {
+      title: "關帳成功",
+      type: "success",
+      message: `已完成 ${createFormData.closeDate} 的關帳作業`,
+      duration: 3000,
+    };
+
+    isShowAddRoleDialog.value = false;
+
+  } catch (error) {
+    notifyParam = {
+      title: "關帳失敗",
+      type: "error",
+      message: (error as Error).message,
+      duration: 3000,
+    };
+  } finally {
+    ElNotification(notifyParam);
+  }
 };
 </script>
 

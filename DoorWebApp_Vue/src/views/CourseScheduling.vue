@@ -230,6 +230,54 @@
     </span>
   </template>
 </el-dialog>
+
+<!-- 課程詳情 Dialog -->
+<el-dialog
+  v-model="isShowCourseDetailDialog"
+  title="課程詳情"
+  width="800px"
+>
+  <el-row :gutter="20">
+    <!-- 左側：課程資訊 (2/3) -->
+    <el-col :span="16">
+      <el-descriptions :column="1" border>
+        <el-descriptions-item label="學生" label-width="80px">{{ courseDetail.studentName }} ({{courseDetail.studentPermissionId}})</el-descriptions-item>
+        <el-descriptions-item label="課程名稱" label-width="80px">{{ courseDetail.courseName }}</el-descriptions-item>
+        <el-descriptions-item label="老師" label-width="80px">{{ courseDetail.teacherName }}</el-descriptions-item>
+        <el-descriptions-item label="教室" label-width="80px">{{ courseDetail.classroomName }}</el-descriptions-item>
+        <el-descriptions-item label="課程時間" label-width="80px">{{ courseDetail.scheduleDate }} {{ courseDetail.startTime }} ~ {{ courseDetail.endTime }}</el-descriptions-item>
+      </el-descriptions>
+    </el-col>
+
+    <!-- 右側：操作按鈕 (1/3) -->
+    <el-col :span="8">
+      <div style="display: flex; flex-direction: column; gap: 15px; height: 100%; justify-content: center;">
+        <!-- 第一列：刪除、繳費紀錄 -->
+        <div style="display: flex; gap: 10px;">
+          <el-button type="danger" size="default" @click="handleDeleteCourse" style="margin-left: 0; flex: 1;">
+            <el-icon><Delete /></el-icon>刪除
+          </el-button>
+          <el-button type="info" size="default" @click="handleCheckIn(2)" style="margin-left: 0; flex: 1;">
+            <el-icon><CircleCheck /></el-icon>請假
+          </el-button>
+        </div>
+        <!-- 第二列：缺席、出席 -->
+        <div style="display: flex; gap: 10px;">
+          <el-button type="warning" size="default" @click="handleCheckIn(0)" style="margin-left: 0; flex: 1;">
+            <el-icon><CircleCheck /></el-icon>缺席
+          </el-button>
+          <el-button type="success" size="default" @click="handleCheckIn(1)" style="margin-left: 0; flex: 1;">
+            <el-icon><CircleCheck /></el-icon>出席
+          </el-button>
+        </div>
+        <!-- 第三列：繳費紀錄 -->
+        <el-button type="primary" size="default" @click="handlePaymentRecord" style="margin-left: 0;">
+          <el-icon><Money /></el-icon>繳費紀錄
+        </el-button>
+      </div>
+    </el-col>
+  </el-row>
+</el-dialog>
 </template>
 
 <script setup lang="ts">
@@ -240,7 +288,9 @@ import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import { FormInstance, FormRules, ElMessage } from 'element-plus';
+import { FormInstance, FormRules, ElMessage, ElMessageBox } from 'element-plus';
+import { Delete, Edit, CircleCheck, Money } from '@element-plus/icons-vue';
+import { useUserInfoStore } from '@/stores/UserInfoStore';
 
 import API from '@/apis/TPSAPI';
 
@@ -252,6 +302,7 @@ import { M_ITeachersOptions } from '@/models/M_ITeachersOptions';
 
 const classRoomList = ref<M_IClassRoomOptions[]>([]);
 const fullCalendar = ref<any>(null);
+const userInfoStore = useUserInfoStore();
 
 // 教室資源 (從 API 動態載入)
 const resources = ref<any[]>([]);
@@ -268,6 +319,20 @@ const currentViewType = ref('resourceTimeGridDay');
 // Dialog 控制
 const isShowAddCourseDialog = ref(false);
 const addCourseFormRef = ref<FormInstance>();
+
+// 課程詳情 Dialog 控制
+const isShowCourseDetailDialog = ref(false);
+const courseDetail = reactive({
+  scheduleId: 0,
+  studentName: '',
+  courseName: '',
+  teacherName: '',
+  classroomName: '',
+  scheduleDate: '',
+  startTime: '',
+  endTime: '',
+  studentPermissionId: 0
+});
 
 // 更新模式 Dialog 控制
 const isShowUpdateModeDialog = ref(false);
@@ -625,6 +690,7 @@ const submitAddCourse = async () => {
 const handleEventClick = async (clickInfo: any) => {
   const event = clickInfo.event;
   const scheduleId = event.extendedProps.scheduleId;
+  const studentPermissionId = event.extendedProps.studentPermissionId || 0;
   const studentName = event.extendedProps.studentName || '';
   const courseName = event.extendedProps.courseName || '';
   const teacherName = event.extendedProps.teacherName || '';
@@ -632,91 +698,188 @@ const handleEventClick = async (clickInfo: any) => {
   const endTime = event.end;
   const resourceTitle = event.getResources()[0]?.title || '';
 
-  // 格式化時間顯示
-  const formatDateTime = (date: Date) => {
+  // 格式化日期和時間
+  const formatDate = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}`;
+    return `${year}-${month}-${day}`;
   };
 
-  // 顯示完整課程資訊
-  const message = `
-學生: ${studentName}
-課程名稱: ${courseName}
-老師: ${teacherName}
-教室: ${resourceTitle}
-時間: ${formatDateTime(startTime)} ~ ${formatDateTime(endTime)}
+  const formatTime = (date: Date) => {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
 
-確定要刪除此課程嗎？
-  `;
+  // 填充課程詳情資料
+  courseDetail.scheduleId = scheduleId;
+  courseDetail.studentPermissionId = studentPermissionId;
+  courseDetail.studentName = studentName;
+  courseDetail.courseName = courseName;
+  courseDetail.teacherName = teacherName;
+  courseDetail.classroomName = resourceTitle;
+  courseDetail.scheduleDate = formatDate(startTime);
+  courseDetail.startTime = formatTime(startTime);
+  courseDetail.endTime = formatTime(endTime);
 
-  if (confirm(message)) {
-    try {
-      // 驗證 scheduleId
-      if (!scheduleId) {
-        ElMessage.error('找不到課程 ID，無法刪除');
-        return;
+  // 顯示課程詳情彈窗
+  isShowCourseDetailDialog.value = true;
+};
+
+// 刪除課程
+const handleDeleteCourse = async () => {
+  const scheduleId = courseDetail.scheduleId;
+
+  try {
+    // 先確認是否要刪除
+    await ElMessageBox.confirm(
+      `確定要刪除 ${courseDetail.studentName} 的 ${courseDetail.courseName} 課程嗎？`,
+      '確認刪除',
+      {
+        confirmButtonText: '確定',
+        cancelButtonText: '取消',
+        type: 'warning',
       }
-
-      // 詢問刪除模式
-      const startDate = new Date(startTime);
-      const scheduleDate = startDate.toISOString().split('T')[0];
-      const result = await showUpdateModeDialog(scheduleDate);
-
-      if (!result) {
-        // 使用者取消操作
-        return;
-      }
-
-      // 準備 API 請求資料
-      const cmd: any = {
-        scheduleId: scheduleId,
-        isDelete: true,
-        updateMode: result.updateMode
-      };
-
-      // 根據 updateMode 決定帶入的日期欄位
-      if (result.updateMode === 1) {
-        // 單次刪除：需要 scheduleDate
-        cmd.scheduleDate = scheduleDate;
-      } else if (result.updateMode === 2) {
-        // 某日後全部刪除：需要 fromDate
-        cmd.fromDate = result.fromDate;
-      }
-      // updateMode === 3 (全部刪除)：不需要日期欄位
-
-      console.log('刪除課程排程:', cmd);
-
-      // 呼叫 API 刪除 (使用 patch 方法)
-      const response = await API.deleteCourseSchedule(cmd);
-
-      if (response.data.result === 1) {
-        const modeText = result.updateMode === 1 ? '此次課程' : result.updateMode === 2 ? `${result.fromDate} 之後的課程` : '全部課程';
-        ElMessage.success(`已刪除${modeText}`);
-
-        // 重新載入課程資料
-        const fullCalendarApi = fullCalendar.value?.getApi();
-        if (fullCalendarApi) {
-          const currentView = fullCalendarApi.view;
-          await handleDatesSet({
-            start: currentView.activeStart,
-            end: currentView.activeEnd,
-            startStr: currentView.activeStart.toISOString(),
-            endStr: currentView.activeEnd.toISOString(),
-            view: currentView
-          });
-        }
-      } else {
-        ElMessage.error(response.data.msg || '刪除課程失敗');
-      }
-    } catch (error) {
-      console.error('刪除課程排程失敗:', error);
-      ElMessage.error('刪除課程失敗，請稍後再試');
-    }
+    );
+  } catch {
+    return; // 使用者取消
   }
+
+  try {
+    // 驗證 scheduleId
+    if (!scheduleId) {
+      ElMessage.error('找不到課程 ID，無法刪除');
+      return;
+    }
+
+    // 詢問刪除模式
+    const result = await showUpdateModeDialog(courseDetail.scheduleDate);
+
+    if (!result) {
+      // 使用者取消操作
+      return;
+    }
+
+    // 準備 API 請求資料
+    const cmd: any = {
+      scheduleId: scheduleId,
+      isDelete: true,
+      updateMode: result.updateMode
+    };
+
+    // 根據 updateMode 決定帶入的日期欄位
+    if (result.updateMode === 1) {
+      // 單次刪除：需要 scheduleDate
+      cmd.scheduleDate = courseDetail.scheduleDate;
+    } else if (result.updateMode === 2) {
+      // 某日後全部刪除：需要 fromDate
+      cmd.fromDate = result.fromDate;
+    }
+    // updateMode === 3 (全部刪除)：不需要日期欄位
+
+    console.log('刪除課程排程:', cmd);
+
+    // 呼叫 API 刪除 (使用 patch 方法)
+    const response = await API.deleteCourseSchedule(cmd);
+
+    if (response.data.result === 1) {
+      const modeText = result.updateMode === 1 ? '此次課程' : result.updateMode === 2 ? `${result.fromDate} 之後的課程` : '全部課程';
+      ElMessage.success(`已刪除${modeText}`);
+
+      // 重新載入課程資料
+      const fullCalendarApi = fullCalendar.value?.getApi();
+      if (fullCalendarApi) {
+        const currentView = fullCalendarApi.view;
+        await handleDatesSet({
+          start: currentView.activeStart,
+          end: currentView.activeEnd,
+          startStr: currentView.activeStart.toISOString(),
+          endStr: currentView.activeEnd.toISOString(),
+          view: currentView
+        });
+      }
+    } else {
+      ElMessage.error(response.data.msg || '刪除課程失敗');
+    }
+  } catch (error) {
+    console.error('刪除課程排程失敗:', error);
+    ElMessage.error('刪除課程失敗，請稍後再試');
+  }
+
+  // 關閉彈窗
+  isShowCourseDetailDialog.value = false;
+};
+
+// 更改課程
+const handleUpdateCourse = () => {
+  ElMessage.info('更改課程功能開發中...');
+  // TODO: 實作更改課程功能
+  console.log('更改課程:', courseDetail);
+};
+
+// 簽到
+const handleCheckIn = async (attendanceType: number) => {
+  // attendanceType: 0=缺席, 1=出席, 2=請假
+  const typeText = ['缺席', '出席', '請假'][attendanceType];
+
+  try {
+    await ElMessageBox.confirm(
+      `確定要將 ${courseDetail.studentName} 標記為「${typeText}」嗎？`,
+      '確認簽到',
+      {
+        confirmButtonText: '確定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+  } catch {
+    return; // 使用者取消
+  }
+
+  try {
+    const response = await API.createAttendance({
+      studentPermissionId: courseDetail.studentPermissionId,
+      attendanceDate: courseDetail.scheduleDate,
+      attendanceType: attendanceType,
+      modifiedUserId: userInfoStore.userId
+    });
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    ElMessage.success(`已成功標記為「${typeText}」`);
+
+    // 關閉彈窗
+    isShowCourseDetailDialog.value = false;
+
+    // 重新載入行事曆資料
+    const fullCalendarApi = fullCalendar.value?.getApi();
+    if (fullCalendarApi) {
+      const currentView = fullCalendarApi.view;
+      await handleDatesSet({
+        start: currentView.activeStart,
+        end: currentView.activeEnd,
+        startStr: currentView.activeStart.toISOString(),
+        endStr: currentView.activeEnd.toISOString(),
+        view: currentView
+      });
+    }
+
+  } catch (error) {
+    ElMessage.error((error as Error).message || '簽到失敗，請稍後再試');
+  }
+};
+
+// 繳費紀錄
+const handlePaymentRecord = () => {
+  ElMessage.info('繳費紀錄功能開發中...');
+  // TODO: 實作繳費紀錄功能
+  console.log('繳費紀錄:', {
+    studentName: courseDetail.studentName,
+    studentPermissionId: courseDetail.studentPermissionId
+  });
 };
 
 const handleEvents = (events: any) => {
@@ -1197,6 +1360,7 @@ onMounted(() => {
 //#endregion
 
 //#region Private Functions
+// 載入教室選項
 async function getClassRoomsOptions() {
   try {
     const response = await API.getClassrooms();

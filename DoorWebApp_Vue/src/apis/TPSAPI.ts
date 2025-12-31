@@ -3,7 +3,7 @@ import IReqUserRoleDTO from "@/models/dto/IReqUserRoleDTO";
 import IResUserInfoDTO from "@/models/dto/IResUserInfoDTO";
 import { IBaseAPIResponse } from "@/models/IBaseAPIResponse";
 import IAPIResponse from "@/models/IAPIResponse";
-import { M_IResDailyScheduleStatus, M_ICheckInAllResult } from "@/models/M_ICloseAccount";
+import { M_IResDailyScheduleStatus, M_ICheckInAllResult, M_ICloseAccountDetail, M_ISaveCloseAccountRequest, M_IReqCreateAttendance, M_IResAttendance } from "@/models/M_ICloseAccount";
 import { useRouter } from "vue-router";
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import IReqLoginDTO from "@/models/dto/IReqLoginDTO";
@@ -625,6 +625,21 @@ class APIService {
   /** 批量簽到指定日期的所有未簽到課程 */
   checkInAllForDate(date: string) {
     return this.axiosInstance.post<IAPIResponse<M_ICheckInAllResult>>(`v1/CloseAccount/CheckInAll/${date}`);
+  }
+
+  /** 取得指定日期的關帳明細資料 */
+  getCloseAccountDetail(date: string) {
+    return this.axiosInstance.get<IAPIResponse<M_ICloseAccountDetail>>(`v1/CloseAccount/Detail/${date}`);
+  }
+
+  /** 儲存關帳記錄（新增或更新） */
+  saveCloseAccount(request: M_ISaveCloseAccountRequest) {
+    return this.axiosInstance.post<IAPIResponse<M_ICloseAccountDetail>>(`v1/CloseAccount`, request);
+  }
+
+  /** 建立簽到記錄 */
+  createAttendance(request: M_IReqCreateAttendance) {
+    return this.axiosInstance.post<IAPIResponse<M_IResAttendance>>(`v1/Attend`, request);
   }
   //#endregion
   }
