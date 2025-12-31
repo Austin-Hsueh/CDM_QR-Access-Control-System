@@ -3,6 +3,7 @@ import IReqUserRoleDTO from "@/models/dto/IReqUserRoleDTO";
 import IResUserInfoDTO from "@/models/dto/IResUserInfoDTO";
 import { IBaseAPIResponse } from "@/models/IBaseAPIResponse";
 import IAPIResponse from "@/models/IAPIResponse";
+import { M_IResDailyScheduleStatus, M_ICheckInAllResult } from "@/models/M_ICloseAccount";
 import { useRouter } from "vue-router";
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import IReqLoginDTO from "@/models/dto/IReqLoginDTO";
@@ -614,7 +615,19 @@ class APIService {
   }
 
   //#endregion
-}
+
+  //#region Music 關帳相關
+  /** 取得指定日期簽到狀態 */
+  getCloseAccountDailyStatus(date: string) {
+    return this.axiosInstance.get<IAPIResponse<M_IResDailyScheduleStatus>>(`v1/CloseAccount/DailyStatus/${date}`);
+  }
+
+  /** 批量簽到指定日期的所有未簽到課程 */
+  checkInAllForDate(date: string) {
+    return this.axiosInstance.post<IAPIResponse<M_ICheckInAllResult>>(`v1/CloseAccount/CheckInAll/${date}`);
+  }
+  //#endregion
+  }
 
 const API = new APIService();
 export default API;

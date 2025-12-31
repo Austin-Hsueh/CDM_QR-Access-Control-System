@@ -21,6 +21,7 @@ import QRcode from '@/views/MusicQRcode.vue';
 import MusicTemporaryQRcode from '@/views/MusicTemporaryQRcode.vue';
 import MusicAccountMgmt from '@/views/MusicAccountMgmt.vue';
 import CourseScheduling from '@/views/CourseScheduling.vue';
+import MusicCloseAccountMgmt from "@/views/MusicCloseAccountMgmt.vue";
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -117,6 +118,11 @@ const routes: Array<RouteRecordRaw> = [
         path: "courseScheduling",
         name: "courseScheduling",
         component: CourseScheduling,
+      },
+      {
+        path: "closeAccountMgmt",
+        name: "closeAccountMgmt",
+        component: MusicCloseAccountMgmt,
       }
     ],
   },

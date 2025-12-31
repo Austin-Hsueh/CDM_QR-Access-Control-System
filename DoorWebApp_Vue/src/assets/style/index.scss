@@ -1,4 +1,6 @@
 $normal-base: #526E60;
+$success-base: #526E60;
+$error-base: #a8abb2;
 
 .el-button {
   --el-button-hover-text-color: #{$normal-base};
@@ -14,6 +16,9 @@ $primary-base: #0FE3C6;
   --el-button-hover-border-color: #{$normal-base};
   --el-button-hover-link-text-color: #0FE3C6;
   --el-button-hover-bg-color: #0FE3C6;
+  --el-button-disabled-text-color: #a8abb2;
+  --el-button-disabled-bg-color: #e4e7ed;
+  --el-button-disabled-border-color: #d3d6dc;
 }
 
 .el-button--danger{
@@ -55,6 +60,18 @@ $primary-base: #0FE3C6;
 
 .el-switch__label {
   --el-text-color-primary: #909399;
+}
+
+.el-tag--success {
+  --el-color-success: #{$success-base};
+  --el-color-success-light-8: lighten($success-base, 70%);
+  --el-color-success-light-9: lighten($success-base, 80%);
+}
+
+.el-tag--error {
+  --el-color-error: #{$error-base};
+  --el-color-error-light-8: #e4e7ed;
+  --el-color-error-light-9: #f0f2f5;
 }
 
 body {

@@ -157,11 +157,8 @@
         <el-input  style="width:90%" v-model="updateFormData.password"  placeholder="若不變更密碼，留空即可。" />
       </el-form-item>
       <el-form-item :label="t('Role')" prop="role" >
-        <el-select v-model="updateFormData.roleid" placeholder="請選擇一個角色" style="width:90%">
-          <el-option label="管理者" :value="1" />
-          <el-option label="老師" :value="2" />
+        <el-select v-model="updateFormData.roleid" placeholder="請選擇一個角色" style="width:90%" disabled>
           <el-option label="學生" :value="3" />
-          <el-option label="值班人員" :value="4" />
         </el-select>
       </el-form-item>
       <el-form-item :label="t('Type')" prop="type" v-if="updateFormData.roleid === 3">
@@ -180,14 +177,6 @@
       </el-form-item>
       <el-form-item label="關係稱謂" prop="relationshipTitle" v-if="updateFormData.roleid === 3">
         <el-input  style="width:90%" v-model="updateFormData.relationshipTitle"/>
-      </el-form-item>
-      <el-form-item :label="t('Access')" prop="Access" v-if="false">
-        <el-checkbox-group v-model="updateFormData.groupIds">
-          <el-checkbox label="大門" :value="1"/>
-          <el-checkbox label="Car教室" :value="2"/>
-          <el-checkbox label="Sunny教室" :value="3" />
-          <el-checkbox label="儲藏室" :value="4" />
-        </el-checkbox-group>
       </el-form-item>
     </el-form>
     <template #footer>

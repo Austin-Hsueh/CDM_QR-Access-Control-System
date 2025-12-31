@@ -32,6 +32,10 @@
         <el-icon><Setting /></el-icon>
         <span>{{ t("Account_Mgmt_Music") }}</span>
     </el-menu-item>
+    <el-menu-item index="/closeAccountMgmt" v-if="isShowMenu">
+        <el-icon><Setting /></el-icon>
+        <span>關帳管理</span>
+    </el-menu-item>
   </el-menu>
 </template>
 
