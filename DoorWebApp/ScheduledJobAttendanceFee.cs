@@ -37,7 +37,7 @@ public class ScheduledJobAttendanceFee : IJob
             var now = DateTime.Now;
             int processedCount = 0;
 
-            // 1. 撈取所有出席表，檢查沒有出席費用的表
+            // 1. 撈取所有出席表，檢查沒有出席費用的表(排除老師身分的使用者)
             var attendancesWithoutFee = await ctx.TblAttendance
                 .Include(a => a.AttendanceFee)
                 .Include(a => a.StudentPermission)
@@ -46,10 +46,15 @@ public class ScheduledJobAttendanceFee : IJob
                 .Include(a => a.StudentPermission)
                     .ThenInclude(sp => sp.Teacher)
                         .ThenInclude(t => t.TeacherSettlement)
+                .Include(a => a.StudentPermission)
+                    .ThenInclude(sp => sp.User)
+                        .ThenInclude(u => u.Roles)
                 .Where(a => !a.IsDelete 
                     && a.AttendanceFee == null 
                     && a.StudentPermission != null
-                    && !a.StudentPermission.IsDelete)
+                    && !a.StudentPermission.IsDelete
+                    && a.StudentPermission.User != null
+                    && !a.StudentPermission.User.Roles.Any(r => r.Id == 2 && !r.IsDelete && r.IsEnable)) // 排除老師(RoleId=2)
                 .ToListAsync();
 
             if (attendancesWithoutFee.Count == 0)
@@ -71,6 +76,14 @@ public class ScheduledJobAttendanceFee : IJob
                     if (permission == null)
                     {
                         log.LogWarning($"出席記錄 {attendance.Id} 沒有對應的 StudentPermission");
+                        continue;
+                    }
+
+                    // 再次確認不是老師身分(雙重保險)
+                    bool isTeacher = permission.User?.Roles?.Any(r => r.Id == 2 && !r.IsDelete && r.IsEnable) ?? false;
+                    if (isTeacher)
+                    {
+                        log.LogInformation($"跳過出席記錄 {attendance.Id} - 使用者為老師身分 (RoleId=2)");
                         continue;
                     }
 

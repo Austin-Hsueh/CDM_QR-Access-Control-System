@@ -94,6 +94,8 @@ namespace DoorWebApp.Controllers
                         .ThenInclude(c => c.CourseFee)
                     .Include(sp => sp.Teacher)
                         .ThenInclude(t => t.TeacherSettlement)
+                    .Include(sp => sp.User)
+                        .ThenInclude(u => u.Roles)
                     .FirstOrDefault();
 
                 if (permission == null)
@@ -184,20 +186,31 @@ namespace DoorWebApp.Controllers
                 await ctx.SaveChangesAsync(); // Save Attend to get Id
                 log.LogInformation($"[{Request.Path}] Create Attend : Id={NewAttend.Id}");
 
-                // 3. 建立對應 AttendanceFee：Hours=1, Amount=teacherShare, AdjustmentAmount=0
-                var newFee = new TblAttendanceFee
+                // 3. 檢查使用者是否為老師(RoleId=2)，若是則不建立 AttendanceFee
+                bool isTeacher = permission.User?.Roles?.Any(r => r.Id == 2 && !r.IsDelete && r.IsEnable) ?? false;
+                
+                if (!isTeacher)
                 {
-                    AttendanceId = NewAttend.Id,
-                    Hours = 1,
-                    Amount = AttendDTO.attendanceType == 2 ? 0 : SplitHourAmount,
-                    AdjustmentAmount = 0M,
-                    SourceHoursTotalAmount = AttendDTO.attendanceType == 2 ? 0 : sourceHoursTotalAmount,
-                    UseSplitRatio = minSplitRatio,
-                    CreatedTime = DateTime.Now,
-                    ModifiedTime = DateTime.Now
-                };
+                    // 建立對應 AttendanceFee：Hours=1, Amount=teacherShare, AdjustmentAmount=0
+                    var newFee = new TblAttendanceFee
+                    {
+                        AttendanceId = NewAttend.Id,
+                        Hours = 1,
+                        Amount = AttendDTO.attendanceType == 2 ? 0 : SplitHourAmount,
+                        AdjustmentAmount = 0M,
+                        SourceHoursTotalAmount = AttendDTO.attendanceType == 2 ? 0 : sourceHoursTotalAmount,
+                        UseSplitRatio = minSplitRatio,
+                        CreatedTime = DateTime.Now,
+                        ModifiedTime = DateTime.Now
+                    };
 
-                ctx.TblAttendanceFee.Add(newFee);
+                    ctx.TblAttendanceFee.Add(newFee);
+                    log.LogInformation($"[{Request.Path}] Create AttendanceFee for non-teacher user");
+                }
+                else
+                {
+                    log.LogInformation($"[{Request.Path}] Skip AttendanceFee creation - User is a teacher (RoleId=2)");
+                }
 
                 // 4. 寫入資料庫
                 log.LogInformation($"[{Request.Path}] Save changes (Attend + Fee)");
