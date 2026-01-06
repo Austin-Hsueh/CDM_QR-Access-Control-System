@@ -114,8 +114,33 @@ public class ScheduledJob : IJob
                 .Where(u => u.doorList != null && u.doorList.Any()) // 過濾掉沒有權限群組的記錄
                 .ToList();
 
-            // 合併學生和教師的清單
+            // 加入家長的 UserAccessProfile (根據學生的 ParentId)
+            var studentUserIds = studentPermissions.Select(sp => sp.UserId).Distinct().ToList();
+            var parentUserIds = ctx.TblUsers
+                .Where(u => studentUserIds.Contains(u.Id) && u.ParentId.HasValue)
+                .Select(u => new { StudentId = u.Id, ParentId = u.ParentId.Value })
+                .ToList();
+
+            var parentAccessProfiles = new List<UserAccessProfile>();
+            foreach (var mapping in parentUserIds)
+            {
+                var studentPermission = studentPermissions.FirstOrDefault(sp => sp.UserId == mapping.StudentId);
+                if (studentPermission != null && studentPermission.PermissionGroups != null && studentPermission.PermissionGroups.Any())
+                {
+                    parentAccessProfiles.Add(new UserAccessProfile()
+                    {
+                        userAddr = (ushort)mapping.ParentId,
+                        isGrant = true,
+                        doorList = studentPermission.PermissionGroups.Select(pg => pg.Id).ToList(),
+                        beginTime = nowDate.Replace("/", "-").ToString() + "T" + TimeSpan.Parse(studentPermission.TimeFrom).Add(TimeSpan.FromMinutes(-10)).ToString(@"hh\:mm") + ":00",
+                        endTime = nowDate.Replace("/", "-").ToString() + "T" + studentPermission.TimeTo + ":00"
+                    });
+                }
+            }
+
+            // 合併學生、教師和家長的清單
             userAccessProfiles.AddRange(teacherAccessProfiles);
+            userAccessProfiles.AddRange(parentAccessProfiles);
 
             // 移除重複的 userAddr
             userAccessProfiles = userAccessProfiles

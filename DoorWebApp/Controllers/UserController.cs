@@ -1666,6 +1666,44 @@ namespace DoorWebApp.Controllers
                         .ToList();
                 }
 
+                // 親子QRCODE
+                var childUsers = ctx.TblUsers.Where(u => u.ParentId == UserId && !u.IsDelete).Select(x => x.Id).ToList();
+                if (childUsers.Any())
+                {
+                    if (QRCodeData != null)
+                    {
+                        schedules = ctx.TblSchedule
+                            .Where(u => childUsers.Contains(u.StudentPermission.UserId))
+                            .Where(s => !s.IsDelete)
+                            .Where(s =>
+                                (
+                                (string.Compare(s.StartTime, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0 &&
+                                string.Compare(s.EndTime, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0)
+                                ||
+                                (string.Compare(s.StartTime, QRCodeData.ModifiedTime.ToString("HH:mm")) <= 0 &&
+                                string.Compare(s.EndTime, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0)
+                                )
+                                &&
+                                (string.Compare(s.ScheduleDate, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) == 0))
+                            .OrderBy(s => s.ScheduleDate)
+                            .ThenBy(s => s.StartTime)
+                            .Select(s => new ResScheduleDTO
+                            {
+                                ScheduleId = s.Id,
+                                StudentPermissionId = s.StudentPermissionId,
+                                ClassroomId = s.ClassroomId,
+                                ScheduleDate = s.ScheduleDate,
+                                StartTime = s.StartTime,
+                                EndTime = s.EndTime,
+                                CourseMode = s.CourseMode,
+                                ScheduleMode = s.ScheduleMode,
+                                Status = s.Status,
+                                Remark = s.Remark
+                            })
+                            .ToList();
+                    }
+                }
+
                 if (!schedules.Any())
                 {
                     qrcode = "";
