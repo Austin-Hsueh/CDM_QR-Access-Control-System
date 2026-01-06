@@ -76,7 +76,7 @@
             {{ scope.row.checkedInTime ? new Date(scope.row.checkedInTime).toLocaleString('zh-TW') : '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" align="center" width="120">
+        <el-table-column label="操作" align="center" width="180">
           <template #default="scope">
             <el-button
               v-if="scope.row.attendanceId"
@@ -85,6 +85,14 @@
               @click="handleUpdateAttendance(scope.row)"
             >
               更新簽到
+            </el-button>
+            <el-button
+              v-if="scope.row.attendanceId"
+              type="danger"
+              size="small"
+              @click="handleDeleteAttendance(scope.row)"
+            >
+              刪除簽到
             </el-button>
           </template>
         </el-table-column>
@@ -419,6 +427,61 @@ const submitUpdateAttendance = async () => {
     };
   } finally {
     isUpdatingAttendance.value = false;
+    ElNotification(notifyParam);
+  }
+};
+
+const handleDeleteAttendance = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(
+      `確定要刪除 ${row.studentName} 在 ${row.scheduleDate} 的簽到記錄嗎？`,
+      '確認刪除',
+      {
+        confirmButtonText: '確定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+  } catch {
+    return;
+  }
+
+  let notifyParam: NotificationParams = {};
+
+  try {
+    const response = await API.updateAttendance({
+      id: row.attendanceId,
+      studentPermissionId: row.studentPermissionId,
+      attendanceDate: row.scheduleDate,
+      attendanceType: row.attendanceType ?? 1,
+      modifiedUserId: 51,
+      isDelete: true
+    });
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    notifyParam = {
+      title: "刪除成功",
+      type: "success",
+      message: "簽到記錄已刪除",
+      duration: 3000,
+    };
+
+    // 重新查詢簽到狀態
+    if (selectedDate.value) {
+      await handleDateChange(selectedDate.value);
+    }
+
+  } catch (error) {
+    notifyParam = {
+      title: "刪除失敗",
+      type: "error",
+      message: (error as Error).message,
+      duration: 3000,
+    };
+  } finally {
     ElNotification(notifyParam);
   }
 };
