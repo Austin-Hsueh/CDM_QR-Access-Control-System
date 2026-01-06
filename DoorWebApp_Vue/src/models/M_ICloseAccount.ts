@@ -103,7 +103,8 @@ export interface M_IStudentAttendanceSummary {
   studentPermissionId: number;
   studentPermissionFeeId: number;
   courseName: string;
-  paymentDate?: string;         // 民國年格式: 114/02/27
+  paymentDate?: string;         // 應繳款日 民國年格式: 114/02/27
+  payDate?: string;             // 實際繳款日 民國年格式: 114/02/27
   receivableAmount: number;     // 應收金額
   receivedAmount: number;       // 已收金額
   outstandingAmount: number;    // 欠款金額
@@ -127,7 +128,25 @@ export interface M_IReqCreatePayment {
   studentPermissionFeeId: number;  // 學生權限費用 ID
   pay: number;                     // 繳費金額
   discountAmount?: number;         // 折扣金額 (預設0)
+  receiptNumber?: string;          // 結帳單號 (可選)
   remark?: string;                 // 備註
+  modifiedUserId: number;          // 操作者 ID
+  payDate?: string;                // 繳費日期 (可選，格式：yyyy/MM/dd，空值時系統預設)
+  isDelete?: boolean;              // 是否執行軟刪除 (true=軟刪除，false/空值=維持或新增)
+}
+
+/**
+ * 更新繳費記錄請求
+ */
+export interface M_IReqUpdatePayment {
+  studentPermissionFeeId: number;  // 學生權限費用 ID
+  pay: number;                     // 繳費金額
+  discountAmount?: number;         // 折扣金額 (預設0)
+  receiptNumber?: string;          // 結帳單號 (可選)
+  remark?: string;                 // 備註
+  modifiedUserId: number;          // 操作者 ID
+  payDate?: string;                // 繳費日期 (可選，格式：yyyy/MM/dd，空值時沿用原值或系統預設)
+  isDelete?: boolean;              // 是否執行軟刪除 (true=軟刪除，false/空值=維持或新增)
 }
 
 /**

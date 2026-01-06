@@ -3,7 +3,7 @@ import IReqUserRoleDTO from "@/models/dto/IReqUserRoleDTO";
 import IResUserInfoDTO from "@/models/dto/IResUserInfoDTO";
 import { IBaseAPIResponse } from "@/models/IBaseAPIResponse";
 import IAPIResponse from "@/models/IAPIResponse";
-import { M_IResDailyScheduleStatus, M_ICheckInAllResult, M_ICloseAccountDetail, M_ISaveCloseAccountRequest, M_IReqCreateAttendance, M_IReqUpdateAttendance, M_IResAttendance, M_IResStudentAttendance, M_IReqCreatePayment, M_IReqCreateStudentPermissionFee, M_IResCreateStudentPermissionFee, M_ICloseAccountRecord } from "@/models/M_ICloseAccount";
+import { M_IResDailyScheduleStatus, M_ICheckInAllResult, M_ICloseAccountDetail, M_ISaveCloseAccountRequest, M_IReqCreateAttendance, M_IReqUpdateAttendance, M_IResAttendance, M_IResStudentAttendance, M_IReqCreatePayment, M_IReqUpdatePayment, M_IReqCreateStudentPermissionFee, M_IResCreateStudentPermissionFee, M_ICloseAccountRecord } from "@/models/M_ICloseAccount";
 import { useRouter } from "vue-router";
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import IReqLoginDTO from "@/models/dto/IReqLoginDTO";
@@ -648,8 +648,13 @@ class APIService {
     return this.axiosInstance.get<IAPIResponse<M_IResStudentAttendance>>(`v1/StudentAttendance/${studentPermissionId}`);
   }
 
-  /** 建立或更新繳費記錄 */
+  /** 建立繳費記錄 */
   createPayment(request: M_IReqCreatePayment) {
+    return this.axiosInstance.post<IAPIResponse<any>>(`v1/StudentPayment`, request);
+  }
+
+  /** 更新繳費記錄 */
+  updatePayment(request: M_IReqUpdatePayment) {
     return this.axiosInstance.post<IAPIResponse<any>>(`v1/StudentPayment`, request);
   }
 

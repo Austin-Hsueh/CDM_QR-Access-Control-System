@@ -255,7 +255,7 @@
         <!-- 第一列：刪除、繳費紀錄 -->
         <div style="display: flex; gap: 10px;">
           <el-button type="danger" size="default" @click="handleDeleteCourse" style="margin-left: 0; flex: 1;">
-            <el-icon><Delete /></el-icon>刪除
+            <el-icon><Delete /></el-icon>刪除課程
           </el-button>
           <el-button type="info" size="default" @click="handleCheckIn(2)" style="margin-left: 0; flex: 1;">
             <el-icon><CircleCheck /></el-icon>請假
@@ -264,10 +264,10 @@
         <!-- 第二列：缺席、出席 -->
         <div style="display: flex; gap: 10px;">
           <el-button type="warning" size="default" @click="handleCheckIn(0)" style="margin-left: 0; flex: 1;">
-            <el-icon><CircleCheck /></el-icon>缺席
+            <el-icon><CircleCheck /></el-icon>曠課
           </el-button>
           <el-button type="success" size="default" @click="handleCheckIn(1)" style="margin-left: 0; flex: 1;">
-            <el-icon><CircleCheck /></el-icon>出席
+            <el-icon><CircleCheck /></el-icon>簽到
           </el-button>
         </div>
         <!-- 第三列：繳費紀錄 -->
@@ -291,7 +291,8 @@
   <el-table :data="paymentRecordData" border style="width: 100%">
     <el-table-column prop="serialNo" label="序號" />
     <el-table-column prop="courseName" label="課程名稱"/>
-    <el-table-column prop="paymentDate" label="繳款日"/>
+    <!-- <el-table-column prop="paymentDate" label="應繳款日"/> -->
+    <el-table-column prop="payDate" label="實際繳款日" />
     <el-table-column prop="receivableAmount" label="應收金額" />
     <el-table-column prop="receivedAmount" label="已收金額" />
     <el-table-column prop="outstandingAmount" label="欠款金額" />
@@ -310,6 +311,7 @@
     <el-table-column align="center" class="operateBtnGroup d-flex" label="操作">
       <template #default="{ row }: { row: any }">
         <el-button type="primary" size="small" @click="handlePayment(row)" v-if="(row.receivedAmount === 0)"><el-icon><EditPen /></el-icon>{{ '繳費' }}</el-button>
+        <el-button type="primary" size="small" @click="handlePayment(row)" v-if="(row.receivedAmount !== 0)"><el-icon><EditPen /></el-icon>{{ '編輯繳款資訊' }}</el-button>
       </template>
     </el-table-column>
   </el-table>
@@ -326,13 +328,23 @@
       <el-input v-model="paymentFormData.courseName" disabled />
     </el-form-item>
     <el-form-item label="應收金額">
-      <el-input-number v-model="paymentFormData.receivableAmount" :min="0" disabled style="width: 100%" />
+      <el-input-number v-model="paymentFormData.receivableAmount" :min="0" :controls="false" disabled style="width: 100%" />
     </el-form-item>
     <el-form-item label="繳費金額">
-      <el-input-number v-model="paymentFormData.pay" :min="0" style="width: 100%" />
+      <el-input-number v-model="paymentFormData.pay" :min="0" :controls="false" style="width: 100%" />
     </el-form-item>
     <el-form-item label="折扣金額">
-      <el-input-number v-model="paymentFormData.discountAmount" :min="0" style="width: 100%" />
+      <el-input-number v-model="paymentFormData.discountAmount" :min="0" :controls="false" style="width: 100%" />
+    </el-form-item>
+    <el-form-item label="繳費日期">
+      <el-date-picker
+        v-model="paymentFormData.payDate"
+        type="date"
+        placeholder="選擇繳費日期（空值=系統自動填入今日）"
+        format="YYYY/MM/DD"
+        value-format="YYYY/MM/DD"
+        style="width: 100%"
+      />
     </el-form-item>
     <el-form-item label="備註">
       <el-input v-model="paymentFormData.remark" type="textarea" :rows="3" />
@@ -341,6 +353,7 @@
   <template #footer>
     <span class="dialog-footer">
       <el-button @click="isShowPaymentDialog = false">取消</el-button>
+      <el-button v-if="isEditMode" type="danger" @click="deletePayment">刪除此筆繳費</el-button>
       <el-button type="primary" @click="submitPayment">確定</el-button>
     </span>
   </template>
@@ -366,6 +379,7 @@ import { M_IUsersOptions } from '@/models/M_IUsersOptions';
 import { M_ICourseOptions } from '@/models/M_ICourseOptions';
 import { M_ITeachersOptions } from '@/models/M_ITeachersOptions';
 import { M_IStudentAttendanceSummary } from '@/models/M_ICloseAccount';
+import { el } from 'element-plus/es/locale';
 
 
 const classRoomList = ref<M_IClassRoomOptions[]>([]);
@@ -409,13 +423,16 @@ const maxHours = ref(0);
 
 // 繳費 Dialog 控制
 const isShowPaymentDialog = ref(false);
+const isEditMode = ref(false); // 是否為編輯模式
 const paymentFormData = reactive({
   studentPermissionFeeId: 0,
   courseName: '',
   receivableAmount: 0,
+  receivedAmount: 0, // 已收金額，用於判斷是否為編輯模式
   pay: 0,
   discountAmount: 0,
-  remark: ''
+  remark: '',
+  payDate: '' // 繳費日期
 });
 
 // 更新模式 Dialog 控制
@@ -904,8 +921,8 @@ const handleUpdateCourse = () => {
 
 // 簽到
 const handleCheckIn = async (attendanceType: number) => {
-  // attendanceType: 0=缺席, 1=出席, 2=請假
-  const typeText = ['缺席', '出席', '請假'][attendanceType];
+  // attendanceType: 0=曠課, 1=簽到, 2=請假
+  const typeText = ['曠課', '簽到', '請假'][attendanceType];
 
   try {
     await ElMessageBox.confirm(
@@ -983,9 +1000,24 @@ const handlePayment = (row: M_IStudentAttendanceSummary) => {
   paymentFormData.studentPermissionFeeId = row.studentPermissionFeeId;
   paymentFormData.courseName = row.courseName;
   paymentFormData.receivableAmount = row.receivableAmount;
-  paymentFormData.pay = row.receivableAmount; // 預設代入應收金額
-  paymentFormData.discountAmount = 0; // 預設為0
-  paymentFormData.remark = '';
+  paymentFormData.receivedAmount = row.receivedAmount;
+
+  // 判斷是否為編輯模式（已收金額不為0表示已繳費）
+  isEditMode.value = row.receivedAmount !== 0;
+
+  if (isEditMode.value) {
+    // 編輯模式：載入已存在的繳費資料
+    paymentFormData.pay = row.receivedAmount;
+    paymentFormData.discountAmount = 0; // TODO: 從後端取得實際的折扣金額
+    paymentFormData.remark = ''; // TODO: 從後端取得實際的備註
+    paymentFormData.payDate = row.payDate || '';
+  } else {
+    // 新增模式：使用預設值
+    paymentFormData.pay = row.receivableAmount; // 預設代入應收金額
+    paymentFormData.discountAmount = 0;
+    paymentFormData.remark = '';
+    paymentFormData.payDate = '';
+  }
 
   isShowPaymentDialog.value = true;
 };
@@ -993,24 +1025,84 @@ const handlePayment = (row: M_IStudentAttendanceSummary) => {
 // 提交繳費
 const submitPayment = async () => {
   try {
-    const response = await API.createPayment({
+    let response;
+
+    if (isEditMode.value) {
+      // 編輯模式：使用 updatePayment API
+      response = await API.updatePayment({
+        studentPermissionFeeId: paymentFormData.studentPermissionFeeId,
+        pay: paymentFormData.pay,
+        discountAmount: paymentFormData.discountAmount,
+        remark: paymentFormData.remark,
+        modifiedUserId: 51,
+        payDate: paymentFormData.payDate || undefined,
+        isDelete: false
+      });
+    } else {
+      // 新增模式：使用 createPayment API
+      response = await API.createPayment({
+        studentPermissionFeeId: paymentFormData.studentPermissionFeeId,
+        pay: paymentFormData.pay,
+        discountAmount: paymentFormData.discountAmount,
+        remark: paymentFormData.remark,
+        modifiedUserId: 51,
+        payDate: paymentFormData.payDate || undefined,
+        isDelete: false
+      });
+    }
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    ElMessage.success(isEditMode.value ? '更新繳費成功' : '繳費成功');
+    isShowPaymentDialog.value = false;
+
+    // 重新載入繳費紀錄
+    await handlePaymentRecord();
+  } catch (error) {
+    ElMessage.error((error as Error).message || (isEditMode.value ? '更新繳費失敗' : '繳費失敗'));
+  }
+};
+
+// 刪除繳費
+const deletePayment = async () => {
+  try {
+    await ElMessageBox.confirm(
+      `確定要刪除此筆繳費記錄嗎？`,
+      '確認刪除',
+      {
+        confirmButtonText: '確定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+  } catch {
+    return; // 使用者取消
+  }
+
+  try {
+    const response = await API.updatePayment({
       studentPermissionFeeId: paymentFormData.studentPermissionFeeId,
       pay: paymentFormData.pay,
       discountAmount: paymentFormData.discountAmount,
-      remark: paymentFormData.remark
+      remark: paymentFormData.remark,
+      modifiedUserId: 51,
+      payDate: paymentFormData.payDate || undefined,
+      isDelete: true
     });
 
     if (response.data.result !== 1) {
       throw Error(response.data.msg);
     }
 
-    ElMessage.success('繳費成功');
+    ElMessage.success('刪除繳費成功');
     isShowPaymentDialog.value = false;
 
     // 重新載入繳費紀錄
     await handlePaymentRecord();
   } catch (error) {
-    ElMessage.error((error as Error).message || '繳費失敗');
+    ElMessage.error((error as Error).message || '刪除繳費失敗');
   }
 };
 
