@@ -91,7 +91,7 @@
         </el-select>
       </el-form-item>
       <el-form-item label="拆帳比例" prop="splitRatio">
-        <el-input-number style="width:90%" v-model="createFormData.splitRatio" :min="0" :max="1" :precision="1" :controls="false"/>
+        <el-input-number style="width:90%" v-model="createFormData.splitRatio" :min="0" :max="1" :precision="2" :controls="false"/>
       </el-form-item>
     </el-form>
     <template #footer>
@@ -127,7 +127,7 @@
         </el-select>
       </el-form-item>
       <el-form-item label="拆帳比例" prop="splitRatio">
-        <el-input-number style="width:90%" v-model="updateFormData.splitRatio" :min="0" :max="1" :precision="1" :controls="false"/>
+        <el-input-number style="width:90%" v-model="updateFormData.splitRatio" :min="0" :max="1" :precision="2" :controls="false"/>
       </el-form-item>
     </el-form>
     <template #footer>

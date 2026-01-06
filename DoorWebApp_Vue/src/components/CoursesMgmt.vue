@@ -153,7 +153,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="拆帳比例" prop="splitRatio" >
-            <el-input-number style="width:75%" v-model="updateFormData.splitRatio" :min="0" :max="1" :precision="1" :controls="false"/>
+            <el-input-number style="width:75%" v-model="updateFormData.splitRatio" :min="0" :max="1" :precision="2" :controls="false"/>
           </el-form-item>
         </el-col>
       </el-row>
