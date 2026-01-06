@@ -281,6 +281,7 @@ namespace DoorWebApp.Controllers
                 // 1-2 重複日期 //todo 排除已經刪除的
                 TblAttendance? tblAttendance = ctx.TblAttendance.Where(x => x.IsDelete == false)
                                                .Where(x => x.StudentPermissionId == AttendDTO.studentPermissionId)
+                                               .Where(x => x.Id != AttendDTO.id)
                                                .FirstOrDefault(x => x.AttendanceDate == AttendDTO.attendanceDate);
                 if (tblAttendance != null)
                 {
