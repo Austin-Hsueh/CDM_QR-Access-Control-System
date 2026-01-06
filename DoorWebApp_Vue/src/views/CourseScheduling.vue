@@ -241,7 +241,7 @@
     <!-- 左側：課程資訊 (2/3) -->
     <el-col :span="16">
       <el-descriptions :column="1" border>
-        <el-descriptions-item label="學生" label-width="80px">{{ courseDetail.studentName }} ({{courseDetail.studentPermissionId}})</el-descriptions-item>
+        <el-descriptions-item label="學生" label-width="80px">{{ courseDetail.studentName }}</el-descriptions-item>
         <el-descriptions-item label="課程名稱" label-width="80px">{{ courseDetail.courseName }}</el-descriptions-item>
         <el-descriptions-item label="老師" label-width="80px">{{ courseDetail.teacherName }}</el-descriptions-item>
         <el-descriptions-item label="教室" label-width="80px">{{ courseDetail.classroomName }}</el-descriptions-item>
@@ -1420,7 +1420,7 @@ const eventContent = (arg: any) => {
     studentLine.style.whiteSpace = 'nowrap';
     studentLine.style.width = '100%';
     studentLine.style.textAlign = 'center';
-    studentLine.textContent = `${studentName} (${studentPermissionId})`;
+    studentLine.textContent = `${studentName}`;
     column1.appendChild(studentLine);
   }
 
