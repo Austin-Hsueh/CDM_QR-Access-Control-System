@@ -14,6 +14,7 @@ export interface M_IScheduleCheckStatus {
   endTime: string;       // 格式: "HH:mm"
   status: string;        // "已簽到" | "未簽到"
   attendanceId?: number;
+  attendanceType?: number; // 簽到類型 (0=缺席, 1=出席, 2=請假)，未簽到為 null
   checkedInTime?: string; // ISO 格式
 }
 
@@ -69,6 +70,18 @@ export interface M_IReqCreateAttendance {
   attendanceDate: string;       // 簽到日期 (格式: yyyy-MM-dd)
   attendanceType: number;       // 簽到類型 (0=缺席, 1=出席, 2=請假)
   modifiedUserId: number;       // 操作者 ID
+}
+
+/**
+ * 更新簽到請求
+ */
+export interface M_IReqUpdateAttendance {
+  id: number;                   // 簽到記錄 ID
+  studentPermissionId: number;  // 學生權限 ID
+  attendanceDate: string;       // 簽到日期 (格式: yyyy-MM-dd)
+  attendanceType: number;       // 簽到類型 (0=缺席, 1=出席, 2=請假)
+  modifiedUserId: number;       // 操作者 ID
+  isDelete: boolean;            // 是否刪除
 }
 
 /**

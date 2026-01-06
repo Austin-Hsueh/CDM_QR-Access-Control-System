@@ -63,15 +63,64 @@
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column sortable label="簽到類型" prop="attendanceType" align="center">
+          <template #default="scope">
+            <el-tag v-if="scope.row.attendanceType === 0" type="danger">曠課</el-tag>
+            <el-tag v-else-if="scope.row.attendanceType === 1" type="success">簽到</el-tag>
+            <el-tag v-else-if="scope.row.attendanceType === 2" type="warning">請假</el-tag>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="簽到時間" prop="checkedInTime">
           <template #default="scope">
             {{ scope.row.checkedInTime ? new Date(scope.row.checkedInTime).toLocaleString('zh-TW') : '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" align="center" width="120">
+          <template #default="scope">
+            <el-button
+              v-if="scope.row.attendanceId"
+              type="primary"
+              size="small"
+              @click="handleUpdateAttendance(scope.row)"
+            >
+              更新簽到
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-col>
   </el-row>
   <!-- /Table -->
+
+  <!-- 更新簽到彈窗 -->
+  <el-dialog v-model="isShowUpdateAttendanceDialog" title="更新簽到" width="500px">
+    <el-form label-width="100px" :model="updateAttendanceForm">
+      <el-form-item label="學生名稱">
+        <el-input v-model="updateAttendanceForm.studentName" disabled />
+      </el-form-item>
+      <el-form-item label="課程名稱">
+        <el-input v-model="updateAttendanceForm.courseName" disabled />
+      </el-form-item>
+      <el-form-item label="簽到日期">
+        <el-input v-model="updateAttendanceForm.attendanceDate" disabled />
+      </el-form-item>
+      <el-form-item label="簽到類型" prop="attendanceType">
+        <el-select v-model="updateAttendanceForm.attendanceType" style="width: 100%">
+          <el-option label="曠課" :value="0" />
+          <el-option label="簽到" :value="1" />
+          <el-option label="請假" :value="2" />
+        </el-select>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="isShowUpdateAttendanceDialog = false">{{ t("Cancel") }}</el-button>
+        <el-button type="primary" @click="submitUpdateAttendance" :loading="isUpdatingAttendance">{{ t("Confirm") }}</el-button>
+      </span>
+    </template>
+  </el-dialog>
+  <!-- /更新簽到彈窗 -->
 
   <!-- 關帳彈窗 -->
   <el-dialog class="dialog"  v-model="isShowAddRoleDialog" title="關帳">
@@ -109,7 +158,7 @@
 import { ref, reactive, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import API from '@/apis/TPSAPI';
-import { M_IResDailyScheduleStatus, M_ICloseAccountDetail } from "@/models/M_ICloseAccount";
+import { M_IResDailyScheduleStatus, M_ICloseAccountDetail, M_IScheduleCheckStatus } from "@/models/M_ICloseAccount";
 import { ElNotification, ElMessageBox, NotificationParams, FormInstance, FormRules } from 'element-plus';
 import { Check, CircleCheck } from '@element-plus/icons-vue';
 
@@ -118,6 +167,17 @@ const selectedDate = ref<string>('');
 const dailyScheduleStatus = ref<M_IResDailyScheduleStatus | null>(null);
 const isCheckingInAll = ref<boolean>(false);
 const isShowAddRoleDialog = ref<boolean>(false);
+const isShowUpdateAttendanceDialog = ref<boolean>(false);
+const isUpdatingAttendance = ref<boolean>(false);
+
+const updateAttendanceForm = reactive({
+  attendanceId: 0,
+  studentPermissionId: 0,
+  studentName: '',
+  courseName: '',
+  attendanceDate: '',
+  attendanceType: 1
+});
 
 const createFormData = reactive<M_ICloseAccountDetail>({
   closeDate: '',
@@ -303,6 +363,62 @@ const submitForm = async () => {
       duration: 3000,
     };
   } finally {
+    ElNotification(notifyParam);
+  }
+};
+
+const handleUpdateAttendance = (row: any) => {
+  updateAttendanceForm.attendanceId = row.attendanceId;
+  updateAttendanceForm.studentPermissionId = row.studentPermissionId;
+  updateAttendanceForm.studentName = row.studentName;
+  updateAttendanceForm.courseName = row.courseName;
+  updateAttendanceForm.attendanceDate = row.scheduleDate;
+  updateAttendanceForm.attendanceType = row.attendanceType ?? 1;
+
+  isShowUpdateAttendanceDialog.value = true;
+};
+
+const submitUpdateAttendance = async () => {
+  let notifyParam: NotificationParams = {};
+  isUpdatingAttendance.value = true;
+
+  try {
+    const response = await API.updateAttendance({
+      id: updateAttendanceForm.attendanceId,
+      studentPermissionId: updateAttendanceForm.studentPermissionId,
+      attendanceDate: updateAttendanceForm.attendanceDate,
+      attendanceType: updateAttendanceForm.attendanceType,
+      modifiedUserId: 51,
+      isDelete: false
+    });
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    notifyParam = {
+      title: "更新成功",
+      type: "success",
+      message: "簽到記錄已更新",
+      duration: 3000,
+    };
+
+    isShowUpdateAttendanceDialog.value = false;
+
+    // 重新查詢簽到狀態
+    if (selectedDate.value) {
+      await handleDateChange(selectedDate.value);
+    }
+
+  } catch (error) {
+    notifyParam = {
+      title: "更新失敗",
+      type: "error",
+      message: (error as Error).message,
+      duration: 3000,
+    };
+  } finally {
+    isUpdatingAttendance.value = false;
     ElNotification(notifyParam);
   }
 };
