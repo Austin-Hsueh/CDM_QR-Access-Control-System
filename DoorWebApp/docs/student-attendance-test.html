@@ -201,17 +201,17 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
         <!-- Tab 菜單 -->
         <div class="card">
             <div class="tabs">
-                <div class="tab active" onclick="switchTab('teachers')">👨‍🏫 老師列表</div>
-                <div class="tab" onclick="switchTab('students')">👨‍🎓 學生列表</div>
-                <div class="tab" onclick="switchTab('courses')">📚 課程列表</div>
-                <div class="tab" onclick="switchTab('classrooms')">🏢 教室列表</div>
-                <div class="tab" onclick="switchTab('permission')">🔑 新增門禁時間</div>
-                <div class="tab" onclick="switchTab('addattend')">✅ 學生簽到</div>
-                <div class="tab" onclick="switchTab('closeaccount')">📋 關帳管理</div>
-                <div class="tab" onclick="switchTab('attendance')">📝 查 學生權限</div>
-                <div class="tab" onclick="switchTab('payment')">💳 繳費管理</div>
-                <div class="tab" onclick="switchTab('refund')">💳 退款管理</div>
-                <div class="tab" onclick="switchTab('docs')">📖 API 文檔</div>
+                <div class="tab active" onclick="switchTab(event, 'teachers')">👨‍🏫 老師列表</div>
+                <div class="tab" onclick="switchTab(event, 'students')">👨‍🎓 學生列表</div>
+                <div class="tab" onclick="switchTab(event, 'courses')">📚 課程列表</div>
+                <div class="tab" onclick="switchTab(event, 'classrooms')">🏢 教室列表</div>
+                <div class="tab" onclick="switchTab(event, 'permission')">🔑 新增門禁時間</div>
+                <div class="tab" onclick="switchTab(event, 'addattend')">✅ 學生簽到</div>
+                <div class="tab" onclick="switchTab(event, 'closeaccount')">📋 關帳管理</div>
+                <div class="tab" onclick="switchTab(event, 'attendance')">📝 查 學生權限</div>
+                <div class="tab" onclick="switchTab(event, 'payment')">💳 繳費管理</div>
+                <div class="tab" onclick="switchTab(event, 'refund')">💳 退款管理</div>
+                <div class="tab" onclick="switchTab(event, 'docs')">📖 API 文檔</div>
             </div>
 
             <!-- 老師列表 Tab -->
@@ -738,12 +738,23 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             <label>折扣金額: <input type="number" id="createPaymentDiscount" value="0" min="0" style="width: 150px;" /></label>
                         </div>
                         <div style="margin-bottom: 12px;">
+                            <label>繳費日期: <input type="date" id="createPaymentPayDate" style="width: 180px;" placeholder="空值=今日 UTC+8" /></label>
+                        </div>
+                        <div style="margin-bottom: 12px;">
                             <label>備註: <input type="text" id="createPaymentRemark" placeholder="選填" style="width: 250px;" /></label>
                         </div>
-                        <div style="color: #67c23a; font-size: 13px; margin-bottom: 8px;">
-                            ℹ️ 繳費日期、收據編號與操作者 ID 將自動產生
+                        <div style="margin-bottom: 12px;">
+                            <label>操作模式: 
+                                <select id="createPaymentIsDelete" style="width: 180px; padding: 6px;">
+                                    <option value="false">新增/更新</option>
+                                    <option value="true">軟刪除</option>
+                                </select>
+                            </label>
                         </div>
-                        <button class="btn-primary" onclick="createPaymentRecord()">新增記錄</button>
+                        <div style="color: #67c23a; font-size: 13px; margin-bottom: 8px;">
+                            ℹ️ 繳費日期、收據編號與操作者 ID 將自動產生；<strong>選「軟刪除」時金額可留空，只標記刪除，再次送出新增/更新會自動復原</strong>
+                        </div>
+                        <button class="btn-primary" onclick="createPaymentRecord()">送出</button>
                     </div>
                     <div id="createPaymentResult" style="margin-top: 12px;"></div>
                     <div id="createPaymentError" class="error" style="display:none;"></div>
@@ -937,7 +948,6 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
             };
             
             const response = await fetch(url, fetchOptions);
-                "payDate": "2025/12/10",
             
             // 如果是 401 未授權，自動登出
             if (response.status === 401) {
@@ -1038,7 +1048,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
             }
         }
 
-        function switchTab(tabName) {
+        function switchTab(evt, tabName) {
             // 隱藏所有 tab content
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
@@ -1050,7 +1060,9 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
             // 顯示選中的 tab
             document.getElementById(tabName).classList.add('active');
             // 設置對應的 tab 為 active
-            event.target.classList.add('active');
+            if (evt && evt.target) {
+                evt.target.classList.add('active');
+            }
         }
 
         async function loadTeachers() {
@@ -3894,6 +3906,10 @@ Content-Type: application/json
                                 <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
                                     <li>若該學生權限尚無繳費記錄 → <strong>新增</strong>記錄（產生收據編號）</li>
                                     <li>若該學生權限已有繳費記錄 → <strong>更新</strong>現有記錄（保留原收據編號）</li>
+                                    <li>傳 <code>isDelete=true</code> 時 → 對現有繳費做<strong>軟刪除</strong>（不需填金額）</li>
+                                    <li>若繳費先被軟刪除，再傳 <code>isDelete=false</code> → 自動<strong>復原</strong>並套用最新金額/折扣/備註</li>
+                                    <li>若沒有繳費記錄卻傳 <code>isDelete=true</code> → 回傳 <code>payment_not_found</code></li>
+                                    <li><strong>payDate 行為：</strong>未提供時預設當前 UTC+8 的今日；更新時未帶入則沿用原值；軟刪除請求會忽略 payDate</li>
                                 </ul>
                             </div>
 
@@ -3909,10 +3925,11 @@ Content-Type: application/json
                                 </thead>
                                 <tbody>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionFeeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限費用 ID</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>pay</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">繳費金額</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>payDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">實際繳款日 (空值=系統自動填入今日，格式 yyyy/MM/dd)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>pay</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅（非刪除）</td><td style="padding: 8px; border: 1px solid #ddd;">繳費金額；<strong>僅 isDelete=false 時必填</strong></td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>payDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">實際繳款日 (格式 yyyy/MM/dd；空值=系統自動填入今日 UTC+8；更新時不傳則沿用原值；軟刪除請求忽略此欄)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>discountAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">折扣金額 (預設0)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>remark</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">備註</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>isDelete</code></td><td style="padding: 8px; border: 1px solid #ddd;">bool?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">true=軟刪除、false/空值=新增或更新；軟刪除不需金額</td></tr>
                                 </tbody>
                             </table>
 
@@ -3942,7 +3959,13 @@ Content-Type: application/json
   "studentPermissionFeeId": 123,
   "pay": 12000,
   "discountAmount": 500,
-  "remark": "第一期繳費"
+    "remark": "第一期繳費"
+}
+
+// 軟刪除同一筆繳費記錄
+{
+    "studentPermissionFeeId": 123,
+    "isDelete": true
 }</pre>
 
                             <h3 style="margin-top: 20px;">📤 回應欄位</h3>
@@ -3956,7 +3979,7 @@ Content-Type: application/json
                                 </thead>
                                 <tbody>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>result</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">結果代碼 (1=成功)</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">操作結果：<br/>• <code>created</code> = 新增成功<br/>• <code>updated</code> = 更新成功</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">操作結果：<br/>• <code>created</code> = 新增成功<br/>• <code>updated</code> = 更新成功<br/>• <code>restored</code> = 復原軟刪除並更新<br/>• <code>deleted</code> = 軟刪除成功<br/>• <code>payment_not_found</code> = 無可刪除的繳費</td></tr>
                                 </tbody>
                             </table>
 
@@ -3967,6 +3990,12 @@ Content-Type: application/json
                                 <div><label>繳費日期: <input type="date" id="testCreatePayDate" style="width: 100%; padding: 6px;" placeholder="空值=自動今日" /></label></div>
                                 <div><label>折扣金額: <input type="number" step="0.01" id="testCreateDiscount" value="0" style="width: 100%; padding: 6px;" /></label></div>
                                 <div><label>備註: <input type="text" id="testCreateRemark" style="width: 100%; padding: 6px;" placeholder="可選" /></label></div>
+                                <div><label>操作模式: 
+                                    <select id="testCreateIsDelete" style="width: 100%; padding: 6px;">
+                                        <option value="false">新增/更新</option>
+                                        <option value="true">軟刪除</option>
+                                    </select>
+                                </label></div>
                             </div>
                             <button class="btn-primary" style="margin-top: 10px;" onclick="testCreatePayment()">執行測試</button>
                             <div id="testResult-createPayment" style="margin-top: 10px;"></div>
@@ -4508,7 +4537,21 @@ Content-Type: application/json
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>canCloseAccount</code></td><td style="padding: 8px; border: 1px solid #ddd;">bool</td><td style="padding: 8px; border: 1px solid #ddd;">是否可以關帳 (全部簽到時為 true)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>checkedInSchedules[]</code></td><td style="padding: 8px; border: 1px solid #ddd;">object[]</td><td style="padding: 8px; border: 1px solid #ddd;">已簽到課程列表</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>notCheckedInSchedules[]</code></td><td style="padding: 8px; border: 1px solid #ddd;">object[]</td><td style="padding: 8px; border: 1px solid #ddd;">未簽到課程列表</td></tr>
-                                    <tr style="background: #f7fafc;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>schedule.*</code></td><td style="padding: 8px; border: 1px solid #ddd;">object</td><td style="padding: 8px; border: 1px solid #ddd;">欄位：scheduleId, studentPermissionId, studentId, username, studentName, courseName, classroomName, scheduleDate, startTime, endTime, status, attendanceId, <strong>attendanceType</strong> (0=缺席,1=出席,2=請假, 未簽到=null), checkedInTime</td></tr>
+                                    <tr style="background: #f7fafc;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>schedule.*</code></td><td style="padding: 8px; border: 1px solid #ddd;">object</td><td style="padding: 8px; border: 1px solid #ddd;">單筆課程簽到資訊 (欄位如下)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;scheduleId</td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">課表 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;studentPermissionId</td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;studentId</td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學生 ID</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;username</td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">學生帳號</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;studentName</td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">學生姓名</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;courseName</td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">課程名稱</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;classroomName</td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">教室名稱</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;scheduleDate</td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">上課日期 (yyyy-MM-dd)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;startTime</td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">開始時間 (HH:mm)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;endTime</td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">結束時間 (HH:mm)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;status</td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">狀態文字 (已簽到/未簽到)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;attendanceId</td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">對應簽到 ID (未簽到=null)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;attendanceType</td><td style="padding: 8px; border: 1px solid #ddd;">int?</td><td style="padding: 8px; border: 1px solid #ddd;">簽到類型：0=缺席，1=出席，2=請假；未簽到時為 null</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;&nbsp;&nbsp;checkedInTime</td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">簽到時間 (無簽到則 null)</td></tr>
                                 </tbody>
                             </table>
 
@@ -5732,10 +5775,17 @@ Response:
             const feeId = document.getElementById('createPaymentFeeId').value;
             const pay = parseInt(document.getElementById('createPaymentAmount').value);
             const discount = parseFloat(document.getElementById('createPaymentDiscount').value) || 0;
+            const payDate = document.getElementById('createPaymentPayDate').value || null;
             const remark = document.getElementById('createPaymentRemark').value || null;
+            const isDelete = (document.getElementById('createPaymentIsDelete')?.value === 'true');
 
-            if (!feeId || !pay) {
-                alert('請填寫必填欄位：學生權限費用ID、金額');
+            if (!feeId) {
+                alert('請填寫必填欄位：學生權限費用ID');
+                return;
+            }
+
+            if (!isDelete && (!pay || pay <= 0)) {
+                alert('非軟刪除時，請填寫繳費金額 (>0)');
                 return;
             }
 
@@ -5747,10 +5797,20 @@ Response:
             try {
                 const payload = {
                     studentPermissionFeeId: parseInt(feeId),
-                    pay: pay,
-                    discountAmount: discount,
-                    remark: remark
+                    isDelete: isDelete
                 };
+
+                if (!isDelete) {
+                    payload.pay = pay;
+                    payload.discountAmount = discount;
+                    if (payDate) {
+                        payload.payDate = payDate;
+                    }
+                }
+
+                if (remark) {
+                    payload.remark = remark;
+                }
 
                 const res = await apiFetch('/api/v1/StudentPayment', {
                     method: 'POST',
@@ -5765,25 +5825,33 @@ Response:
                     throw new Error(data.msg || '儲存失敗');
                 }
 
-                const isCreated = data.msg === 'created';
-                const isUpdated = data.msg === 'updated';
-                const actionText = isCreated ? '新增' : isUpdated ? '更新' : '儲存';
+                const msg = data.msg || '';
+                const isCreated = msg === 'created';
+                const isUpdated = msg === 'updated';
+                const isDeleted = msg === 'deleted';
+                const isRestored = msg === 'restored';
+                const actionText = isCreated ? '新增' : isUpdated ? '更新' : isRestored ? '復原' : isDeleted ? '軟刪除' : '儲存';
 
                 resultDiv.innerHTML = `
                     <div class="success">✅ ${actionText}成功</div>
                     <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px;">
                         <p><strong>操作：</strong>${actionText}</p>
                         <p><strong>學生權限費用ID：</strong>${feeId}</p>
-                        <p><strong>繳費金額：</strong>$${pay}</p>
-                        <p><strong>折扣金額：</strong>$${discount}</p>
+                        ${!isDeleted ? `<p><strong>繳費金額：</strong>$${pay || 0}</p>` : ''}
+                        ${!isDeleted ? `<p><strong>繳費日期：</strong>${payDate || '自動填入今日 (UTC+8)'}</p>` : ''}
+                        ${!isDeleted ? `<p><strong>折扣金額：</strong>$${discount}</p>` : ''}
                         ${remark ? `<p><strong>備註：</strong>${remark}</p>` : ''}
+                        ${isDeleted ? `<p><strong>狀態：</strong>已軟刪除 (再次送新增/更新會自動復原)</p>` : ''}
+                        ${isRestored ? `<p><strong>狀態：</strong>已復原繳費並更新內容</p>` : ''}
                     </div>
                 `;
                 
                 // 清空表單
                 document.getElementById('createPaymentAmount').value = '';
                 document.getElementById('createPaymentDiscount').value = '0';
+                document.getElementById('createPaymentPayDate').value = '';
                 document.getElementById('createPaymentRemark').value = '';
+                document.getElementById('createPaymentIsDelete').value = 'false';
             } catch(err) {
                 errorDiv.textContent = err.message;
                 errorDiv.style.display = 'block';
@@ -6069,24 +6137,34 @@ Response:
 
         // 測試建立繳費記錄
         async function testCreatePayment() {
-            const permissionId = document.getElementById('testCreatePermissionId').value;
+            const permissionFeeId = document.getElementById('testCreatePermissionId').value;
             const pay = document.getElementById('testCreatePay').value;
             const payDateInput = document.getElementById('testCreatePayDate').value;
+            const isDelete = (document.getElementById('testCreateIsDelete')?.value === 'true');
             
-            if (!permissionId || !pay) {
-                alert('請輸入學生權限 ID 和繳費金額');
+            if (!permissionFeeId) {
+                alert('請輸入學生權限費用 ID');
+                return;
+            }
+
+            if (!isDelete && !pay) {
+                alert('非軟刪除時需要繳費金額');
                 return;
             }
 
             const payload = {
-                studentPermissionId: parseInt(permissionId),
-                pay: parseInt(pay)
+                studentPermissionFeeId: parseInt(permissionFeeId),
+                isDelete: isDelete
             };
+
+            if (!isDelete) {
+                payload.pay = parseInt(pay);
+            }
 
             if (payDateInput) payload.payDate = payDateInput;
 
             const discount = document.getElementById('testCreateDiscount').value;
-            if (discount) payload.discountAmount = parseFloat(discount);
+            if (!isDelete && discount) payload.discountAmount = parseFloat(discount);
 
             const remark = document.getElementById('testCreateRemark').value;
             if (remark) payload.remark = remark;
@@ -6108,14 +6186,19 @@ Response:
                     throw new Error(data.msg || '建立失敗');
                 }
 
+                const msg = data.msg || '';
+                const actionText = msg === 'created' ? '新增' : msg === 'updated' ? '更新' : msg === 'restored' ? '復原' : msg === 'deleted' ? '軟刪除' : '完成';
+
                 resultDiv.innerHTML = `
-                    <div class="success">✅ 建立成功</div>
+                    <div class="success">✅ ${actionText}成功</div>
                     <div style="padding: 12px; background: #f0fff4; border-radius: 4px; margin-top: 8px; font-size: 14px;">
-                        <p><strong>繳費 ID:</strong> ${data.content?.paymentId || '-'}</p>
-                        <p><strong>繳費日期:</strong> ${data.content?.payDate || payDateInput || '自動產生'}</p>
-                        <p><strong>收據編號:</strong> ${data.content?.receiptNumber || '自動產生'}</p>
-                        <p><strong>繳費金額:</strong> ￥${pay}</p>
-                        <p><strong>折扣金額:</strong> ￥${discount || 0}</p>
+                        <p><strong>操作:</strong> ${actionText}</p>
+                        <p><strong>學生權限費用 ID:</strong> ${permissionFeeId}</p>
+                        ${!isDelete ? `<p><strong>繳費日期:</strong> ${payDateInput || '自動產生'}</p>` : ''}
+                        ${!isDelete ? `<p><strong>繳費金額:</strong> ￥${pay}</p>` : ''}
+                        ${!isDelete ? `<p><strong>折扣金額:</strong> ￥${discount || 0}</p>` : ''}
+                        ${isDelete ? `<p><strong>狀態:</strong> 已軟刪除 (再次送新增/更新會復原)</p>` : ''}
+                        ${msg === 'restored' ? `<p><strong>狀態:</strong> 已復原之前的軟刪除記錄</p>` : ''}
                     </div>
                 `;
 
@@ -6128,6 +6211,7 @@ Response:
                 document.getElementById('testCreatePayDate').value = '';
                 document.getElementById('testCreateDiscount').value = '0';
                 document.getElementById('testCreateRemark').value = '';
+                document.getElementById('testCreateIsDelete').value = 'false';
             } catch(err) {
                 resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
                 document.getElementById('rawData-createPayment').textContent = `錯誤: ${err.message}`;
