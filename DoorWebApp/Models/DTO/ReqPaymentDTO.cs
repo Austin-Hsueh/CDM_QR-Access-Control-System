@@ -45,6 +45,11 @@ namespace DoorWebApp.Models.DTO
         /// 繳費日期 (可選，空值時沿用原值或系統預設)
         /// </summary>
         public string? PayDate { get; set; }
+
+        /// <summary>
+        /// 是否執行軟刪除 (true=軟刪除，false/空值=維持或新增)
+        /// </summary>
+        public bool? IsDelete { get; set; }
     }
 
     /// <summary>

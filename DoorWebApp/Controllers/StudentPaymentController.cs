@@ -169,7 +169,16 @@ namespace DoorWebApp.Controllers
             var res = new APIResponse();
             try
             {
-                if (dto?.StudentPermissionFeeId <= 0 || dto?.Pay <= 0)
+                if (dto == null)
+                {
+                    res.result = APIResultCode.unknow_error;
+                    res.msg = "Missing required fields";
+                    return Ok(res);
+                }
+
+                bool isDelete = dto.IsDelete ?? false;
+
+                if (dto.StudentPermissionFeeId <= 0 || (!isDelete && dto.Pay <= 0))
                 {
                     res.result = APIResultCode.unknow_error;
                     res.msg = "Missing required fields";
@@ -208,35 +217,67 @@ namespace DoorWebApp.Controllers
 
                 if (existingPayment != null)
                 {
-                    // 若已存在，更新記錄
-                    var originalPay = existingPayment.Pay;
-                    var originalDiscount = existingPayment.DiscountAmount;
-                    var originalRemark = existingPayment.Remark;
-
-                    existingPayment.Pay = dto.Pay;
-                    existingPayment.DiscountAmount = (int)(dto.DiscountAmount ?? 0);
-                    existingPayment.Remark = dto.Remark;
-                    if (!string.IsNullOrWhiteSpace(dto.PayDate))
+                    if (isDelete)
                     {
-                        existingPayment.PayDate = dto.PayDate;
+                        // 軟刪除既有繳費記錄
+                        var wasDeleted = existingPayment.IsDelete;
+                        existingPayment.IsDelete = true;
+                        existingPayment.ModifiedUserId = operatorId.Value;
+                        existingPayment.ModifiedTime = DateTime.Now;
+
+                        ctx.TblPayment.Update(existingPayment);
+                        await ctx.SaveChangesAsync();
+
+                        auditLog.WriteAuditLog(AuditActType.Delete,
+                            $"Soft delete Payment: StudentPermissionFeeId={dto.StudentPermissionFeeId}, WasDeleted={wasDeleted}",
+                            operatorUsername);
+
+                        res.result = APIResultCode.success;
+                        res.msg = "deleted";
+                        return Ok(res);
                     }
-                    existingPayment.ModifiedUserId = operatorId.Value;
-                    existingPayment.ModifiedTime = DateTime.Now;
+                    else
+                    {
+                        // 若已存在，更新記錄（若先前被軟刪除則恢復）
+                        var originalPay = existingPayment.Pay;
+                        var originalDiscount = existingPayment.DiscountAmount;
+                        var originalRemark = existingPayment.Remark;
+                        var wasDeleted = existingPayment.IsDelete;
 
-                    ctx.TblPayment.Update(existingPayment);
-                    await ctx.SaveChangesAsync();
+                        existingPayment.Pay = dto.Pay;
+                        existingPayment.DiscountAmount = (int)(dto.DiscountAmount ?? 0);
+                        existingPayment.Remark = dto.Remark;
+                        if (!string.IsNullOrWhiteSpace(dto.PayDate))
+                        {
+                            existingPayment.PayDate = dto.PayDate;
+                        }
+                        existingPayment.IsDelete = false;
+                        existingPayment.ModifiedUserId = operatorId.Value;
+                        existingPayment.ModifiedTime = DateTime.Now;
 
-                    // 寫入稽核紀錄
-                    auditLog.WriteAuditLog(AuditActType.Modify, 
-                        $"Update Payment: StudentPermissionFeeId={dto.StudentPermissionFeeId}, Amount:{originalPay}→{dto.Pay}, Discount:{originalDiscount}→{existingPayment.DiscountAmount}", 
-                        operatorUsername);
+                        ctx.TblPayment.Update(existingPayment);
+                        await ctx.SaveChangesAsync();
 
-                    res.result = APIResultCode.success;
-                    res.msg = "updated";
-                    return Ok(res);
+                        // 寫入稽核紀錄
+                        auditLog.WriteAuditLog(AuditActType.Modify, 
+                            $"Update Payment: StudentPermissionFeeId={dto.StudentPermissionFeeId}, Amount:{originalPay}→{dto.Pay}, Discount:{originalDiscount}→{existingPayment.DiscountAmount}, WasDeleted={wasDeleted}", 
+                            operatorUsername);
+
+                        res.result = APIResultCode.success;
+                        res.msg = wasDeleted ? "restored" : "updated";
+                        return Ok(res);
+                    }
                 }
                 else
                 {
+                    if (isDelete)
+                    {
+                        // 無既有繳費記錄可刪除
+                        res.result = APIResultCode.data_not_found;
+                        res.msg = "payment_not_found";
+                        return Ok(res);
+                    }
+
                     // 若不存在，新增記錄
                     // 系統產生收據編號
                     string receiptNumber = await GenerateReceiptNumber();
