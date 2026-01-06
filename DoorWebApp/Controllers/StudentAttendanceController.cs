@@ -660,11 +660,19 @@ namespace DoorWebApp.Controllers
                 if (feeDTO.IsDelete)
                 {
                     feeEntity.IsDelete = true;
+                    // 同步軟刪除對應的繳費記錄（若存在）
+                    var payment = await ctx.TblPayment.FirstOrDefaultAsync(p => p.StudentPermissionFeeId == feeEntity.Id && !p.IsDelete);
+                    if (payment != null)
+                    {
+                        payment.IsDelete = true;
+                        payment.ModifiedTime = DateTime.Now;
+                    }
+
                     await ctx.SaveChangesAsync();
-                    log.LogInformation($"[{Request.Path}] Delete success. FeeId:{feeEntity.Id}");
+                    log.LogInformation($"[{Request.Path}] Delete success. FeeId:{feeEntity.Id}, PaymentSoftDeleted:{payment != null}");
 
                     // 寫入稽核紀錄
-                    auditLog.WriteAuditLog(AuditActType.Modify, $"Delete StudentPermissionFee. id: {feeEntity.Id}", OperatorUsername);
+                    auditLog.WriteAuditLog(AuditActType.Modify, $"Delete StudentPermissionFee. id: {feeEntity.Id}, PaymentSoftDeleted: {(payment != null)}", OperatorUsername);
 
                     res.result = APIResultCode.success;
                     res.msg = "success";
