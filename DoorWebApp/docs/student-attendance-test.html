@@ -937,6 +937,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
             };
             
             const response = await fetch(url, fetchOptions);
+                "payDate": "2025/12/10",
             
             // 如果是 401 未授權，自動登出
             if (response.status === 401) {
@@ -1996,7 +1997,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                     contentDiv.innerHTML = '<div class="empty">沒有學生權限或費用紀錄</div>';
                 } else {
                     let html = `<div style="margin-bottom:8px; color:#4a5568; font-size:13px;">當前學生權限 ID：${nowPermissionId} ｜ 最大簽到時數：${maxHours ?? '-'} </div>`;
-                    html += '<table><thead><tr><th>序號</th><th>學生權限ID</th><th>StudentPermissionFeeId</th><th>課程名稱</th><th>繳款日</th><th>應收金額</th><th>已收金額</th><th>剩餘欠款</th><th>結帳單號</th><th>簽到紀錄</th><th>操作</th></tr></thead><tbody>';
+                    html += '<table><thead><tr><th>序號</th><th>學生權限ID</th><th>StudentPermissionFeeId</th><th>課程名稱</th><th>應繳款日</th><th>實際繳款日</th><th>應收金額</th><th>已收金額</th><th>剩餘欠款</th><th>結帳單號</th><th>簽到紀錄</th><th>操作</th></tr></thead><tbody>';
                     attendanceData.forEach(record => {
                         html += `<tr>
                             <td>${record.serialNo || '-'}</td>
@@ -2004,6 +2005,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             <td>${(record.studentPermissionFeeId ?? record.StudentPermissionFeeId) || '-'}</td>
                             <td>${record.courseName || '-'}</td>
                             <td>${record.paymentDate || '-'}</td>
+                            <td>${record.payDate || '-'}</td>
                             <td>${record.receivableAmount || '0'}</td>
                             <td>${record.receivedAmount || '0'}</td>
                             <td>${record.outstandingAmount || '0'}</td>
@@ -2587,6 +2589,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                                         <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">課程名稱</th>
                                         <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">教室</th>
                                         <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">時間</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">簽到類型</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -2599,6 +2602,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                                 <td style="padding: 8px; border: 1px solid #ddd;">${schedule.courseName}</td>
                                 <td style="padding: 8px; border: 1px solid #ddd;">${schedule.classroomName}</td>
                                 <td style="padding: 8px; border: 1px solid #ddd;">${schedule.startTime} ~ ${schedule.endTime}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${schedule.attendanceType ?? '-'}</td>
                             </tr>
                         `;
                     });
@@ -2622,6 +2626,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                                         <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">課程名稱</th>
                                         <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">教室</th>
                                         <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">時間</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">簽到類型</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -2634,6 +2639,7 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                                 <td style="padding: 8px; border: 1px solid #ddd;">${schedule.courseName}</td>
                                 <td style="padding: 8px; border: 1px solid #ddd;">${schedule.classroomName}</td>
                                 <td style="padding: 8px; border: 1px solid #ddd;">${schedule.startTime} ~ ${schedule.endTime}</td>
+                                <td style="padding: 8px; border: 1px solid #ddd;">${schedule.attendanceType ?? '-'}</td>
                             </tr>
                         `;
                     });
@@ -3304,7 +3310,8 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ studentPermissionId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限 ID</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ studentPermissionFeeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限費用 ID</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ courseName</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">課程名稱</td></tr>
-                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ paymentDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">繳款日 (民國年格式: 114/02/27)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ paymentDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">應繳款日 (民國年格式: 114/02/27)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ payDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">實際繳款日 (有付款才會有值)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ receivableAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">應收金額 (學費+教材)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ receivedAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">已收金額</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>&nbsp;&nbsp;└ outstandingAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">欠款金額</td></tr>
@@ -3903,6 +3910,7 @@ Content-Type: application/json
                                 <tbody>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentPermissionFeeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生權限費用 ID</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>pay</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">繳費金額</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>payDate</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">實際繳款日 (空值=系統自動填入今日，格式 yyyy/MM/dd)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>discountAmount</code></td><td style="padding: 8px; border: 1px solid #ddd;">decimal?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">折扣金額 (預設0)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>remark</code></td><td style="padding: 8px; border: 1px solid #ddd;">string?</td><td style="padding: 8px; border: 1px solid #ddd;">❌</td><td style="padding: 8px; border: 1px solid #ddd;">備註</td></tr>
                                 </tbody>
@@ -3919,7 +3927,7 @@ Content-Type: application/json
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>繳費日期</strong></td><td style="padding: 8px; border: 1px solid #ddd;">系統自動取得當前 UTC+8 時間</td><td style="padding: 8px; border: 1px solid #ddd;">2025/12/10</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>繳費日期</strong></td><td style="padding: 8px; border: 1px solid #ddd;">未傳入 payDate 時，系統自動取當前 UTC+8 日期</td><td style="padding: 8px; border: 1px solid #ddd;">2025/12/10</td></tr>
                                         <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>收據編號</strong></td><td style="padding: 8px; border: 1px solid #ddd;">格式: {民國年:03}B{月份:02}{流水號:04}<br/>查詢當月最新流水號後 +1</td><td style="padding: 8px; border: 1px solid #ddd;">114B120091</td></tr>
                                         <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>操作者 ID</strong></td><td style="padding: 8px; border: 1px solid #ddd;">從 JWT Token 的 userId claim 取得</td><td style="padding: 8px; border: 1px solid #ddd;">自動填入</td></tr>
                                     </tbody>
@@ -3956,6 +3964,7 @@ Content-Type: application/json
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
                                 <div><label>學生權限費用 ID: <input type="number" id="testCreatePermissionId" style="width: 100%; padding: 6px;" /></label></div>
                                 <div><label>繳費金額: <input type="number" id="testCreatePay" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>繳費日期: <input type="date" id="testCreatePayDate" style="width: 100%; padding: 6px;" placeholder="空值=自動今日" /></label></div>
                                 <div><label>折扣金額: <input type="number" step="0.01" id="testCreateDiscount" value="0" style="width: 100%; padding: 6px;" /></label></div>
                                 <div><label>備註: <input type="text" id="testCreateRemark" style="width: 100%; padding: 6px;" placeholder="可選" /></label></div>
                             </div>
@@ -4499,6 +4508,7 @@ Content-Type: application/json
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>canCloseAccount</code></td><td style="padding: 8px; border: 1px solid #ddd;">bool</td><td style="padding: 8px; border: 1px solid #ddd;">是否可以關帳 (全部簽到時為 true)</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>checkedInSchedules[]</code></td><td style="padding: 8px; border: 1px solid #ddd;">object[]</td><td style="padding: 8px; border: 1px solid #ddd;">已簽到課程列表</td></tr>
                                     <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>notCheckedInSchedules[]</code></td><td style="padding: 8px; border: 1px solid #ddd;">object[]</td><td style="padding: 8px; border: 1px solid #ddd;">未簽到課程列表</td></tr>
+                                    <tr style="background: #f7fafc;"><td style="padding: 8px; border: 1px solid #ddd;">&nbsp;&nbsp;<code>schedule.*</code></td><td style="padding: 8px; border: 1px solid #ddd;">object</td><td style="padding: 8px; border: 1px solid #ddd;">欄位：scheduleId, studentPermissionId, studentId, username, studentName, courseName, classroomName, scheduleDate, startTime, endTime, status, attendanceId, <strong>attendanceType</strong> (0=缺席,1=出席,2=請假, 未簽到=null), checkedInTime</td></tr>
                                 </tbody>
                             </table>
 
@@ -6061,6 +6071,7 @@ Response:
         async function testCreatePayment() {
             const permissionId = document.getElementById('testCreatePermissionId').value;
             const pay = document.getElementById('testCreatePay').value;
+            const payDateInput = document.getElementById('testCreatePayDate').value;
             
             if (!permissionId || !pay) {
                 alert('請輸入學生權限 ID 和繳費金額');
@@ -6071,6 +6082,8 @@ Response:
                 studentPermissionId: parseInt(permissionId),
                 pay: parseInt(pay)
             };
+
+            if (payDateInput) payload.payDate = payDateInput;
 
             const discount = document.getElementById('testCreateDiscount').value;
             if (discount) payload.discountAmount = parseFloat(discount);
@@ -6099,7 +6112,7 @@ Response:
                     <div class="success">✅ 建立成功</div>
                     <div style="padding: 12px; background: #f0fff4; border-radius: 4px; margin-top: 8px; font-size: 14px;">
                         <p><strong>繳費 ID:</strong> ${data.content?.paymentId || '-'}</p>
-                        <p><strong>繳費日期:</strong> ${data.content?.payDate || '自動產生'}</p>
+                        <p><strong>繳費日期:</strong> ${data.content?.payDate || payDateInput || '自動產生'}</p>
                         <p><strong>收據編號:</strong> ${data.content?.receiptNumber || '自動產生'}</p>
                         <p><strong>繳費金額:</strong> ￥${pay}</p>
                         <p><strong>折扣金額:</strong> ￥${discount || 0}</p>
@@ -6112,6 +6125,7 @@ Response:
 
                 document.getElementById('testCreatePermissionId').value = '';
                 document.getElementById('testCreatePay').value = '';
+                document.getElementById('testCreatePayDate').value = '';
                 document.getElementById('testCreateDiscount').value = '0';
                 document.getElementById('testCreateRemark').value = '';
             } catch(err) {

@@ -40,6 +40,11 @@ namespace DoorWebApp.Models.DTO
         /// </summary>
         [Required]
         public int ModifiedUserId { get; set; }
+
+        /// <summary>
+        /// 繳費日期 (可選，空值時沿用原值或系統預設)
+        /// </summary>
+        public string? PayDate { get; set; }
     }
 
     /// <summary>

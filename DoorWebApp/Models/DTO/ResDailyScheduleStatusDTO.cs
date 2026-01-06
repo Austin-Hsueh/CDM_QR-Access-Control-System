@@ -115,6 +115,11 @@ namespace DoorWebApp.Models.DTO
         public int? AttendanceId { get; set; }
 
         /// <summary>
+        /// 簽到類型 (0:缺席 1:出席 2:請假)，未簽到為 null
+        /// </summary>
+        public int? AttendanceType { get; set; }
+
+        /// <summary>
         /// 簽到時間
         /// </summary>
         public DateTime? CheckedInTime { get; set; }

@@ -120,6 +120,7 @@ namespace DoorWebApp.Controllers
                         EndTime = schedule.EndTime,
                         Status = attendance != null ? "已簽到" : "未簽到",
                         AttendanceId = attendance?.Id,
+                        AttendanceType = attendance?.AttendanceType,
                         CheckedInTime = attendance?.CreatedTime
                     });
                 }

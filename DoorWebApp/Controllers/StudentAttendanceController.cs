@@ -246,6 +246,7 @@ namespace DoorWebApp.Controllers
                     int received = hasPayment ? payment.Pay + payment.DiscountAmount : 0;
                     int outstanding = Math.Max(fee.TotalAmount - received, 0);
                     string? receiptNumber = hasPayment ? payment?.ReceiptNumber : null;
+                    string? payDate = hasPayment ? payment?.PayDate : null;
 
                     // 取得該費用所屬的學生權限與課程名稱
                     var spOfFee = permissions.FirstOrDefault(sp => sp.StudentPermissionFees != null && sp.StudentPermissionFees.Any(f => f.Id == fee.Id));
@@ -258,6 +259,7 @@ namespace DoorWebApp.Controllers
                         StudentPermissionFeeId = fee.Id,
                         CourseName = courseName,
                         PaymentDate = fee.PaymentDate?.ToString("yyy/MM/dd"),
+                        PayDate = payDate,
                         ReceivableAmount = fee.TotalAmount,
                         ReceivedAmount = received,
                         OutstandingAmount = outstanding,

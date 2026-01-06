@@ -20,8 +20,11 @@ namespace DoorWebApp.Models.DTO
         /// <summary>課程名稱</summary>
         public string CourseName { get; set; } = string.Empty;
 
-        /// <summary>繳款日（字串，民國年格式：114/02/27）</summary>
+        /// <summary>應繳款日（字串，民國年格式：114/02/27）</summary>
         public string? PaymentDate { get; set; }
+
+        /// <summary>實際繳款日（字串，民國年格式：114/02/27）</summary>
+        public string? PayDate { get; set; }
 
         /// <summary>應收金額（課程費用 + 教材費）</summary>
         public int ReceivableAmount { get; set; }

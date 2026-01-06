@@ -216,6 +216,10 @@ namespace DoorWebApp.Controllers
                     existingPayment.Pay = dto.Pay;
                     existingPayment.DiscountAmount = (int)(dto.DiscountAmount ?? 0);
                     existingPayment.Remark = dto.Remark;
+                    if (!string.IsNullOrWhiteSpace(dto.PayDate))
+                    {
+                        existingPayment.PayDate = dto.PayDate;
+                    }
                     existingPayment.ModifiedUserId = operatorId.Value;
                     existingPayment.ModifiedTime = DateTime.Now;
 
@@ -239,7 +243,9 @@ namespace DoorWebApp.Controllers
 
                     // 取得當前 UTC+8 時間作為繳費日期
                     var nowUtc8 = DateTime.UtcNow.AddHours(8);
-                    string payDate = nowUtc8.ToString("yyyy/MM/dd");
+                    string payDate = string.IsNullOrWhiteSpace(dto.PayDate)
+                        ? nowUtc8.ToString("yyyy/MM/dd")
+                        : dto.PayDate;
 
                     // 建立繳費記錄
                     var payment = new TblPayment
