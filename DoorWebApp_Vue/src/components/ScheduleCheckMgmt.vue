@@ -76,7 +76,7 @@
             {{ scope.row.checkedInTime ? new Date(scope.row.checkedInTime).toLocaleString('zh-TW') : '-' }}
           </template>
         </el-table-column>
-        <el-table-column v-if="false" label="操作" align="center" width="180">
+        <el-table-column v-if="true" label="操作" align="center" width="180">
           <template #default="scope">
             <el-button
               v-if="scope.row.attendanceId"
@@ -380,7 +380,8 @@ const handleUpdateAttendance = (row: any) => {
   updateAttendanceForm.studentPermissionId = row.studentPermissionId;
   updateAttendanceForm.studentName = row.studentName;
   updateAttendanceForm.courseName = row.courseName;
-  updateAttendanceForm.attendanceDate = row.scheduleDate;
+  updateAttendanceForm.attendanceDate = row.scheduleDate.replace(/\//g, '-');
+  console.log("updateAttendanceForm.attendanceDate", updateAttendanceForm.attendanceDate);
   updateAttendanceForm.attendanceType = row.attendanceType ?? 1;
 
   isShowUpdateAttendanceDialog.value = true;
@@ -452,7 +453,7 @@ const handleDeleteAttendance = async (row: any) => {
     const response = await API.updateAttendance({
       id: row.attendanceId,
       studentPermissionId: row.studentPermissionId,
-      attendanceDate: row.scheduleDate,
+      attendanceDate: row.scheduleDate.replace(/\//g, '-'),
       attendanceType: row.attendanceType ?? 1,
       modifiedUserId: 51,
       isDelete: true
