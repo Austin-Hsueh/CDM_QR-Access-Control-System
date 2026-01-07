@@ -76,7 +76,7 @@
             {{ scope.row.checkedInTime ? new Date(scope.row.checkedInTime).toLocaleString('zh-TW') : '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" align="center" width="180">
+        <el-table-column v-if="false" label="操作" align="center" width="180">
           <template #default="scope">
             <el-button
               v-if="scope.row.attendanceId"
@@ -139,7 +139,7 @@
       <el-form-item label="昨日現金結餘" prop="yesterdayPettyIncome" >
         <el-input  style="width:90%" v-model="createFormData.yesterdayPettyIncome" disabled/>
       </el-form-item>
-      <el-form-item label="營業收入（學生學費）" prop="businessIncome" >
+      <el-form-item label="營業收入" prop="businessIncome" >
         <el-input  style="width:90%" v-model="createFormData.businessIncome" disabled/>
       </el-form-item>
       <el-form-item label="關帳結算金額" prop="closeAccountAmount"  >

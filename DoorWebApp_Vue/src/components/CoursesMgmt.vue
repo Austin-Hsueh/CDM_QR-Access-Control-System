@@ -1,7 +1,7 @@
 <template>
   <!-- table -->
   <el-row>
-    <el-col :span="8" style="padding: 10px;">
+    <el-col :span="6" style="padding: 10px;">
       <el-button type="primary" @click="onCreateCourseTypeClicked">新增分類</el-button>
       <el-table name="userInfoTable" style="width: 100%"  :data="courseTypeList">
         <el-table-column sortable :label="t('Course Type')"  prop="courseTypeName"/>
@@ -12,10 +12,10 @@
         </el-table-column>
       </el-table>
     </el-col>
-    <el-col :span="16" style="padding: 10px;">
+    <el-col :span="18" style="padding: 10px;">
       <el-button type="primary" @click="onCreateCourseClicked">新增課程</el-button>
-      <el-table name="userInfoTable" style="width: 100%"  :data="courseList">
-        <el-table-column sortable :label="t('Course Type')"  prop="courseTypeName"/>
+      <el-table name="userInfoTable" style="width: 100%"  :data="courseList" :default-sort="{ prop: 'courseTypeId', order: 'ascending' }">
+        <el-table-column sortable :label="t('Course Type')"  prop="courseTypeName" :filters="courseTypeFilters" :filter-method="filterColumn" column-key="courseTypeName"/>
         <el-table-column sortable :label="t('Course Name')"  prop="courseName"/>
         <el-table-column sortable label="課程費用"  prop="amount"/>
         <el-table-column sortable label="教材費"  prop="materialFee"/>
@@ -55,11 +55,11 @@
           />
         </el-select>
       </el-form-item>
+      <!-- <el-form-item label="排序順序" prop="sortOrder">
+        <el-input-number style="width:90%" v-model="createFormData.sortOrder" :controls="false"/>
+      </el-form-item> -->
       <!-- <el-form-item label="課程類別" prop="category">
         <el-input style="width:90%" v-model="createFormData.category"/>
-      </el-form-item>
-      <el-form-item label="排序順序" prop="sortOrder">
-        <el-input-number style="width:90%" v-model="createFormData.sortOrder" :controls="false"/>
       </el-form-item>
       <el-form-item label="收費編號" prop="feeCode">
         <el-input style="width:90%" v-model="createFormData.feeCode"/>
@@ -124,11 +124,11 @@
           />
         </el-select>
       </el-form-item>
+      <!-- <el-form-item label="排序順序" prop="sortOrder">
+        <el-input-number style="width:90%" v-model="updateFormData.sortOrder" :controls="false"/>
+      </el-form-item> -->
       <!-- <el-form-item label="課程類別" prop="category">
         <el-input style="width:90%" v-model="updateFormData.category"/>
-      </el-form-item>
-      <el-form-item label="排序順序" prop="sortOrder">
-        <el-input-number style="width:90%" v-model="updateFormData.sortOrder" :controls="false"/>
       </el-form-item>
       <el-form-item label="收費編號" prop="feeCode">
         <el-input style="width:90%" v-model="updateFormData.feeCode"/>
@@ -209,7 +209,7 @@
 
 <script setup lang="ts">
 
-import { ref, onMounted, reactive } from "vue";
+import { ref, onMounted, reactive, computed } from "vue";
 import { useI18n } from "vue-i18n";
 import API from '@/apis/TPSAPI';
 import { EditPen, Delete } from '@element-plus/icons-vue';
@@ -227,6 +227,23 @@ const isShowEditCourseTypeDialog = ref(false);
 const { t } = useI18n();
 const courseList = ref<M_ICourseOptions[]>([]);
 const courseTypeList = ref<M_ICourseTypeOptions[]>([]);
+
+// Computed filters
+// const sortOrderFilters = computed(() => {
+//   const uniqueValues = [...new Set(courseList.value.map(item => item.sortOrder))];
+//   return uniqueValues.filter(val => val !== undefined).map(val => ({ text: String(val), value: val }));
+// });
+
+const courseTypeFilters = computed(() => {
+  const uniqueValues = [...new Set(courseList.value.map(item => item.courseTypeName))];
+  return uniqueValues.filter(val => val !== undefined).map(val => ({ text: val!, value: val }));
+});
+
+// Unified filter method
+const filterColumn = (value: any, row: any, column: any) => {
+  const property = column.property;
+  return row[property] === value;
+};
 
 
 
@@ -539,7 +556,9 @@ onMounted(() => {
 async function getCourseOptions () {
   try {
       const response = await API.getCourse();
-      courseList.value = response.data.content
+      courseList.value = response.data.content.sort((a: M_ICourseOptions, b: M_ICourseOptions) =>
+        (a.courseTypeId ?? 0) - (b.courseTypeId ?? 0)
+      )
       console.log(courseList.value)
     } catch (error) {
       console.error('載入課程資料失敗:', error);
