@@ -217,6 +217,33 @@ namespace DoorWebApp.Controllers
 
                 if (existingPayment != null)
                 {
+                    // 繳費日期若已被關帳（且非今日）則禁止修改或刪除，避免影響已結帳資料
+                    var targetPayDateStr = string.IsNullOrWhiteSpace(dto.PayDate)
+                        ? existingPayment.PayDate
+                        : dto.PayDate;
+
+                    if (!DateTime.TryParse(targetPayDateStr, out var targetPayDate))
+                    {
+                        res.result = APIResultCode.invalid_parameter;
+                        res.msg = "invalid_pay_date";
+                        return Ok(res);
+                    }
+
+                    var todayUtc8 = DateTime.UtcNow.AddHours(8).Date;
+                    if (targetPayDate.Date != todayUtc8)
+                    {
+                        var latestCloseAccount = await ctx.TblCloseAccount
+                            .OrderByDescending(ca => ca.CloseDate)
+                            .FirstOrDefaultAsync();
+
+                        if (latestCloseAccount != null && targetPayDate.Date <= latestCloseAccount.CloseDate.Date)
+                        {
+                            res.result = APIResultCode.invalid_parameter;
+                            res.msg = "payment_date_closed";
+                            return Ok(res);
+                        }
+                    }
+
                     if (isDelete)
                     {
                         // 軟刪除既有繳費記錄
@@ -319,6 +346,218 @@ namespace DoorWebApp.Controllers
             catch (Exception ex)
             {
                 log.LogError(ex, $"[{Request.Path}] CreatePayment Error: {ex.Message}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = ex.Message;
+                return Ok(res);
+            }
+        }
+
+        /// <summary>
+        /// 依學生 ID 取得繳費紀錄（含老師、課程、課表時間、收據號、教室、刪除狀態）
+        /// </summary>
+        [HttpGet("StudentPayment/ByStudent/{studentId}")]
+        public async Task<IActionResult> GetPaymentsByStudent(int studentId)
+        {
+            var res = new APIResponse<List<StudentPaymentDetailRecordDTO>>();
+            try
+            {
+                if (studentId <= 0)
+                {
+                    res.result = APIResultCode.invalid_parameter;
+                    res.msg = "invalid_student_id";
+                    return Ok(res);
+                }
+
+                var payments = await ctx.TblPayment
+                    .AsNoTracking()
+                    .Include(p => p.StudentPermissionFee)
+                        .ThenInclude(spf => spf.StudentPermission)
+                            .ThenInclude(sp => sp.Course)
+                    .Include(p => p.StudentPermissionFee)
+                        .ThenInclude(spf => spf.StudentPermission)
+                            .ThenInclude(sp => sp.Teacher)
+                    .Include(p => p.StudentPermissionFee)
+                        .ThenInclude(spf => spf.StudentPermission)
+                            .ThenInclude(sp => sp.Schedules)
+                                .ThenInclude(s => s.Classroom)
+                    .Where(p => p.StudentPermissionFee != null
+                        && p.StudentPermissionFee.StudentPermission != null
+                        && p.StudentPermissionFee.StudentPermission.UserId == studentId)
+                    .OrderByDescending(p => p.Id)
+                    .ToListAsync();
+
+                var result = new List<StudentPaymentDetailRecordDTO>();
+
+                foreach (var payment in payments)
+                {
+                    var spf = payment.StudentPermissionFee;
+                    var sp = spf?.StudentPermission;
+                    var course = sp?.Course;
+                    var teacher = sp?.Teacher;
+
+                    // 取第一筆課表作為教室資訊，上課時間取用 StudentPermission
+                    var firstSchedule = sp?.Schedules
+                        .OrderBy(s => s.ScheduleDate)
+                        .ThenBy(s => s.StartTime)
+                        .FirstOrDefault();
+
+                    result.Add(new StudentPaymentDetailRecordDTO
+                    {
+                        PaymentId = payment.Id,
+                        StudentPermissionFeeId = spf?.Id ?? 0,
+                        StudentPermissionId = sp?.Id ?? 0,
+                        PaymentDate = spf?.PaymentDate,
+                        PayDate = payment.PayDate,
+                        Pay = payment.Pay,
+                        DiscountAmount = payment.DiscountAmount,
+                        ReceiptNumber = payment.ReceiptNumber,
+                        Remark = payment.Remark,
+                        IsDelete = payment.IsDelete,
+                        CourseId = course?.Id,
+                        CourseName = course?.Name,
+                        TeacherId = teacher?.Id,
+                        TeacherName = teacher?.DisplayName,
+                        ScheduleDate = sp?.DateFrom + "~" + sp?.DateTo,
+                        StartTime = sp?.TimeFrom,
+                        EndTime = sp?.TimeTo,
+                        ClassroomName = firstSchedule?.Classroom?.Name
+                    });
+                }
+
+                res.result = APIResultCode.success;
+                res.msg = "ok";
+                res.content = result;
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "[StudentPayment.ByStudent] error: {Message}", ex.Message);
+                res.result = APIResultCode.unknow_error;
+                res.msg = ex.Message;
+                return Ok(res);
+            }
+        }
+
+        /// <summary>
+        /// 換綁 Payment 到其他 Fee
+        /// </summary>
+        /// <remarks>
+        /// 此 API 專門處理：
+        /// 1. 將現有 Payment 換綁到不同的 StudentPermissionFee
+        /// 
+        /// 注意：
+        /// - 換綁前會檢查目標 Fee 是否已有 Payment（一對一關係）
+        /// - 換綁前會檢查原 Payment 的繳費日期是否已關帳（非今日）
+        /// </remarks>
+        [HttpPut("StudentPayment/Rebind")]
+        public async Task<IActionResult> RebindPayment([FromBody] ReqRebindPaymentDTO dto)
+        {
+            var res = new APIResponse();
+            try
+            {
+                if (dto == null || string.IsNullOrWhiteSpace(dto.ReceiptNumber))
+                {
+                    res.result = APIResultCode.invalid_parameter;
+                    res.msg = "invalid_receipt_number";
+                    return Ok(res);
+                }
+
+                if (dto.NewStudentPermissionFeeId <= 0)
+                {
+                    res.result = APIResultCode.invalid_parameter;
+                    res.msg = "invalid_fee_id";
+                    return Ok(res);
+                }
+
+                // 從 Token 取得操作者 ID
+                var operatorId = GetUserIdFromToken();
+                if (!operatorId.HasValue)
+                {
+                    res.result = APIResultCode.unknow_error;
+                    res.msg = "unauthorized";
+                    return Ok(res);
+                }
+
+                // 查詢操作者
+                var user = await ctx.TblUsers.FirstOrDefaultAsync(u => u.Id == operatorId.Value);
+                string operatorUsername = user?.Username ?? $"UserId:{operatorId}";
+
+                // 1. 查詢 Payment (根據結帳單號)
+                var payment = await ctx.TblPayment
+                    .Include(p => p.StudentPermissionFee)
+                        .ThenInclude(spf => spf.StudentPermission)
+                    .FirstOrDefaultAsync(p => p.ReceiptNumber == dto.ReceiptNumber);
+
+                if (payment == null)
+                {
+                    res.result = APIResultCode.data_not_found;
+                    res.msg = "payment_not_found";
+                    return Ok(res);
+                }
+
+                var oldFeeId = payment.StudentPermissionFeeId;
+
+                // 3. 驗證新的 StudentPermissionFee 是否存在
+                var newFee = await ctx.TblStudentPermissionFee
+                    .Include(spf => spf.Payment)
+                    .Include(spf => spf.StudentPermission)
+                    .FirstOrDefaultAsync(spf => spf.Id == dto.NewStudentPermissionFeeId);
+
+                if (newFee == null || newFee.StudentPermission == null)
+                {
+                    res.result = APIResultCode.data_not_found;
+                    res.msg = "target_fee_not_found";
+                    return Ok(res);
+                }
+
+                // 3.5 檢查來源和目標是否屬於同一個學生
+                var sourceStudentId = payment.StudentPermissionFee?.StudentPermission?.UserId;
+                var targetStudentId = newFee.StudentPermission?.UserId;
+
+                if (sourceStudentId != targetStudentId)
+                {
+                    res.result = APIResultCode.invalid_parameter;
+                    res.msg = "different_student";
+                    return Ok(res);
+                }
+
+                // 4. 若新 Fee 已有 Payment，硬刪除目標 Fee 的 Payment
+                if (newFee.Payment != null)
+                {
+                    var targetPayment = newFee.Payment;
+                    
+                    // 記錄稽核日誌（刪除目標）
+                    auditLog.WriteAuditLog(AuditActType.Delete,
+                        $"Hard delete existing Payment on target Fee: PaymentId={targetPayment.Id}, ReceiptNumber={targetPayment.ReceiptNumber}, FeeId={dto.NewStudentPermissionFeeId}",
+                        operatorUsername);
+
+                    // 硬刪除目標 Fee 的現有 Payment
+                    ctx.TblPayment.Remove(targetPayment);
+                }
+
+                // 5. 執行換綁
+                payment.StudentPermissionFeeId = dto.NewStudentPermissionFeeId;
+                payment.IsDelete = false;
+
+                // 6. 更新修改者與時間
+                payment.ModifiedUserId = operatorId.Value;
+                payment.ModifiedTime = DateTime.Now;
+
+                ctx.TblPayment.Update(payment);
+                await ctx.SaveChangesAsync();
+
+                // 7. 記錄稽核日誌（換綁）
+                auditLog.WriteAuditLog(AuditActType.Modify,
+                    $"Rebind Payment (ReceiptNumber={dto.ReceiptNumber}): FeeId:{oldFeeId}→{dto.NewStudentPermissionFeeId}",
+                    operatorUsername);
+
+                res.result = APIResultCode.success;
+                res.msg = "ok";
+                return Ok(res);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "[StudentPayment.Rebind] error: {Message}", ex.Message);
                 res.result = APIResultCode.unknow_error;
                 res.msg = ex.Message;
                 return Ok(res);

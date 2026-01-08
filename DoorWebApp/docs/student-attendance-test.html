@@ -714,6 +714,49 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
 
             <!-- 繳費管理 Tab -->
             <div id="payment" class="tab-content">
+                <!-- 查詢學生所有繳費紀錄 -->
+                <div class="card">
+                    <h3>📊 查詢學生所有繳費紀錄</h3>
+                    <p style="color: #666; font-size: 13px; margin-bottom: 12px;">查詢指定學生的所有繳費記錄，包含課程、老師、課表時間、收據號等詳細資訊</p>
+                    <div style="padding: 16px 0;">
+                        <label style="display: inline-block; margin-right: 12px;">
+                            <strong>學生 ID:</strong>
+                            <input type="number" id="queryStudentPaymentStudentId" value="1" min="1" style="width: 120px; padding: 6px;" />
+                        </label>
+                        <button class="btn-primary" onclick="queryStudentPaymentsByStudentId()">🔍 查詢</button>
+                        <button class="btn-default" onclick="clearStudentPaymentQuery()">清除</button>
+                    </div>
+                    <div id="studentPaymentQueryContent"></div>
+                    <div id="studentPaymentQueryError" class="error" style="display:none;"></div>
+                </div>
+
+                <!-- 換綁繳費記錄 -->
+                <div class="card">
+                    <h3>🔄 換綁繳費記錄到其他費用</h3>
+                    <p style="color: #666; font-size: 13px; margin-bottom: 12px;">將現有繳費記錄（Payment）換綁到不同的學生權限費用。支援在當日重新分配繳款。</p>
+                    <div style="padding: 16px 0; background: #f5f7fa; border-radius: 4px; padding: 12px;">
+                        <div style="margin-bottom: 12px;">
+                            <label><strong>結帳單號 (必填):</strong></label>
+                            <input type="text" id="rebindReceiptNumber" placeholder="例如: RCP20251220001" style="width: 250px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label><strong>新的學生權限費用 ID (必填):</strong></label>
+                            <input type="number" id="rebindNewFeeId" min="1" placeholder="輸入新的 StudentPermissionFeeId" style="width: 250px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                        </div>
+                        <div style="color: #e6a23c; font-size: 13px; margin-bottom: 12px; padding: 10px; background: #fdf6ec; border-radius: 4px; border-left: 3px solid #e6a23c;">
+                            ⚠️ <strong>注意：</strong>
+                            <ul style="margin-left: 20px; margin-top: 5px;">
+                                <li>只能換綁當日的繳費記錄</li>
+                                <li>若新費用已有舊 Payment，會自動硬刪除該舊 Payment</li>
+                                <li>所有操作都會記錄稽核日誌</li>
+                            </ul>
+                        </div>
+                        <button class="btn-primary" onclick="rebindPayment()" style="background-color: #409eff;">🔄 執行換綁</button>
+                    </div>
+                    <div id="rebindResult" style="margin-top: 12px;"></div>
+                    <div id="rebindError" class="error" style="display:none;"></div>
+                </div>
+
                 <div class="card">
                     <h3>查詢學生繳費資訊</h3>
                     <div style="padding: 16px 0;">
@@ -849,6 +892,8 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('copyCourse')">📋 複製課程</button>
 
                             <div style="font-weight: bold; color: #667eea; margin-top: 10px; margin-bottom: 5px;">💳 繳費管理</div>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('queryStudentPayments')">📊 查詢學生所有繳費紀錄</button>
+                            <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('rebindPayment')">🔄 換綁繳費記錄到其他費用</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('studentsList')">👨‍🎓 取得學生名單</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('getPaymentInfo')">💳 取得學生繳費資訊</button>
                             <button class="btn-primary" style="text-align: left; width: 100%;" onclick="showApiDoc('createPayment')">💵 新增或編輯繳費記錄</button>
@@ -2350,49 +2395,40 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
             const groupIdsStr = document.getElementById('permissionGroupIds').value;
             const remark = document.getElementById('permissionRemark').value;
 
-            // 驗證必填欄位
-            if (!userId || !courseId || !startDate || !endDate || !startTime || !endTime) {
-                alert('請填寫所有必填欄位');
-                return;
-            }
-
-            // 取得週幾選項
+            // 計算每週上課日（0=日,1=一,...6=六）
             const daysOfWeek = [];
+            if (document.getElementById('permissionSunday').checked) daysOfWeek.push(0);
             if (document.getElementById('permissionMonday').checked) daysOfWeek.push(1);
             if (document.getElementById('permissionTuesday').checked) daysOfWeek.push(2);
             if (document.getElementById('permissionWednesday').checked) daysOfWeek.push(3);
             if (document.getElementById('permissionThursday').checked) daysOfWeek.push(4);
             if (document.getElementById('permissionFriday').checked) daysOfWeek.push(5);
             if (document.getElementById('permissionSaturday').checked) daysOfWeek.push(6);
-            if (document.getElementById('permissionSunday').checked) daysOfWeek.push(0);
 
-            if (daysOfWeek.length === 0) {
-                alert('請至少選擇一個星期');
-                return;
-            }
-
-            // 處理群組 ID
-            const groupIds = groupIdsStr ? groupIdsStr.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id)) : [];
+            // 解析群組 IDs
+            const groupIds = (groupIdsStr || '')
+                .split(',')
+                .map(s => parseInt(s.trim()))
+                .filter(n => !isNaN(n));
 
             const errorDiv = document.getElementById('permissionError');
             const resultDiv = document.getElementById('permissionResult');
             errorDiv.style.display = 'none';
-            resultDiv.innerHTML = '<div class="loading">新增中...</div>';
+            resultDiv.innerHTML = '<div class="loading">建立中...</div>';
 
-            // 組合 request body (完整的 UserPermissionDTO)
             const requestBody = {
                 userId: parseInt(userId),
                 courseId: parseInt(courseId),
-                teacherId: parseInt(teacherId) || 0,
-                datefrom: startDate.replace(/-/g, '/'),  // 轉換為 YYYY/MM/DD 格式
-                dateto: endDate.replace(/-/g, '/'),      // 轉換為 YYYY/MM/DD 格式
-                days: daysOfWeek,
-                timefrom: startTime,
-                timeto: endTime,
-                type: type,
+                teacherId: parseInt(teacherId || 0),
                 classroomId: classroomId ? parseInt(classroomId) : null,  // 教室ID (可空)
-                courseMode: courseMode,      // 課程模式 1=現場 2=視訊
-                scheduleMode: scheduleMode,  // 排課模式 1=每週固定 2=每兩週固定 3=單次課程
+                dateFrom: startDate,
+                dateTo: endDate,
+                timeFrom: startTime,
+                timeTo: endTime,
+                type: parseInt(type),
+                courseMode: parseInt(courseMode),
+                scheduleMode: parseInt(scheduleMode),
+                days: daysOfWeek.join(','),
                 groupIds: groupIds,          // 群組IDs
                 remark: remark || null       // 備註
             };
@@ -3890,6 +3926,139 @@ Content-Type: application/json
                             
                             <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
                             <pre id="rawData-getPaymentInfo" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'queryStudentPayments':
+                    html = `
+                        <h2 style="color: #667eea;">📊 查詢學生所有繳費紀錄</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>GET /api/v1/StudentPayment/ByStudent/{studentId}</code></p>
+                            <p><strong>說明：</strong>查詢特定學生的所有繳費記錄（含各種狀態的費用）</p>
+                            <p><strong>認證：</strong>✅ 需要 JWT Bearer Token</p>
+                            <div class="info" style="margin-top: 10px; padding: 12px; background: #fffacd; border-left: 4px solid #fbbf24; border-radius: 4px;">
+                                <p style="margin: 0;"><strong>💡 查詢特性：</strong></p>
+                                <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+                                    <li>返回該學生名下 <strong>所有權限</strong> 的繳費資訊</li>
+                                    <li>包含 <strong>已支付</strong>、<strong>未支付</strong>、<strong>軟刪除</strong> 等各種狀態的繳費記錄</li>
+                                    <li>結果按 <strong>權限 ID</strong> 分組，每個權限下的繳費按 <strong>最新修改日期</strong> 倒序排列</li>
+                                    <li>提供完整的 <strong>繳費追蹤資訊</strong>（日期、金額、折扣、收據編號等）</li>
+                                </ul>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">位置</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>studentId</code></td><td style="padding: 8px; border: 1px solid #ddd;">URL Path</td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">學生 ID</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <div style="margin-top: 10px;">
+                                <label>學生 ID: <input type="number" id="testQueryStudentId" style="width: 100%; padding: 6px; box-sizing: border-box;" /></label>
+                            </div>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testQueryStudentPayments()">執行查詢</button>
+                            <div id="testResult-queryStudentPayments" style="margin-top: 10px;"></div>
+                            
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-queryStudentPayments" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
+                        </div>
+                    `;
+                    break;
+
+                case 'rebindPayment':
+                    html = `
+                        <h2 style="color: #667eea;">🔄 換綁繳費記錄到其他費用</h2>
+                        <div style="margin-top: 20px;">
+                            <h3>📖 API 概述</h3>
+                            <p><strong>端點：</strong><code>PUT /api/v1/StudentPayment/Rebind</code></p>
+                            <p><strong>說明：</strong>將已繳費的記錄轉綁至同一學生的另一筆費用</p>
+                            <p><strong>認證：</strong>✅ 需要 JWT Bearer Token</p>
+                            <div class="info" style="margin-top: 10px; padding: 12px; background: #fffacd; border-left: 4px solid #fbbf24; border-radius: 4px;">
+                                <p style="margin: 0;"><strong>⚠️ 重要限制：</strong></p>
+                                <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+                                    <li><strong>24小時限制：</strong>繳費後 24 小時內才能換綁（過期無法操作）</li>
+                                    <li><strong>一對一關係：</strong>目標費用 <strong>不能已有</strong>繳費記錄（保持 1:1 對應）</li>
+                                    <li><strong>同學生規則：</strong>必須是同一個學生名下的費用才能轉綁</li>
+                                    <li><strong>完整轉移：</strong>繳費日、金額、折扣、備註等 <strong>全部轉移</strong>，收據編號重新產生</li>
+                                    <li><strong>審計追蹤：</strong>完整記錄換綁前後的費用 ID 和操作者資訊</li>
+                                </ul>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">📥 請求參數 (ReqRebindPaymentDTO)</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">參數</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">必填</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>receiptNumber</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">結帳單號（用於定位要換綁的 Payment）</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>newStudentPermissionFeeId</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">✅</td><td style="padding: 8px; border: 1px solid #ddd;">新的學生權限費用 ID（轉入目標）</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">✅ 換綁成功條件</h3>
+                            <div class="info">
+                                <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+                                    <li>❌ 來源繳費 <strong>不存在</strong> → 回傳 <code>payment_not_found</code></li>
+                                    <li>❌ 來源繳費 <strong>已超過 24 小時</strong> → 回傳 <code>payment_expired</code></li>
+                                    <li>❌ 目標費用 <strong>已有繳費記錄</strong> → 回傳 <code>target_fee_already_paid</code></li>
+                                    <li>❌ 來源和目標 <strong>非同一學生</strong> → 回傳 <code>different_student</code></li>
+                                    <li>✅ 所有條件滿足 → 執行換綁，並產生 <strong>新收據編號</strong></li>
+                                </ul>
+                            </div>
+
+                            <h3 style="margin-top: 20px;">📝 請求範例</h3>
+                                                        <pre style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto;">PUT /api/v1/StudentPayment/Rebind
+Content-Type: application/json
+Authorization: Bearer {JWT_TOKEN}
+
+{
+    "receiptNumber": "RCP20251220001",
+    "newStudentPermissionFeeId": 789
+}</pre>
+
+                            <h3 style="margin-top: 20px;">📤 回應欄位</h3>
+                            <table style="width: 100%; margin-top: 10px; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 8px; border: 1px solid #ddd;">欄位</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">類型</th>
+                                        <th style="padding: 8px; border: 1px solid #ddd;">說明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>result</code></td><td style="padding: 8px; border: 1px solid #ddd;">int</td><td style="padding: 8px; border: 1px solid #ddd;">結果代碼 (1=成功, 0=失敗)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>msg</code></td><td style="padding: 8px; border: 1px solid #ddd;">string</td><td style="padding: 8px; border: 1px solid #ddd;">結果訊息 (success/payment_not_found/payment_expired/target_fee_already_paid/different_student)</td></tr>
+                                    <tr><td style="padding: 8px; border: 1px solid #ddd;"><code>data</code></td><td style="padding: 8px; border: 1px solid #ddd;">object</td><td style="padding: 8px; border: 1px solid #ddd;">新收據編號和相關資訊</td></tr>
+                                </tbody>
+                            </table>
+
+                            <h3 style="margin-top: 20px;">🧪 測試 API</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                                <div><label>結帳單號: <input type="text" id="testRebindReceiptNumber" placeholder="例如: RCP20251220001" style="width: 100%; padding: 6px;" /></label></div>
+                                <div><label>新的學生權限費用 ID: <input type="number" id="testRebindNewFeeId" style="width: 100%; padding: 6px;" /></label></div>
+                            </div>
+                            <button class="btn-primary" style="margin-top: 10px;" onclick="testRebindPayment()">執行換綁</button>
+                            <div id="testResult-rebindPayment" style="margin-top: 10px;"></div>
+                            
+                            <h4 style="margin-top: 20px; color: #718096;">📄 RAW DATA</h4>
+                            <pre id="rawData-rebindPayment" style="background: #2d3748; color: #e2e8f0; padding: 12px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px;">執行測試後顯示原始回應資料</pre>
                         </div>
                     `;
                     break;
@@ -5765,6 +5934,161 @@ Response:
             }
         }
 
+        // ========== 查詢學生繳費紀錄 (ByStudent) ==========
+        async function queryStudentPaymentsByStudentId() {
+            const studentId = document.getElementById('queryStudentPaymentStudentId').value;
+            if (!studentId || studentId <= 0) {
+                alert('請輸入有效的學生 ID');
+                return;
+            }
+
+            const resultDiv = document.getElementById('studentPaymentQueryContent');
+            const errorDiv = document.getElementById('studentPaymentQueryError');
+            resultDiv.innerHTML = '<div class="loading">查詢中...</div>';
+            errorDiv.style.display = 'none';
+
+            try {
+                const res = await apiFetch(`/api/v1/StudentPayment/ByStudent/${studentId}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '查詢失敗');
+                }
+
+                const payments = data.content || [];
+                
+                if (payments.length === 0) {
+                    resultDiv.innerHTML = '<div class="empty" style="padding: 40px; text-align: center; color: #999;">該學生無繳費紀錄</div>';
+                } else {
+                    let html = `
+                        <div style="margin-bottom: 16px; padding: 12px; background: #e8f5e9; border-radius: 4px; border-left: 3px solid #4caf50;">
+                            <strong>✅ 查詢成功 | 共 ${payments.length} 筆繳費紀錄</strong>
+                        </div>
+                        <table style="width: 100%; font-size: 13px;">
+                            <thead>
+                                <tr style="background: #f5f7fa;">
+                                    <th style="padding: 10px; border: 1px solid #ddd;">繳費ID</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">收據號</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">課程</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">老師</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">應繳款日</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">已繳款日</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">繳費金額</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">折扣</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">上課時間</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">教室</th>
+                                    <th style="padding: 10px; border: 1px solid #ddd;">狀態</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    payments.forEach((payment, index) => {
+                        const statusColor = payment.isDelete ? '#f56c6c' : '#67c23a';
+                        const statusText = payment.isDelete ? '已刪除' : '正常';
+                        const scheduleTime = payment.scheduleDate ? 
+                            `${payment.scheduleDate}<br/>${payment.startTime}-${payment.endTime}` : 
+                            '無';
+                        
+                        // 格式化應繳款日期
+                        let paymentDate = '無';
+                        if (payment.paymentDate) {
+                            const dueDate = new Date(payment.paymentDate);
+                            paymentDate = `${dueDate.getFullYear()}/${String(dueDate.getMonth() + 1).padStart(2, '0')}/${String(dueDate.getDate()).padStart(2, '0')}`;
+                        }
+
+                        html += `<tr style="border-bottom: 1px solid #ddd; ${index % 2 === 0 ? 'background: #fafafa;' : ''}">
+                            <td style="padding: 10px; border: 1px solid #ddd;">${payment.paymentId}</td>
+                            <td style="padding: 10px; border: 1px solid #ddd; color: #409eff; font-weight: bold;">${payment.receiptNumber || '無'}</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;">${payment.courseName || '無'}</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;">${payment.teacherName || '無'}</td>
+                            <td style="padding: 10px; border: 1px solid #ddd; color: #ff9800; font-weight: bold;">${paymentDate}</td>
+                            <td style="padding: 10px; border: 1px solid #ddd; color: #4caf50; font-weight: bold;">${payment.payDate || '無'}</td>
+                            <td style="padding: 10px; border: 1px solid #ddd; color: #409eff; font-weight: bold;">¥${payment.pay || 0}</td>
+                            <td style="padding: 10px; border: 1px solid #ddd; color: #f56c6c;">-¥${payment.discountAmount || 0}</td>
+                            <td style="padding: 10px; border: 1px solid #ddd; font-size: 12px;">${scheduleTime}</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;">${payment.classroomName || '無'}</td>
+                            <td style="padding: 10px; border: 1px solid #ddd; color: ${statusColor}; font-weight: bold;">${statusText}</td>
+                        </tr>`;
+                    });
+
+                    html += `</tbody></table>`;
+                    resultDiv.innerHTML = html;
+                }
+            } catch(err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+                resultDiv.innerHTML = '';
+            }
+        }
+
+        function clearStudentPaymentQuery() {
+            document.getElementById('studentPaymentQueryContent').innerHTML = '';
+            document.getElementById('studentPaymentQueryError').style.display = 'none';
+            document.getElementById('queryStudentPaymentStudentId').value = '1';
+        }
+
+        // ========== 換綁繳費記錄 (Rebind) ==========
+        async function rebindPayment() {
+            const receiptNumber = document.getElementById('rebindReceiptNumber').value?.trim();
+            const newFeeId = document.getElementById('rebindNewFeeId').value;
+
+            if (!receiptNumber) {
+                alert('請輸入結帳單號');
+                return;
+            }
+
+            if (!newFeeId || newFeeId <= 0) {
+                alert('請輸入有效的新費用 ID');
+                return;
+            }
+
+            const resultDiv = document.getElementById('rebindResult');
+            const errorDiv = document.getElementById('rebindError');
+            resultDiv.innerHTML = '<div class="loading">換綁中...</div>';
+            errorDiv.style.display = 'none';
+
+            try {
+                const payload = {
+                    receiptNumber: receiptNumber,
+                    newStudentPermissionFeeId: parseInt(newFeeId)
+                };
+
+                const res = await apiFetch('/api/v1/StudentPayment/Rebind', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '換綁失敗');
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="success" style="padding: 12px; background: #e8f5e9; border-radius: 4px; border-left: 3px solid #4caf50;">
+                        ✅ 換綁成功
+                    </div>
+                    <div style="padding: 12px; background: #f0f9ff; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <p><strong>結帳單號：</strong> ${receiptNumber}</p>
+                        <p><strong>新費用 ID：</strong> ${newFeeId}</p>
+                        <p style="color: #4caf50; margin-top: 8px;"><strong>💡 提示：</strong> 繳費記錄已成功換綁，所有操作已記錄在稽核日誌中</p>
+                    </div>
+                `;
+
+                // 清空表單
+                document.getElementById('rebindReceiptNumber').value = '';
+                document.getElementById('rebindNewFeeId').value = '';
+            } catch(err) {
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+                resultDiv.innerHTML = '';
+            }
+        }
+
         function clearPaymentInfo() {
             document.getElementById('paymentContent').innerHTML = '';
             document.getElementById('paymentError').style.display = 'none';
@@ -6136,6 +6460,123 @@ Response:
         }
 
         // 測試建立繳費記錄
+        // 測試查詢學生所有繳費記錄
+        async function testQueryStudentPayments() {
+            const studentId = document.getElementById('testQueryStudentId').value;
+            
+            if (!studentId) {
+                alert('請輸入學生 ID');
+                return;
+            }
+
+            const resultDiv = document.getElementById('testResult-queryStudentPayments');
+            resultDiv.innerHTML = '<div class="loading">查詢中...</div>';
+
+            try {
+                const res = await apiFetch(`/api/v1/StudentPayment/ByStudent/${studentId}`, {
+                    method: 'GET'
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    throw new Error(data.msg || '查詢失敗');
+                }
+
+                const paymentData = (data.content ?? data.data ?? []);
+
+                console.log(paymentData)
+
+                if (paymentData.length === 0) {
+                    resultDiv.innerHTML = `
+                        <div class="info" style="padding: 12px; background: #e6f7ff; border-left: 4px solid #1890ff; border-radius: 4px;">
+                            <p>此學生無任何繳費記錄</p>
+                        </div>
+                    `;
+                    // 顯示 RAW DATA（即使為空也顯示原始回應）
+                    document.getElementById('rawData-queryStudentPayments').textContent = JSON.stringify(data, null, 2);
+                    return;
+                }
+
+
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 查詢成功</div>
+                    <div style="padding: 12px; background: #f0fff4; border-radius: 4px; margin-top: 8px;">
+                        <p><strong>學生ID:</strong> ${studentId}</p>
+                        <p><strong>權限數量:</strong> ${new Set(paymentData.map(r => r.studentPermissionId)).size}</p>
+                        <p><strong>繳費記錄總數:</strong> ${paymentData.length}</p>
+                    </div>
+                `;
+                
+                // 顯示 RAW DATA
+                document.getElementById('rawData-queryStudentPayments').textContent = JSON.stringify(data, null, 2);
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                document.getElementById('rawData-queryStudentPayments').textContent = `錯誤: ${err.message}`;
+            }
+        }
+
+        // 測試換綁繳費記錄
+        async function testRebindPayment() {
+            const receiptNumber = document.getElementById('testRebindReceiptNumber').value?.trim();
+            const newFeeId = document.getElementById('testRebindNewFeeId').value;
+
+            if (!receiptNumber || !newFeeId) {
+                alert('請輸入結帳單號與新的學生權限費用 ID');
+                return;
+            }
+
+            const payload = {
+                receiptNumber: receiptNumber,
+                newStudentPermissionFeeId: parseInt(newFeeId)
+            };
+
+            const resultDiv = document.getElementById('testResult-rebindPayment');
+            resultDiv.innerHTML = '<div class="loading">換綁中...</div>';
+
+            try {
+                const res = await apiFetch('/api/v1/StudentPayment/Rebind', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+
+                if (data.result !== 1) {
+                    const errorMsg = {
+                        'payment_not_found': '找不到來源繳費記錄',
+                        'payment_expired': '繳費已超過 24 小時，無法換綁',
+                        'target_fee_already_paid': '目標費用已有繳費記錄',
+                        'different_student': '來源和目標費用不屬同一學生'
+                    };
+                    throw new Error(errorMsg[data.msg] || data.msg || '換綁失敗');
+                }
+
+                resultDiv.innerHTML = `
+                    <div class="success">✅ 換綁成功</div>
+                    <div style="padding: 12px; background: #f0fff4; border-radius: 4px; margin-top: 8px; font-size: 14px;">
+                        <p><strong>結帳單號:</strong> ${receiptNumber}</p>
+                        <p><strong>新的費用ID:</strong> ${newFeeId}</p>
+                        <p><strong>新收據號:</strong> ${data.data?.receiptNo || data.content?.receiptNumber || '已產生'}</p>
+                        <p><strong>狀態:</strong> 繳費記錄已成功轉移</p>
+                    </div>
+                `;
+
+                // 清空表單
+                document.getElementById('testRebindReceiptNumber').value = '';
+                document.getElementById('testRebindNewFeeId').value = '';
+                
+                // 顯示 RAW DATA
+                document.getElementById('rawData-rebindPayment').textContent = JSON.stringify(data, null, 2);
+            } catch(err) {
+                resultDiv.innerHTML = `<div class="error">❌ ${err.message}</div>`;
+                document.getElementById('rawData-rebindPayment').textContent = `錯誤: ${err.message}`;
+            }
+        }
+
         async function testCreatePayment() {
             const permissionFeeId = document.getElementById('testCreatePermissionId').value;
             const pay = document.getElementById('testCreatePay').value;

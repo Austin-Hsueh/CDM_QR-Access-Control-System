@@ -99,4 +99,64 @@ namespace DoorWebApp.Models.DTO
         /// <summary>修改者名稱</summary>
         public string? ModifiedUserName { get; set; }
     }
+
+    /// <summary>
+    /// 學生繳費紀錄（含課程、老師、課表資訊）
+    /// </summary>
+    public class StudentPaymentDetailRecordDTO
+    {
+        /// <summary>繳費ID</summary>
+        public int PaymentId { get; set; }
+
+        /// <summary>學生權限費用 ID</summary>
+        public int StudentPermissionFeeId { get; set; }
+
+        /// <summary>學生權限 ID</summary>
+        public int StudentPermissionId { get; set; }
+
+        /// <summary>應繳款日期（來自 TblStudentPermissionFee.PaymentDate）</summary>
+        public DateTime? PaymentDate { get; set; }
+
+        /// <summary>已繳款日期（來自 TblPayment.PayDate）</summary>
+        public string? PayDate { get; set; }
+
+        /// <summary>繳費金額</summary>
+        public int Pay { get; set; }
+
+        /// <summary>折扣金額</summary>
+        public int DiscountAmount { get; set; }
+
+        /// <summary>收據編號</summary>
+        public string? ReceiptNumber { get; set; }
+
+        /// <summary>備註</summary>
+        public string? Remark { get; set; }
+
+        /// <summary>繳費記錄是否刪除</summary>
+        public bool IsDelete { get; set; }
+
+        /// <summary>課程 ID</summary>
+        public int? CourseId { get; set; }
+
+        /// <summary>課程名稱</summary>
+        public string? CourseName { get; set; }
+
+        /// <summary>老師 ID</summary>
+        public int? TeacherId { get; set; }
+
+        /// <summary>老師名稱</summary>
+        public string? TeacherName { get; set; }
+
+        /// <summary>課程日期（取第一筆課表）</summary>
+        public string? ScheduleDate { get; set; }
+
+        /// <summary>課程開始時間</summary>
+        public string? StartTime { get; set; }
+
+        /// <summary>課程結束時間</summary>
+        public string? EndTime { get; set; }
+
+        /// <summary>教室名稱</summary>
+        public string? ClassroomName { get; set; }
+    }
 }

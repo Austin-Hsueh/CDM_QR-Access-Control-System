@@ -77,4 +77,22 @@ namespace DoorWebApp.Models.DTO
         /// </summary>
         public string? Remark { get; set; }
     }
+
+    /// <summary>
+    /// 換綁 Fee 請求 DTO
+    /// </summary>
+    public class ReqRebindPaymentDTO
+    {
+        /// <summary>
+        /// 結帳單號 (必填，用於識別要換綁的 Payment)
+        /// </summary>
+        [Required]
+        public string ReceiptNumber { get; set; }
+
+        /// <summary>
+        /// 新的學生權限費用 ID (必填)
+        /// </summary>
+        [Required]
+        public int NewStudentPermissionFeeId { get; set; }
+    }
 }
