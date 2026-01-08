@@ -746,7 +746,6 @@ tblCloseAccount (關帳記錄：每日零用金管理)</pre>
                         <div style="color: #e6a23c; font-size: 13px; margin-bottom: 12px; padding: 10px; background: #fdf6ec; border-radius: 4px; border-left: 3px solid #e6a23c;">
                             ⚠️ <strong>注意：</strong>
                             <ul style="margin-left: 20px; margin-top: 5px;">
-                                <li>只能換綁當日的繳費記錄</li>
                                 <li>若新費用已有舊 Payment，會自動硬刪除該舊 Payment</li>
                                 <li>所有操作都會記錄稽核日誌</li>
                             </ul>
@@ -3988,10 +3987,9 @@ Content-Type: application/json
                             <div class="info" style="margin-top: 10px; padding: 12px; background: #fffacd; border-left: 4px solid #fbbf24; border-radius: 4px;">
                                 <p style="margin: 0;"><strong>⚠️ 重要限制：</strong></p>
                                 <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
-                                    <li><strong>24小時限制：</strong>繳費後 24 小時內才能換綁（過期無法操作）</li>
                                     <li><strong>一對一關係：</strong>目標費用 <strong>不能已有</strong>繳費記錄（保持 1:1 對應）</li>
                                     <li><strong>同學生規則：</strong>必須是同一個學生名下的費用才能轉綁</li>
-                                    <li><strong>完整轉移：</strong>繳費日、金額、折扣、備註等 <strong>全部轉移</strong>，收據編號重新產生</li>
+                                    <li><strong>完整轉移：</strong>繳費日、金額、折扣、備註等 <strong>全部轉移</strong>，沿用來源收據編號</li>
                                     <li><strong>審計追蹤：</strong>完整記錄換綁前後的費用 ID 和操作者資訊</li>
                                 </ul>
                             </div>
@@ -4078,6 +4076,7 @@ Authorization: Bearer {JWT_TOKEN}
                                     <li>傳 <code>isDelete=true</code> 時 → 對現有繳費做<strong>軟刪除</strong>（不需填金額）</li>
                                     <li>若繳費先被軟刪除，再傳 <code>isDelete=false</code> → 自動<strong>復原</strong>並套用最新金額/折扣/備註</li>
                                     <li>若沒有繳費記錄卻傳 <code>isDelete=true</code> → 回傳 <code>payment_not_found</code></li>
+                                    <li><strong>關帳檢查：</strong>已存在的繳費若要「更新或軟刪除」，且目標繳費日 <strong>不是今日</strong> 且日期早於或等於最新的關帳日，系統拒絕並回傳 <code>payment_date_closed</code>，避免動到已關帳資料</li>
                                     <li><strong>payDate 行為：</strong>未提供時預設當前 UTC+8 的今日；更新時未帶入則沿用原值；軟刪除請求會忽略 payDate</li>
                                 </ul>
                             </div>
