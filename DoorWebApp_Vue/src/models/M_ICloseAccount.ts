@@ -150,6 +150,14 @@ export interface M_IReqUpdatePayment {
 }
 
 /**
+ * 換綁繳費記錄請求
+ */
+export interface M_IReqRebindPayment {
+  receiptNumber: string;           // 結帳單號（用於定位要換綁的 Payment）
+  newStudentPermissionFeeId: number; // 新的學生權限費用 ID（轉入目標）
+}
+
+/**
  * 建立學生權限費用記錄請求
  */
 export interface M_IReqCreateStudentPermissionFee {
@@ -182,4 +190,35 @@ export interface M_ICloseAccountRecord {
 export interface M_IReqGetCloseAccounts {
   startDate?: string;              // 開始日期 (格式: yyyy-MM-dd)
   endDate?: string;                // 結束日期 (格式: yyyy-MM-dd)
+}
+
+/**
+ * 學生繳費記錄項目
+ */
+export interface M_IStudentPaymentRecord {
+  paymentId: number;
+  studentPermissionFeeId: number;
+  studentPermissionId: number;
+  paymentDate: string;             // ISO 格式時間
+  payDate: string;                 // 繳費日期 (格式: yyyy/MM/dd)
+  pay: number;                     // 繳費金額
+  discountAmount: number;          // 折扣金額
+  receiptNumber: string | null;    // 結帳單號
+  remark: string | null;           // 備註
+  isDelete: boolean;               // 是否已刪除
+  courseId: number;
+  courseName: string;
+  teacherId: number;
+  teacherName: string;
+  scheduleDate: string;            // 課程日期 (格式: yyyy/MM/dd~yyyy/MM/dd)
+  startTime: string;               // 開始時間 (格式: HH:mm)
+  endTime: string;                 // 結束時間 (格式: HH:mm)
+  classroomName: string;
+}
+
+/**
+ * 查詢學生所有繳費記錄回應
+ */
+export interface M_IResStudentPaymentByStudent {
+  content: M_IStudentPaymentRecord[];
 }

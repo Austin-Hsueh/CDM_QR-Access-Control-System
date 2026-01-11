@@ -3,7 +3,7 @@ import IReqUserRoleDTO from "@/models/dto/IReqUserRoleDTO";
 import IResUserInfoDTO from "@/models/dto/IResUserInfoDTO";
 import { IBaseAPIResponse } from "@/models/IBaseAPIResponse";
 import IAPIResponse from "@/models/IAPIResponse";
-import { M_IResDailyScheduleStatus, M_ICheckInAllResult, M_ICloseAccountDetail, M_ISaveCloseAccountRequest, M_IReqCreateAttendance, M_IReqUpdateAttendance, M_IResAttendance, M_IResStudentAttendance, M_IReqCreatePayment, M_IReqUpdatePayment, M_IReqCreateStudentPermissionFee, M_IResCreateStudentPermissionFee, M_ICloseAccountRecord } from "@/models/M_ICloseAccount";
+import { M_IResDailyScheduleStatus, M_ICheckInAllResult, M_ICloseAccountDetail, M_ISaveCloseAccountRequest, M_IReqCreateAttendance, M_IReqUpdateAttendance, M_IResAttendance, M_IResStudentAttendance, M_IReqCreatePayment, M_IReqUpdatePayment, M_IReqRebindPayment, M_IReqCreateStudentPermissionFee, M_IResCreateStudentPermissionFee, M_ICloseAccountRecord, M_IResStudentPaymentByStudent } from "@/models/M_ICloseAccount";
 import { useRouter } from "vue-router";
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import IReqLoginDTO from "@/models/dto/IReqLoginDTO";
@@ -567,7 +567,8 @@ class APIService {
   }
   //#endregion
 
-  //#region Music 簽到表相關
+  //#region Music 簽到相關
+  //簽到記錄的建立、查詢、批量簽到
   /** 取得 {StudentPermissionId} 簽到記錄 */
   getAttends(StudentPermissionId: number){
     return this.axiosInstance.get<IAPIResponse<any>>(`v1/Attends/${StudentPermissionId}`);
@@ -576,6 +577,26 @@ class APIService {
   /** 更新簽到記錄 */
   updateAttendance(request: M_IReqUpdateAttendance){
     return this.axiosInstance.patch<IBaseAPIResponse>(`v1/UpdateAttend`, request);
+  }
+
+  /** 建立簽到記錄 */
+  createAttendance(request: M_IReqCreateAttendance) {
+    return this.axiosInstance.post<IAPIResponse<M_IResAttendance>>(`v1/Attend`, request);
+  }
+
+  /** 取得學生簽到記錄摘要 */
+  getStudentAttendance(studentPermissionId: number) {
+    return this.axiosInstance.get<IAPIResponse<M_IResStudentAttendance>>(`v1/StudentAttendance/${studentPermissionId}`);
+  }
+
+  /** 批量簽到指定日期的所有未簽到課程 */
+  checkInAllForDate(date: string) {
+    return this.axiosInstance.post<IAPIResponse<M_ICheckInAllResult>>(`v1/CloseAccount/CheckInAll/${date}`);
+  }
+
+  /** 取得指定日期簽到狀態 */
+  getCloseAccountDailyStatus(date: string) {
+    return this.axiosInstance.get<IAPIResponse<M_IResDailyScheduleStatus>>(`v1/CloseAccount/DailyStatus/${date}`);
   }
   //#endregion
 
@@ -617,37 +638,8 @@ class APIService {
 
   //#endregion
 
-  //#region Music 關帳相關
-  /** 取得指定日期簽到狀態 */
-  getCloseAccountDailyStatus(date: string) {
-    return this.axiosInstance.get<IAPIResponse<M_IResDailyScheduleStatus>>(`v1/CloseAccount/DailyStatus/${date}`);
-  }
-
-  /** 批量簽到指定日期的所有未簽到課程 */
-  checkInAllForDate(date: string) {
-    return this.axiosInstance.post<IAPIResponse<M_ICheckInAllResult>>(`v1/CloseAccount/CheckInAll/${date}`);
-  }
-
-  /** 取得指定日期的關帳明細資料 */
-  getCloseAccountDetail(date: string) {
-    return this.axiosInstance.get<IAPIResponse<M_ICloseAccountDetail>>(`v1/CloseAccount/Detail/${date}`);
-  }
-
-  /** 儲存關帳記錄（新增或更新） */
-  saveCloseAccount(request: M_ISaveCloseAccountRequest) {
-    return this.axiosInstance.post<IAPIResponse<M_ICloseAccountDetail>>(`v1/CloseAccount`, request);
-  }
-
-  /** 建立簽到記錄 */
-  createAttendance(request: M_IReqCreateAttendance) {
-    return this.axiosInstance.post<IAPIResponse<M_IResAttendance>>(`v1/Attend`, request);
-  }
-
-  /** 取得學生簽到記錄摘要 */
-  getStudentAttendance(studentPermissionId: number) {
-    return this.axiosInstance.get<IAPIResponse<M_IResStudentAttendance>>(`v1/StudentAttendance/${studentPermissionId}`);
-  }
-
+  //#region Music 繳費相關
+  //繳費記錄的建立、更新、查詢
   /** 建立繳費記錄 */
   createPayment(request: M_IReqCreatePayment) {
     return this.axiosInstance.post<IAPIResponse<any>>(`v1/StudentPayment`, request);
@@ -663,6 +655,29 @@ class APIService {
     return this.axiosInstance.post<IAPIResponse<M_IResCreateStudentPermissionFee>>(`v1/StudentAttendance`, request);
   }
 
+  /** 查詢學生所有繳費記錄 */
+  getStudentPaymentByStudent(studentId: number) {
+    return this.axiosInstance.get<IAPIResponse<M_IResStudentPaymentByStudent>>(`v1/StudentPayment/ByStudent/${studentId}`);
+  }
+
+  /** 換綁繳費記錄到其他費用 */
+  rebindPayment(request: M_IReqRebindPayment) {
+    return this.axiosInstance.put<IBaseAPIResponse>(`v1/StudentPayment/Rebind`, request);
+  }
+  //#endregion
+
+  //#region Music 關帳相關
+  //關帳明細、關帳記錄的查詢與儲存
+  /** 取得指定日期的關帳明細資料 */
+  getCloseAccountDetail(date: string) {
+    return this.axiosInstance.get<IAPIResponse<M_ICloseAccountDetail>>(`v1/CloseAccount/Detail/${date}`);
+  }
+
+  /** 儲存關帳記錄（新增或更新） */
+  saveCloseAccount(request: M_ISaveCloseAccountRequest) {
+    return this.axiosInstance.post<IAPIResponse<M_ICloseAccountDetail>>(`v1/CloseAccount`, request);
+  }
+
   /** 查詢關帳記錄 */
   getCloseAccounts(startDate?: string, endDate?: string) {
     const params: any = {};
@@ -670,7 +685,10 @@ class APIService {
     if (endDate) params.endDate = endDate;
     return this.axiosInstance.get<IAPIResponse<M_ICloseAccountRecord[]>>(`v1/CloseAccount`, { params });
   }
+  //#endregion
 
+  //#region Music 報表相關
+  //各類 PDF 報表下載
   /** 營業日總表 PDF */
   getDailyReportPDF(date: string) {
     return this.axiosInstance.get(`v1/CloseAccount/DailyReport/${date}`, { responseType: 'blob' });
