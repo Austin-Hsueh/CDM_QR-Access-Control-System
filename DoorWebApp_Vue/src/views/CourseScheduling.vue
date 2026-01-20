@@ -1472,6 +1472,7 @@ const eventContent = (arg: any) => {
   const teacherName = arg.event.extendedProps.teacherName || '';
   const type = arg.event.extendedProps.type || 1;
   const scheduleMode = arg.event.extendedProps.scheduleMode || 1;
+  const courseMode = arg.event.extendedProps.courseMode || 1;
   const studentPermissionId = arg.event.extendedProps.studentPermissionId || null;
 
   // 建立容器（使用 flexbox 兩欄佈局）
@@ -1480,8 +1481,10 @@ const eventContent = (arg: any) => {
   container.style.height = '100%';
   container.style.overflow = 'hidden';
 
-  // 根據 type 和 scheduleMode 決定背景色
-  const getEventColor = (type: number, scheduleMode: number) => {
+  // 根據 type、scheduleMode 和 courseMode 決定背景色
+  const getEventColor = (type: number, scheduleMode: number, courseMode: number) => {
+    // 視訊課優先判斷
+    if (type === 1 && courseMode === 2) return '#f4a460'; // 上課 & 視訊
     if (type === 1 && scheduleMode === 1) return '#b1c5af'; // 上課 & 每週固定
     if (type === 1 && scheduleMode === 2) return '#d4bfe2'; // 上課 & 每兩週固定
     if (type === 1 && scheduleMode === 3) return '#e8bbbb'; // 上課 & 單次課程
@@ -1489,7 +1492,7 @@ const eventContent = (arg: any) => {
     return '#3788d8'; // 預設顏色
   };
 
-  const eventBgColor = getEventColor(type, scheduleMode);
+  const eventBgColor = getEventColor(type, scheduleMode, courseMode);
 
   // 第一欄：學生名稱和課程名稱（使用原始色碼）
   const column1 = document.createElement('div');
