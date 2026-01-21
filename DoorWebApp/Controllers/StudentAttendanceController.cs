@@ -486,6 +486,7 @@ namespace DoorWebApp.Controllers
                     {
                         AttendanceId = att.Id,
                         AttendanceDate = att.AttendanceDate,
+                        AttendanceType = att.AttendanceType,
                         DayOfWeek = dayOfWeek,
                         CheckInTime = FormatTime(att.CreatedTime), // 使用 CreatedTime 作為簽到時間
                         TeacherId = teacher?.Id,

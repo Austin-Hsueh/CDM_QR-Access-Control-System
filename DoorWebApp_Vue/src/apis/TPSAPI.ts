@@ -589,6 +589,11 @@ class APIService {
     return this.axiosInstance.get<IAPIResponse<M_IResStudentAttendance>>(`v1/StudentAttendance/${studentPermissionId}`);
   }
 
+  /** 取得學生簽到詳細記錄 */
+  getStudentAttendanceDetail(studentPermissionFeeId: number) {
+    return this.axiosInstance.get<IAPIResponse<any>>(`v1/StudentAttendance/Detail/${studentPermissionFeeId}`);
+  }
+
   /** 批量簽到指定日期的所有未簽到課程 */
   checkInAllForDate(date: string) {
     return this.axiosInstance.post<IAPIResponse<M_ICheckInAllResult>>(`v1/CloseAccount/CheckInAll/${date}`);

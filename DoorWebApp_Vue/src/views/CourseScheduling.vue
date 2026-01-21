@@ -274,6 +274,10 @@
         <el-button type="primary" size="default" @click="handlePaymentRecord" style="margin-left: 0;">
           <el-icon><Money /></el-icon>繳費紀錄
         </el-button>
+        <!-- 第四列：學生簽到記錄 -->
+        <el-button type="success" size="default" @click="handleAttendanceRecord" style="margin-left: 0;" v-if="false">
+          <el-icon><Edit /></el-icon>學生簽到記錄
+        </el-button>
       </div>
     </el-col>
   </el-row>
@@ -308,13 +312,14 @@
         {{ row.attendances[i - 1] ?? '-' }}
       </template>
     </el-table-column>
-    <el-table-column align="center" class="operateBtnGroup d-flex" label="操作" width="330" fixed="right">
+    <el-table-column align="center" class="operateBtnGroup d-flex" label="操作" width="450" fixed="right">
       <template #default="{ row }: { row: any }">
         <div style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
           <el-button type="primary" size="small" @click="handlePayment(row)" v-if="(row.receivedAmount === 0)"><el-icon><EditPen /></el-icon>{{ '繳費' }}</el-button>
           <el-button type="primary" size="small" @click="handlePayment(row)" v-if="(row.receivedAmount !== 0)"><el-icon><EditPen /></el-icon>{{ '編輯繳款資訊' }}</el-button>
           <el-button type="warning" size="small" @click="handleRefund(row)" v-if="(row.receivedAmount !== 0)"><el-icon><Money /></el-icon>{{ '退款' }}</el-button>
           <el-button type="info" size="small" @click="handleViewRefundDetail(row)"><el-icon><Edit /></el-icon>{{ '退款資訊' }}</el-button>
+          <el-button type="warning" size="small" @click="handleManageAttendance(row)"><el-icon><Edit /></el-icon>{{ '詳細簽到記錄' }}</el-button>
         </div>
       </template>
     </el-table-column>
@@ -472,6 +477,142 @@
     </span>
   </template>
 </el-dialog>
+
+<!-- 學生簽到記錄 Dialog -->
+<el-dialog
+  v-model="isShowAttendanceRecordDialog"
+  title="學生簽到記錄"
+  width="900px"
+>
+  <div v-if="attendanceRecordLoading" style="text-align: center; padding: 40px;">
+    <el-icon class="is-loading" :size="40"><Loading /></el-icon>
+    <p style="margin-top: 16px; color: #909399;">載入中...</p>
+  </div>
+  <div v-else>
+    <el-table :data="attendanceRecordData" border stripe>
+      <el-table-column prop="serialNo" label="序號" width="70" align="center" />
+      <el-table-column prop="courseName" label="課程名稱" align="center" />
+      <el-table-column prop="payDate" label="實際繳款日" align="center" />
+      <el-table-column prop="receivableAmount" label="應收金額" align="center" />
+      <el-table-column prop="receivedAmount" label="已收金額" align="center" />
+      <el-table-column prop="outstandingAmount" label="欠款金額" align="center" />
+      
+      <!-- 動態簽到欄位 -->
+      <el-table-column
+        v-for="i in maxHours"
+        :key="i"
+        :label="`簽到 ${i}`"
+        width="80"
+        align="center"
+      >
+        <template #default="{ row }">
+          {{ row.attendances && row.attendances[i - 1] ? row.attendances[i - 1] : '-' }}
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="100" fixed="right" align="center">
+        <template #default="{ row }">
+          <el-button type="primary" link @click="handleManageAttendance(row)">詳細</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+  </div>
+  <template #footer>
+    <span class="dialog-footer">
+      <el-button @click="isShowAttendanceRecordDialog = false">關閉</el-button>
+    </span>
+  </template>
+</el-dialog>
+
+<!-- 簽到詳細記錄 Dialog -->
+<el-dialog
+  v-model="attendanceDetailDialogVisible"
+  title="簽到詳細記錄"
+  width="800px"
+  append-to-body
+>
+  <div v-if="attendanceDetailLoading" style="text-align: center; padding: 20px;">
+    <el-icon class="is-loading" :size="30"><Loading /></el-icon>
+  </div>
+  <div v-else>
+    <div style="margin-bottom: 15px; font-weight: bold;">
+      課程：{{ attendanceDetailData?.courseName }} | 
+      老師：{{ attendanceDetailData?.teacherName || '未指定' }} | 
+      應收：{{ attendanceDetailData?.totalAmount }} |
+      已收：{{ attendanceDetailData?.payment?.receivedAmount || 0 }}
+    </div>
+    
+    <el-table :data="attendanceDetailData?.attendanceRecords || []" border stripe>
+      <el-table-column prop="attendanceDate" label="日期" width="120" align="center" />
+      <el-table-column prop="dayOfWeek" label="星期" width="80" align="center" />
+      <el-table-column prop="checkInTime" label="簽到時間" width="180" align="center">
+        <template #default="{ row }">
+          {{ row.checkInTime ? row.checkInTime.substring(0, 16).replace('T', ' ') : '-' }}
+        </template>
+      </el-table-column>
+
+      <el-table-column prop="attendanceType" label="狀態" width="100" align="center">
+        <template #default="{ row }">
+          <el-tag v-if="row.attendanceType === 1" type="success">出席</el-tag>
+          <el-tag v-else-if="row.attendanceType === 2" type="warning">請假</el-tag>
+          <el-tag v-else-if="row.attendanceType === 0" type="danger">缺席</el-tag>
+          <el-tag v-else type="info">未知({{ row.attendanceType }})</el-tag>
+        </template>
+      </el-table-column>
+
+      <el-table-column prop="hours" label="時數" width="80" align="center" />
+      
+      <el-table-column label="操作" min-width="150" align="center">
+        <template #default="{ row }">
+           <el-button 
+             type="primary" 
+             link 
+             :icon="Edit" 
+             @click="handleEditFromDetail(row)"
+           >編輯</el-button>
+           <el-button 
+             type="danger" 
+             link 
+             :icon="Delete" 
+             @click="handleDeleteFromDetail(row)"
+           >刪除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+  </div>
+  <template #footer>
+    <span class="dialog-footer">
+      <el-button @click="attendanceDetailDialogVisible = false">關閉</el-button>
+    </span>
+  </template>
+</el-dialog>
+
+<!-- 編輯簽到 Dialog -->
+<el-dialog v-model="editAttendanceDialogVisible" title="編輯簽到" width="400px" append-to-body>
+  <el-form label-width="80px" :model="editAttendanceForm">
+    <el-form-item label="日期">
+      <el-date-picker 
+        v-model="editAttendanceForm.attendanceDate" 
+        type="date" 
+        value-format="YYYY-MM-DD"
+        placeholder="選擇日期"
+        style="width: 100%"
+      />
+    </el-form-item>
+    <el-form-item label="狀態">
+      <el-select v-model="editAttendanceForm.attendanceType" placeholder="請選擇狀態" style="width: 100%">
+        <el-option label="缺席" :value="0" />
+        <el-option label="出席" :value="1" />
+        <el-option label="請假" :value="2" />
+      </el-select>
+    </el-form-item>
+  </el-form>
+  <template #footer>
+    <span class="dialog-footer">
+      <el-button @click="editAttendanceDialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="submitEditAttendance" :loading="editAttendanceLoading">確定</el-button>
+    </span>
+  </template>
+</el-dialog>
 </template>
 
 <script setup lang="ts">
@@ -492,7 +633,7 @@ import { M_IClassRoomOptions } from '@/models/M_IClassRoomOptions';
 import { M_IUsersOptions } from '@/models/M_IUsersOptions';
 import { M_ICourseOptions } from '@/models/M_ICourseOptions';
 import { M_ITeachersOptions } from '@/models/M_ITeachersOptions';
-import { M_IStudentAttendanceSummary, M_IStudentRefundDetail } from '@/models/M_ICloseAccount';
+import { M_IStudentAttendanceSummary, M_IStudentRefundDetail, M_IResAttendance } from '@/models/M_ICloseAccount';
 import { el } from 'element-plus/es/locale';
 
 
@@ -535,6 +676,23 @@ const isShowPaymentRecordDialog = ref(false);
 const paymentRecordData = ref<M_IStudentAttendanceSummary[]>([]);
 const maxHours = ref(0);
 
+// 簽到詳細 Dialog 控制
+const attendanceDetailDialogVisible = ref(false);
+const attendanceDetailLoading = ref(false);
+const attendanceDetailData = ref<any>(null);
+const currentDetailFeeId = ref(0);
+
+// 編輯簽到 Dialog 控制
+const editAttendanceDialogVisible = ref(false);
+const editAttendanceLoading = ref(false);
+const editAttendanceForm = reactive({
+  attendanceId: 0,
+  attendanceDate: '',
+  attendanceType: 1
+});
+
+
+
 // 繳費 Dialog 控制
 const isShowPaymentDialog = ref(false);
 const isEditMode = ref(false); // 是否為編輯模式
@@ -564,6 +722,11 @@ const refundFormData = reactive({
 const isShowRefundDetailDialog = ref(false);
 const refundDetailLoading = ref(false);
 const refundDetailData = ref<M_IStudentRefundDetail | null>(null);
+
+// 學生簽到記錄 Dialog 控制
+const isShowAttendanceRecordDialog = ref(false);
+const attendanceRecordLoading = ref(false);
+const attendanceRecordData = ref<any[]>([]); // 修改類型以支援 M_IStudentAttendanceSummary
 
 // 更新模式 Dialog 控制
 const isShowUpdateModeDialog = ref(false);
@@ -1356,6 +1519,216 @@ const handleViewRefundDetail = async (row: M_IStudentAttendanceSummary) => {
     isShowRefundDetailDialog.value = false;
   } finally {
     refundDetailLoading.value = false;
+  }
+};
+
+// 查看學生簽到記錄
+const handleAttendanceRecord = async () => {
+  try {
+    // 顯示對話框並開始載入
+    isShowAttendanceRecordDialog.value = true;
+    attendanceRecordLoading.value = true;
+    attendanceRecordData.value = [];
+
+    const response = await API.getStudentAttendance(courseDetail.studentPermissionId);
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    const data = response.data.content;
+    attendanceRecordData.value = data.attendances;
+    // 更新 maxHours 以正確顯示動態簽到欄位
+    if (data.maxHours) {
+        maxHours.value = data.maxHours;
+    }
+  } catch (error) {
+    ElMessage.error((error as Error).message || '查詢簽到記錄失敗');
+    isShowAttendanceRecordDialog.value = false;
+  } finally {
+    attendanceRecordLoading.value = false;
+  }
+};
+
+// 編輯簽到記錄
+// 管理簽到詳情
+const handleManageAttendance = async (row: any) => {
+  attendanceDetailDialogVisible.value = true;
+  attendanceDetailLoading.value = true;
+  currentDetailFeeId.value = row.studentPermissionFeeId;
+  attendanceDetailData.value = null;
+
+  try {
+    const response = await API.getStudentAttendanceDetail(row.studentPermissionFeeId);
+    if (response.data.result === 1) {
+      attendanceDetailData.value = response.data.content;
+    } else {
+      ElMessage.error(response.data.msg);
+    }
+  } catch (error: any) {
+    ElMessage.error(error.message || '載入詳細資料失敗');
+  } finally {
+    attendanceDetailLoading.value = false;
+  }
+};
+
+// 從詳情頁刪除簽到
+const handleDeleteFromDetail = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(
+      `確定要刪除 ${row.attendanceDate} 的簽到記錄嗎？`,
+      '刪除簽到',
+      {
+        confirmButtonText: '確定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+
+    const response = await API.updateAttendance({
+      id: row.attendanceId,
+      studentPermissionId: courseDetail.studentPermissionId,
+      attendanceDate: row.attendanceDate,
+      attendanceType: 0, // 無所謂，後端看 isDelete
+      modifiedUserId: userInfoStore.userId,
+      isDelete: true,
+      studentName: '', // 必填但後端可能不檢查
+      courseName: ''
+    } as any); // cast as any to bypass strict type check for optional fields if generic interface is partial
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    ElMessage.success('刪除簽到記錄成功');
+
+    // 重新載入詳情
+    if (currentDetailFeeId.value) {
+      const detailRes = await API.getStudentAttendanceDetail(currentDetailFeeId.value);
+      if (detailRes.data.result === 1) {
+        attendanceDetailData.value = detailRes.data.content;
+      }
+    }
+    
+    // 重新載入外層 Summary
+    if(isShowAttendanceRecordDialog.value) await handleAttendanceRecord();
+    if(isShowPaymentRecordDialog.value) await handlePaymentRecord();
+
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error((error as Error).message || '刪除簽到失敗');
+    }
+  }
+};
+
+// 從詳情頁點擊編輯
+const handleEditFromDetail = (row: any) => {
+  editAttendanceForm.attendanceId = row.attendanceId;
+  editAttendanceForm.attendanceDate = row.attendanceDate;
+  editAttendanceForm.attendanceType = row.attendanceType !== undefined ? row.attendanceType : 1;
+  editAttendanceDialogVisible.value = true;
+};
+
+// 提交編輯
+const submitEditAttendance = async () => {
+  if (!editAttendanceForm.attendanceDate) {
+    ElMessage.warning('請選擇日期');
+    return;
+  }
+
+  editAttendanceLoading.value = true;
+  try {
+    const response = await API.updateAttendance({
+      id: editAttendanceForm.attendanceId,
+      studentPermissionId: courseDetail.studentPermissionId,
+      attendanceDate: editAttendanceForm.attendanceDate,
+      attendanceType: editAttendanceForm.attendanceType,
+      modifiedUserId: userInfoStore.userId,
+      isDelete: false,
+      studentName: '', 
+      courseName: ''
+    } as any);
+
+    if (response.data.result === 1) {
+      ElMessage.success('更新成功');
+      editAttendanceDialogVisible.value = false;
+      
+      // 重新載入詳情
+      if (currentDetailFeeId.value) {
+        const detailRes = await API.getStudentAttendanceDetail(currentDetailFeeId.value);
+        if (detailRes.data.result === 1) {
+          attendanceDetailData.value = detailRes.data.content;
+        }
+      }
+      
+      // 重新載入外層 Summary
+      if(isShowAttendanceRecordDialog.value) await handleAttendanceRecord();
+      if(isShowPaymentRecordDialog.value) await handlePaymentRecord();
+    } else {
+      ElMessage.error(response.data.msg);
+    }
+  } catch (error: any) {
+    ElMessage.error(error.message || '更新失敗');
+  } finally {
+    editAttendanceLoading.value = false;
+  }
+};
+
+const handleEditAttendance = async (row: M_IResAttendance) => {
+  try {
+    await ElMessageBox.confirm(
+      `是否要編輯此簽到記錄？`,
+      '編輯簽到',
+      {
+        confirmButtonText: '確定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+
+    // TODO: 實作編輯簽到記錄的邏輯
+    ElMessage.info('編輯簽到功能開發中');
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error((error as Error).message || '編輯簽到失敗');
+    }
+  }
+};
+
+// 刪除簽到記錄
+const handleDeleteAttendance = async (row: M_IResAttendance) => {
+  try {
+    await ElMessageBox.confirm(
+      `確定要刪除 ${row.attendanceDate} 的簽到記錄嗎？`,
+      '刪除簽到',
+      {
+        confirmButtonText: '確定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+
+    const response = await API.updateAttendance({
+      id: row.attendanceId,
+      studentPermissionId: courseDetail.studentPermissionId,
+      attendanceDate: row.attendanceDate,
+      attendanceType: row.attendanceType,
+      modifiedUserId: userInfoStore.userId,
+      isDelete: true
+    });
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    ElMessage.success('刪除簽到記錄成功');
+
+    // 重新載入簽到記錄
+    await handleAttendanceRecord();
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error((error as Error).message || '刪除簽到失敗');
+    }
   }
 };
 

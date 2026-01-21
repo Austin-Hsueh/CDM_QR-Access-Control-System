@@ -99,6 +99,9 @@ namespace DoorWebApp.Models.DTO
         /// <summary>扣時數</summary>
         public decimal Hours { get; set; }
 
+        /// <summary>狀態 (0:缺席, 1:出席, 2:請假)</summary>
+        public int AttendanceType { get; set; }
+
         /// <summary>單堂學費</summary>
         public decimal Amount { get; set; }
 
