@@ -146,6 +146,11 @@ namespace DoorWebApp.Models.DTO
         public int StudentPermissionId { get; set; }
 
         /// <summary>
+        /// 學生Id
+        /// </summary>
+        public int StudentId { get; set; }
+
+        /// <summary>
         /// 教室Id
         /// </summary>
         public int ClassroomId { get; set; }

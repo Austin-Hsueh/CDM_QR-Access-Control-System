@@ -222,3 +222,51 @@ export interface M_IStudentPaymentRecord {
 export interface M_IResStudentPaymentByStudent {
   content: M_IStudentPaymentRecord[];
 }
+
+/**
+ * 建立退款記錄請求
+ */
+export interface M_IReqCreateRefund {
+  studentPermissionFeeId: number;  // 學生權限費用 ID
+  refundAmount: number;            // 退款金額
+  remark?: string;                 // 退款備註
+}
+
+/**
+ * 退款記錄摘要回應
+ */
+export interface M_IStudentRefundSummary {
+  studentPermissionFeeId: number;  // 學生權限費用 ID
+  refundAmount: number;            // 退款金額
+  refundDate: string;              // 退款日期 (格式: yyyy/MM/dd)
+  refundReceiptNumber: string;     // 退款結帳單號
+  remark?: string;                 // 退款備註
+  modifiedUserId: number;          // 操作者 ID
+}
+
+/**
+ * 學生退款資訊詳情回應 (包含繳費與退款資訊)
+ */
+export interface M_IStudentRefundDetail {
+  // 繳費摘要欄位
+  studentPermissionFeeId: number;  // 學生權限費用 ID
+  courseId?: number;               // 課程 ID
+  courseName?: string;             // 課程名稱
+  studentId?: number;              // 學生 ID
+  studentName?: string;            // 學生姓名
+  currentAmount: number;           // 當筆金額 (學費+教材)
+  receivableAmount: number;        // 應收金額 (扣除總折扣)
+  paidAmount: number;              // 已收金額
+  outstandingAmount: number;       // 欠款金額
+  totalDiscount: number;           // 總折扣金額
+  payDate?: string;                // 繳費日期 (格式: yyyy/MM/dd)
+  receiptNumber?: string;          // 結帳單號（繳費）
+  remark?: string;                 // 備註
+
+  // 退款資訊欄位
+  refundId?: number;               // 退款 ID (無退款時為 null)
+  refundDate?: string;             // 退款日期 (格式: yyyy/MM/dd)
+  refundAmount?: number;           // 退款金額
+  refundReceiptNumber?: string;    // 退款結帳單號
+  refundRemark?: string;           // 退款備註
+}

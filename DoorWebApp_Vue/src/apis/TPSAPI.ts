@@ -3,7 +3,7 @@ import IReqUserRoleDTO from "@/models/dto/IReqUserRoleDTO";
 import IResUserInfoDTO from "@/models/dto/IResUserInfoDTO";
 import { IBaseAPIResponse } from "@/models/IBaseAPIResponse";
 import IAPIResponse from "@/models/IAPIResponse";
-import { M_IResDailyScheduleStatus, M_ICheckInAllResult, M_ICloseAccountDetail, M_ISaveCloseAccountRequest, M_IReqCreateAttendance, M_IReqUpdateAttendance, M_IResAttendance, M_IResStudentAttendance, M_IReqCreatePayment, M_IReqUpdatePayment, M_IReqRebindPayment, M_IReqCreateStudentPermissionFee, M_IResCreateStudentPermissionFee, M_ICloseAccountRecord, M_IResStudentPaymentByStudent } from "@/models/M_ICloseAccount";
+import { M_IResDailyScheduleStatus, M_ICheckInAllResult, M_ICloseAccountDetail, M_ISaveCloseAccountRequest, M_IReqCreateAttendance, M_IReqUpdateAttendance, M_IResAttendance, M_IResStudentAttendance, M_IReqCreatePayment, M_IReqUpdatePayment, M_IReqRebindPayment, M_IReqCreateStudentPermissionFee, M_IResCreateStudentPermissionFee, M_ICloseAccountRecord, M_IResStudentPaymentByStudent, M_IReqCreateRefund, M_IStudentRefundSummary, M_IStudentRefundDetail } from "@/models/M_ICloseAccount";
 import { useRouter } from "vue-router";
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import IReqLoginDTO from "@/models/dto/IReqLoginDTO";
@@ -663,6 +663,16 @@ class APIService {
   /** 換綁繳費記錄到其他費用 */
   rebindPayment(request: M_IReqRebindPayment) {
     return this.axiosInstance.put<IBaseAPIResponse>(`v1/StudentPayment/Rebind`, request);
+  }
+
+  /** 建立或更新退款記錄 */
+  createRefund(request: M_IReqCreateRefund) {
+    return this.axiosInstance.post<IAPIResponse<M_IStudentRefundSummary>>(`v1/StudentRefund`, request);
+  }
+
+  /** 取得學生退款資訊 */
+  getStudentRefundDetail(studentPermissionFeeId: number) {
+    return this.axiosInstance.get<IAPIResponse<M_IStudentRefundDetail>>(`v1/StudentRefund/${studentPermissionFeeId}`);
   }
   //#endregion
 

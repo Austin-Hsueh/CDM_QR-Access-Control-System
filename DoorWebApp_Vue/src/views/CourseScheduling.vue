@@ -308,10 +308,14 @@
         {{ row.attendances[i - 1] ?? '-' }}
       </template>
     </el-table-column>
-    <el-table-column align="center" class="operateBtnGroup d-flex" label="操作">
+    <el-table-column align="center" class="operateBtnGroup d-flex" label="操作" width="330" fixed="right">
       <template #default="{ row }: { row: any }">
-        <el-button type="primary" size="small" @click="handlePayment(row)" v-if="(row.receivedAmount === 0)"><el-icon><EditPen /></el-icon>{{ '繳費' }}</el-button>
-        <el-button type="primary" size="small" @click="handlePayment(row)" v-if="(row.receivedAmount !== 0)"><el-icon><EditPen /></el-icon>{{ '編輯繳款資訊' }}</el-button>
+        <div style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
+          <el-button type="primary" size="small" @click="handlePayment(row)" v-if="(row.receivedAmount === 0)"><el-icon><EditPen /></el-icon>{{ '繳費' }}</el-button>
+          <el-button type="primary" size="small" @click="handlePayment(row)" v-if="(row.receivedAmount !== 0)"><el-icon><EditPen /></el-icon>{{ '編輯繳款資訊' }}</el-button>
+          <el-button type="warning" size="small" @click="handleRefund(row)" v-if="(row.receivedAmount !== 0)"><el-icon><Money /></el-icon>{{ '退款' }}</el-button>
+          <el-button type="info" size="small" @click="handleViewRefundDetail(row)"><el-icon><Edit /></el-icon>{{ '退款資訊' }}</el-button>
+        </div>
       </template>
     </el-table-column>
   </el-table>
@@ -358,6 +362,116 @@
     </span>
   </template>
 </el-dialog>
+
+<!-- 退款 Dialog -->
+<el-dialog
+  v-model="isShowRefundDialog"
+  title="退款"
+  width="500px"
+  :close-on-click-modal="!isRefundLoading" 
+>
+  <el-form :model="refundFormData" label-width="120px">
+    <el-form-item label="課程名稱">
+      <el-input v-model="refundFormData.courseName" disabled />
+    </el-form-item>
+    <el-form-item label="已收金額">
+      <el-input-number v-model="refundFormData.receivedAmount" :min="0" :controls="false" disabled style="width: 100%" />
+    </el-form-item>
+    <el-form-item label="退款金額">
+      <!-- [修改] 增加 precision="0" 防止小數點 -->
+      <el-input-number 
+        v-model="refundFormData.refundAmount" 
+        :min="0" 
+        :max="refundFormData.receivedAmount" 
+        :precision="0"
+        :controls="false" 
+        style="width: 100%" 
+      />
+    </el-form-item>
+    <el-form-item label="退款原因">
+      <!-- [修改] 增加 maxlength 與字數統計 -->
+      <el-input 
+        v-model="refundFormData.remark" 
+        type="textarea" 
+        :rows="3" 
+        placeholder="請輸入退款原因" 
+        maxlength="200"
+        show-word-limit
+      />
+    </el-form-item>
+  </el-form>
+  <template #footer>
+    <span class="dialog-footer">
+      <el-button @click="isShowRefundDialog = false" :disabled="isRefundLoading">取消</el-button>
+      <!-- [修改] 綁定 loading 狀態 -->
+      <el-button type="warning" @click="submitRefund" :loading="isRefundLoading">確定退款</el-button>
+    </span>
+  </template>
+</el-dialog>
+
+<!-- 退款資訊 Dialog -->
+<el-dialog
+  v-model="isShowRefundDetailDialog"
+  title="退款資訊"
+  width="700px"
+>
+  <div v-if="refundDetailLoading" style="text-align: center; padding: 40px;">
+    <el-icon class="is-loading" :size="40"><Loading /></el-icon>
+    <p style="margin-top: 16px; color: #909399;">載入中...</p>
+  </div>
+  <div v-else-if="refundDetailData">
+    <el-descriptions :column="2" border>
+      <el-descriptions-item label="課程名稱" :span="2">{{ refundDetailData.courseName || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="學生姓名">{{ refundDetailData.studentName || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="學生 ID">{{ refundDetailData.studentId || '-' }}</el-descriptions-item>
+
+      <el-descriptions-item label="當筆金額" label-class-name="label-strong">
+        <span style="font-weight: bold;">{{ refundDetailData.currentAmount }}</span>
+      </el-descriptions-item>
+      <el-descriptions-item label="總折扣金額">
+        <span style="color: #67C23A;">{{ refundDetailData.totalDiscount }}</span>
+      </el-descriptions-item>
+
+      <el-descriptions-item label="應收金額">{{ refundDetailData.receivableAmount }}</el-descriptions-item>
+      <el-descriptions-item label="已收金額">{{ refundDetailData.paidAmount }}</el-descriptions-item>
+
+      <el-descriptions-item label="欠款金額">
+        <span :style="{ color: refundDetailData.outstandingAmount > 0 ? '#F56C6C' : '#67C23A', fontWeight: 'bold' }">
+          {{ refundDetailData.outstandingAmount }}
+        </span>
+      </el-descriptions-item>
+      <el-descriptions-item label="繳費日期">{{ refundDetailData.payDate || '-' }}</el-descriptions-item>
+
+      <el-descriptions-item label="結帳單號" :span="2">{{ refundDetailData.receiptNumber || '-' }}</el-descriptions-item>
+      <el-descriptions-item label="備註" :span="2">{{ refundDetailData.remark || '-' }}</el-descriptions-item>
+    </el-descriptions>
+
+    <el-divider content-position="left">退款資訊</el-divider>
+
+    <div v-if="refundDetailData.refundId">
+      <el-descriptions :column="2" border>
+        <el-descriptions-item label="退款 ID">{{ refundDetailData.refundId }}</el-descriptions-item>
+        <el-descriptions-item label="退款日期">{{ refundDetailData.refundDate || '-' }}</el-descriptions-item>
+
+        <el-descriptions-item label="退款金額" :span="2">
+          <span style="color: #E6A23C; font-weight: bold; font-size: 16px;">{{ refundDetailData.refundAmount }}</span>
+        </el-descriptions-item>
+
+        <el-descriptions-item label="退款單號" :span="2">{{ refundDetailData.refundReceiptNumber || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="退款原因" :span="2">{{ refundDetailData.refundRemark || '-' }}</el-descriptions-item>
+      </el-descriptions>
+    </div>
+    <div v-else style="text-align: center; padding: 40px; color: #909399;">
+      <el-icon :size="48"><CircleCheck /></el-icon>
+      <p style="margin-top: 16px;">此筆費用尚未退款</p>
+    </div>
+  </div>
+  <template #footer>
+    <span class="dialog-footer">
+      <el-button @click="isShowRefundDetailDialog = false">關閉</el-button>
+    </span>
+  </template>
+</el-dialog>
 </template>
 
 <script setup lang="ts">
@@ -369,7 +483,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import { FormInstance, FormRules, ElMessage, ElMessageBox } from 'element-plus';
-import { Delete, Edit, CircleCheck, Money, EditPen } from '@element-plus/icons-vue';
+import { Delete, Edit, CircleCheck, Money, EditPen, Loading } from '@element-plus/icons-vue';
 import { useUserInfoStore } from '@/stores/UserInfoStore';
 
 import API from '@/apis/TPSAPI';
@@ -378,7 +492,7 @@ import { M_IClassRoomOptions } from '@/models/M_IClassRoomOptions';
 import { M_IUsersOptions } from '@/models/M_IUsersOptions';
 import { M_ICourseOptions } from '@/models/M_ICourseOptions';
 import { M_ITeachersOptions } from '@/models/M_ITeachersOptions';
-import { M_IStudentAttendanceSummary } from '@/models/M_ICloseAccount';
+import { M_IStudentAttendanceSummary, M_IStudentRefundDetail } from '@/models/M_ICloseAccount';
 import { el } from 'element-plus/es/locale';
 
 
@@ -434,6 +548,22 @@ const paymentFormData = reactive({
   remark: '',
   payDate: '' // 繳費日期
 });
+
+// 退款 Dialog 控制
+const isShowRefundDialog = ref(false);
+const isRefundLoading = ref(false); // [新增] Loading 狀態變數
+const refundFormData = reactive({
+  studentPermissionFeeId: 0,
+  courseName: '',
+  receivedAmount: 0,
+  refundAmount: 0,
+  remark: ''
+});
+
+// 退款資訊 Dialog 控制
+const isShowRefundDetailDialog = ref(false);
+const refundDetailLoading = ref(false);
+const refundDetailData = ref<M_IStudentRefundDetail | null>(null);
 
 // 更新模式 Dialog 控制
 const isShowUpdateModeDialog = ref(false);
@@ -1138,6 +1268,94 @@ const handleCreatePayment = async () => {
     await handlePaymentRecord();
   } catch (error) {
     ElMessage.error((error as Error).message || '新增費用記錄失敗');
+  }
+};
+
+// 開啟退款對話框
+const handleRefund = (row: M_IStudentAttendanceSummary) => {
+  refundFormData.studentPermissionFeeId = row.studentPermissionFeeId;
+  refundFormData.courseName = row.courseName;
+  refundFormData.receivedAmount = row.receivedAmount;
+  refundFormData.refundAmount = 0;
+  refundFormData.remark = '';
+
+  isShowRefundDialog.value = true;
+};
+
+// 提交退款
+const submitRefund = async () => {
+  try {
+    // 驗證退款金額
+    if (refundFormData.refundAmount <= 0) {
+      ElMessage.warning('退款金額必須大於 0');
+      return;
+    }
+
+    if (refundFormData.refundAmount > refundFormData.receivedAmount) {
+      ElMessage.warning('退款金額不能大於已收金額');
+      return;
+    }
+
+    // 二次確認
+    await ElMessageBox.confirm(
+      `確定要退款 ${refundFormData.refundAmount} 元嗎？`,
+      '確認退款',
+      {
+        confirmButtonText: '確定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+
+    isRefundLoading.value = true; // [新增] 開啟 Loading
+
+    const response = await API.createRefund({
+      studentPermissionFeeId: refundFormData.studentPermissionFeeId,
+      refundAmount: refundFormData.refundAmount,
+      remark: refundFormData.remark
+    });
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    const refundInfo = response.data.content;
+    ElMessage.success(`退款成功！退款單號: ${refundInfo.refundReceiptNumber}`);
+
+    isShowRefundDialog.value = false;
+
+    // 重新載入繳費紀錄
+    await handlePaymentRecord(); 
+
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error((error as Error).message || '退款失敗');
+    }
+  } finally {
+    isRefundLoading.value = false; // [新增] 確保無論成功失敗都關閉 Loading
+  }
+};
+
+// 查看退款資訊
+const handleViewRefundDetail = async (row: M_IStudentAttendanceSummary) => {
+  try {
+    // 顯示對話框並開始載入
+    isShowRefundDetailDialog.value = true;
+    refundDetailLoading.value = true;
+    refundDetailData.value = null;
+
+    const response = await API.getStudentRefundDetail(row.studentPermissionFeeId);
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    refundDetailData.value = response.data.content;
+  } catch (error) {
+    ElMessage.error((error as Error).message || '查詢退款資訊失敗');
+    isShowRefundDetailDialog.value = false;
+  } finally {
+    refundDetailLoading.value = false;
   }
 };
 
