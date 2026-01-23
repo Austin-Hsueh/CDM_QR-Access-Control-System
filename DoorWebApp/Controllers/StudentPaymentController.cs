@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using DoorDB.Enums;
 using DoorWebApp.Models;
+using DoorWebApp.Services;
 
 namespace DoorWebApp.Controllers
 {
@@ -20,44 +21,17 @@ namespace DoorWebApp.Controllers
         private readonly DoorDbContext ctx;
         private readonly ILogger<StudentPaymentController> log;
         private readonly AuditLogWritter auditLog;
+        private readonly ReceiptNumberService receiptNumberService;
 
-        public StudentPaymentController(DoorDbContext ctx, ILogger<StudentPaymentController> log, AuditLogWritter auditLog)
+        public StudentPaymentController(DoorDbContext ctx, ILogger<StudentPaymentController> log, AuditLogWritter auditLog, ReceiptNumberService receiptNumberService)
         {
             this.ctx = ctx;
             this.log = log;
             this.auditLog = auditLog;
+            this.receiptNumberService = receiptNumberService;
         }
 
-        /// <summary>
-        /// 產生收據編號：{年次:03}B{月份:02}{編號:04}
-        /// 例如：114B060091
-        /// </summary>
-        private async Task<string> GenerateReceiptNumber()
-        {
-            var now = DateTime.Now;
-            int rocYear = now.Year - 1911; // 民國年
-            string yearMonth = $"{rocYear:000}B{now.Month:00}";
 
-            // 查詢本月最大編號
-            var lastReceipt = await ctx.TblPayment
-                .Where(p => !p.IsDelete && p.ReceiptNumber != null && p.ReceiptNumber.StartsWith(yearMonth))
-                .OrderByDescending(p => p.ReceiptNumber)
-                .Select(p => p.ReceiptNumber)
-                .FirstOrDefaultAsync();
-
-            int nextNumber = 1;
-            if (!string.IsNullOrEmpty(lastReceipt) && lastReceipt.Length >= 10)
-            {
-                // 格式: {rocYear:000}B{month:00}{number:0000}
-                // 例如: 114B120001，数字部分在位置 6-9
-                if (int.TryParse(lastReceipt.Substring(6, 4), out int lastNumber))
-                {
-                    nextNumber = lastNumber + 1;
-                }
-            }
-
-            return $"{yearMonth}{nextNumber:0000}";
-        }
 
         /// <summary>
         /// 從 Token 取得使用者 ID
@@ -306,8 +280,8 @@ namespace DoorWebApp.Controllers
                     }
 
                     // 若不存在，新增記錄
-                    // 系統產生收據編號
-                    string receiptNumber = await GenerateReceiptNumber();
+                    // 系統產生收據編號（統一由 ReceiptNumberService 管理，與 Refund 共用序列）
+                    string receiptNumber = await receiptNumberService.GenerateReceiptNumber();
 
                     // 取得當前 UTC+8 時間作為繳費日期
                     var nowUtc8 = DateTime.UtcNow.AddHours(8);

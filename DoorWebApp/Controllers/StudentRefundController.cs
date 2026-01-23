@@ -8,6 +8,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using DoorDB.Enums;
+using DoorWebApp.Services;
 
 namespace DoorWebApp.Controllers
 {
@@ -19,41 +20,17 @@ namespace DoorWebApp.Controllers
         private readonly DoorDbContext ctx;
         private readonly ILogger<StudentRefundController> log;
         private readonly AuditLogWritter auditLog;
+        private readonly ReceiptNumberService receiptNumberService;
 
-        public StudentRefundController(DoorDbContext ctx, ILogger<StudentRefundController> log, AuditLogWritter auditLog)
+        public StudentRefundController(DoorDbContext ctx, ILogger<StudentRefundController> log, AuditLogWritter auditLog, ReceiptNumberService receiptNumberService)
         {
             this.ctx = ctx;
             this.log = log;
             this.auditLog = auditLog;
+            this.receiptNumberService = receiptNumberService;
         }
 
-        /// <summary>
-        /// 產生收據編號：{年次:03}B{月份:02}{編號:04}，同 TblPayment 規則
-        /// 例如：114B060091
-        /// </summary>
-        private async Task<string> GenerateReceiptNumber()
-        {
-            var now = DateTime.Now;
-            int rocYear = now.Year - 1911; // 民國年
-            string yearMonth = $"{rocYear:000}B{now.Month:00}";
 
-            var lastReceipt = await ctx.TblPayment
-                .Where(p => !p.IsDelete && p.ReceiptNumber != null && p.ReceiptNumber.StartsWith(yearMonth))
-                .OrderByDescending(p => p.ReceiptNumber)
-                .Select(p => p.ReceiptNumber)
-                .FirstOrDefaultAsync();
-
-            int nextNumber = 1;
-            if (!string.IsNullOrEmpty(lastReceipt) && lastReceipt.Length >= 10)
-            {
-                if (int.TryParse(lastReceipt.Substring(6, 4), out int lastNumber))
-                {
-                    nextNumber = lastNumber + 1;
-                }
-            }
-
-            return $"{yearMonth}{nextNumber:0000}";
-        }
 
         private int? GetUserIdFromToken()
         {
@@ -239,8 +216,8 @@ namespace DoorWebApp.Controllers
                 }
                 else
                 {
-                    // 新增退款記錄（產生對齊 TblPayment 的收據編號）
-                    receiptNumber = await GenerateReceiptNumber();
+                    // 新增退款記錄（產生對齊 TblPayment 的收據編號，統一由 ReceiptNumberService 管理）
+                    receiptNumber = await receiptNumberService.GenerateReceiptNumber();
 
                     var refund = new TblRefund
                     {

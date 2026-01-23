@@ -30,6 +30,7 @@ namespace DoorWebApp
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddTransient<AuditLogWritter>();
+            builder.Services.AddScoped<DoorWebApp.Services.ReceiptNumberService>();
 
 
             // NLog: Setup NLog for Dependency injection
