@@ -396,7 +396,7 @@ namespace DoorWebApp.Controllers
                 // 3. 計算課程教材總應收金額
                 int tuitionFee = courseFee?.Amount ?? 0;
                 int materialFee = courseFee?.MaterialFee ?? 0;
-                int totalAmount = permissionFee.TotalAmount;
+                int totalAmount = permissionFee.Payment?.Pay ?? permissionFee.TotalAmount;
 
                 // 4. 計算該費用在所有費用中的索引（用於確定對應的簽到記錄組）
                 var combinedFees = permissions

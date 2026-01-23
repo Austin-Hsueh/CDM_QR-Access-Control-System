@@ -57,6 +57,7 @@ namespace DoorWebApp.Extensions
 
             // 3. 取得該組對應的 StudentPermissionFee（排除已刪除的記錄，按繳款日期排序）
             var combinedFees = await ctx.TblStudentPermissionFee
+                .Include(x => x.Payment)
                 .Where(spf => !spf.IsDelete 
                     && sameGroupPermissions.Contains(spf.StudentPermissionId))
                 .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
@@ -117,6 +118,7 @@ namespace DoorWebApp.Extensions
 
             // 2. 取得該組對應的 StudentPermissionFee（按繳款日期排序，從最早的開始）
             var combinedFees = await ctx.TblStudentPermissionFee
+                .Include(x=>x.Payment)
                 .Where(spf => !spf.IsDelete
                     && sameGroupPermissions.Contains(spf.StudentPermissionId))
                 .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)

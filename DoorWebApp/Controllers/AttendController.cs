@@ -184,7 +184,7 @@ namespace DoorWebApp.Controllers
 
                     int tuitionFee = courseFee?.Amount ?? 0;
                     int materialFee = courseFee?.MaterialFee ?? 0;
-                    int totalAmount = stf?.TotalAmount ?? tuitionFee + materialFee;
+                    int totalAmount = stf?.Payment?.Pay ?? stf?.TotalAmount ?? tuitionFee + materialFee;
                     decimal totalHours = (stf?.Hours != 0 ? stf?.Hours ?? 4 : 4);
 
                     decimal sourceHoursTotalAmount = totalAmount / totalHours;
