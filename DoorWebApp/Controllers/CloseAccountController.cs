@@ -466,7 +466,7 @@ namespace DoorWebApp.Controllers
                 // 5.1 取得昨日零用金結餘（已在步驟 1 查詢過）
                 int yesterdayPettyIncome = yesterdayCloseAccount?.PettyIncome ?? 0;
 
-                // 5.2 計算今日營業收入：所有 tblPayment 的 Pay + DiscountAmount 減去退款
+                // 5.2 計算今日營業收入：所有 tblPayment 的 Pay 減去退款
                 var todayDateStr = queryDate.ToString("yyyy/MM/dd");
                 var todayPayments = await ctx.TblPayment
                     .Where(p => p.PayDate == todayDateStr && !p.IsDelete)
@@ -476,7 +476,7 @@ namespace DoorWebApp.Controllers
                     .Where(r => r.RefundDate == todayDateStr && !r.IsDelete)
                     .ToListAsync();
 
-                int businessIncome = todayPayments.Sum(p => p.Pay + p.DiscountAmount)
+                int businessIncome = todayPayments.Sum(p => p.Pay)
                     - todayRefunds.Sum(r => r.RefundAmount);
 
                 // 5.3 計算關帳結算金額
@@ -595,7 +595,7 @@ namespace DoorWebApp.Controllers
                     // 2.2 取得昨日零用金結餘（已在步驟 1 查詢過）
                     int yesterdayPettyIncome = yesterdayCloseAccount?.PettyIncome ?? 0;
 
-                    // 2.3 計算今日營業收入：所有 tblPayment 的 Pay + DiscountAmount
+                    // 2.3 計算今日營業收入：所有 tblPayment 的 Pay
                     var todayDateStr = queryDate.ToString("yyyy/MM/dd");
                     var todayPayments = await ctx.TblPayment
                         .Where(p => p.PayDate == dateStr && !p.IsDelete)
@@ -605,7 +605,7 @@ namespace DoorWebApp.Controllers
                         .Where(r => r.RefundDate == todayDateStr && !r.IsDelete)
                         .ToListAsync();
 
-                    int businessIncome = todayPayments.Sum(p => p.Pay + p.DiscountAmount)
+                    int businessIncome = todayPayments.Sum(p => p.Pay)
                         - todayRefunds.Sum(r => r.RefundAmount);
 
                     // 2.4 計算關帳結算金額
@@ -642,7 +642,7 @@ namespace DoorWebApp.Controllers
                         .Where(r => r.RefundDate == todayDateStr && !r.IsDelete)
                         .ToListAsync();
 
-                    closeAccount.BusinessIncome = todayPayments.Sum(p => p.Pay + p.DiscountAmount)
+                    closeAccount.BusinessIncome = todayPayments.Sum(p => p.Pay)
                         - todayRefunds.Sum(r => r.RefundAmount);
 
                     // 3.2 重新計算關帳結算金額
@@ -892,7 +892,7 @@ namespace DoorWebApp.Controllers
             if (closeAccount == null)
             {
                 tuitionIncome = System.Math.Round(
-                    (decimal)todayPayments.Sum(p => p.Pay + p.DiscountAmount)
+                    (decimal)todayPayments.Sum(p => p.Pay)
                     - (decimal)todayRefunds.Sum(r => r.RefundAmount),
                     2);
             }
@@ -902,7 +902,7 @@ namespace DoorWebApp.Controllers
                 {
                     // 若是今天，則即時計算營業收入（包含退款，退款金額為負）
                     tuitionIncome = System.Math.Round(
-                        (decimal)todayPayments.Sum(p => p.Pay + p.DiscountAmount)
+                        (decimal)todayPayments.Sum(p => p.Pay)
                         - (decimal)todayRefunds.Sum(r => r.RefundAmount),
                         2);
                 }
@@ -963,7 +963,7 @@ namespace DoorWebApp.Controllers
                 var feeCode = payment.StudentPermissionFee?.StudentPermission?.Course?.CourseFee?.FeeCode + "-" ?? "";
                 var courseId = payment.StudentPermissionFee?.StudentPermission?.CourseId ?? 0;
                 var courseName = payment.StudentPermissionFee?.StudentPermission?.Course?.Name ?? "-";
-                var courseAmount = payment.StudentPermissionFee?.TotalAmount ?? (payment.Pay + payment.DiscountAmount);
+                var courseAmount = payment.StudentPermissionFee?.TotalAmount ?? (payment.Pay);
                 
                 // 結帳備註：學費:課程編號-課程名稱 金額*1=金額
                 var remark = $"[學費:{feeCode}{courseName} {courseAmount}*1={courseAmount}]";
@@ -978,7 +978,7 @@ namespace DoorWebApp.Controllers
                     InvoiceNo = payment.ReceiptNumber ?? "-",
                     Code = studentCode,
                     StudentName = studentName,
-                    Tuition = payment.Pay + payment.DiscountAmount,
+                    Tuition = payment.Pay,
                     Refund = 0,
                     Maintenance = 0,
                     Sales = 0,
