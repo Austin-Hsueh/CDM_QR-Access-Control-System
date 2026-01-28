@@ -293,11 +293,12 @@
     <el-button type="primary" size="small" @click="handleCreatePayment"><el-icon><EditPen /></el-icon>{{ '新增一期繳費' }}</el-button>
   </div>
   <el-table :data="paymentRecordData" border style="width: 100%">
-    <el-table-column prop="serialNo" label="序號" />
+    <el-table-column prop="serialNo" label="序號" width="80"/>
     <el-table-column prop="courseName" label="課程名稱"/>
-    <!-- <el-table-column prop="paymentDate" label="應繳款日"/> -->
+    <el-table-column prop="paymentDate" label="應繳款日"/>
     <el-table-column prop="payDate" label="實際繳款日" />
     <el-table-column prop="receivableAmount" label="應收金額" />
+    <el-table-column prop="discountAmount" label="折扣金額" />
     <el-table-column prop="receivedAmount" label="已收金額" />
     <el-table-column prop="outstandingAmount" label="欠款金額" />
     <el-table-column prop="receiptNumber" label="結帳單號" />
@@ -312,14 +313,21 @@
         {{ row.attendances[i - 1] ?? '-' }}
       </template>
     </el-table-column>
-    <el-table-column align="center" class="operateBtnGroup d-flex" label="操作" width="450" fixed="right">
+    <el-table-column align="center" class="operateBtnGroup d-flex" label="操作" width="300" fixed="right">
       <template #default="{ row }: { row: any }">
-        <div style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
-          <el-button type="primary" size="small" @click="handlePayment(row)" v-if="(row.receivedAmount === 0)"><el-icon><EditPen /></el-icon>{{ '繳費' }}</el-button>
-          <el-button type="primary" size="small" @click="handlePayment(row)" v-if="(row.receivedAmount !== 0)"><el-icon><EditPen /></el-icon>{{ '編輯繳款資訊' }}</el-button>
-          <el-button type="warning" size="small" @click="handleRefund(row)" v-if="(row.receivedAmount !== 0)"><el-icon><Money /></el-icon>{{ '退款' }}</el-button>
-          <el-button type="info" size="small" @click="handleViewRefundDetail(row)"><el-icon><Edit /></el-icon>{{ '退款資訊' }}</el-button>
-          <el-button type="warning" size="small" @click="handleManageAttendance(row)"><el-icon><Edit /></el-icon>{{ '詳細簽到記錄' }}</el-button>
+        <div style="display: flex; flex-direction: column; gap: 5px; align-items: center;">
+          <!-- 第一行 -->
+          <div style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
+            <el-button type="primary" size="small" @click="handlePayment(row)" v-if="(row.receivedAmount === 0)"><el-icon><EditPen /></el-icon>{{ '繳費' }}</el-button>
+            <el-button type="primary" size="small" @click="handlePayment(row)" v-if="(row.receivedAmount !== 0)"><el-icon><EditPen /></el-icon>{{ '編輯繳費' }}</el-button>
+            <el-button type="success" size="small" @click="handleEditFeeInfo(row)" v-if="(row.receivedAmount === 0)"><el-icon><Edit /></el-icon>{{ '編輯此期' }}</el-button>
+          </div>
+          <!-- 第二行 -->
+          <div style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
+            <el-button type="warning" size="small" @click="handleRefund(row)" v-if="(row.receivedAmount !== 0)"><el-icon><Money /></el-icon>{{ '退費' }}</el-button>
+            <el-button type="info" size="small" @click="handleViewRefundDetail(row)"><el-icon><Edit /></el-icon>{{ '退費資訊' }}</el-button>
+            <el-button type="warning" size="small" @click="handleManageAttendance(row)"><el-icon><Edit /></el-icon>{{ '簽到記錄' }}</el-button>
+          </div>
         </div>
       </template>
     </el-table-column>
@@ -410,6 +418,36 @@
       <el-button @click="isShowRefundDialog = false" :disabled="isRefundLoading">取消</el-button>
       <!-- [修改] 綁定 loading 狀態 -->
       <el-button type="warning" @click="submitRefund" :loading="isRefundLoading">確定退款</el-button>
+    </span>
+  </template>
+</el-dialog>
+
+<!-- 編輯繳費資訊 Dialog -->
+<el-dialog
+  v-model="isShowEditFeeDialog"
+  title="編輯此期繳費資訊"
+  width="500px"
+>
+  <el-form :model="editFeeFormData" label-width="120px">
+    <el-form-item label="課程名稱">
+      <el-input v-model="editFeeFormData.courseName" disabled />
+    </el-form-item>
+    <el-form-item label="應繳款日期">
+      <el-date-picker
+        v-model="editFeeFormData.paymentDate"
+        type="date"
+        placeholder="選擇應繳款日期"
+        format="YYYY-MM-DD"
+        value-format="YYYY-MM-DD"
+        style="width: 100%"
+      />
+    </el-form-item>
+  </el-form>
+  <template #footer>
+    <span class="dialog-footer">
+      <el-button @click="isShowEditFeeDialog = false">取消</el-button>
+      <el-button type="danger" @click="deleteFeeInfo">刪除此期</el-button>
+      <el-button type="primary" @click="submitEditFee">確定</el-button>
     </span>
   </template>
 </el-dialog>
@@ -565,14 +603,14 @@
         <template #default="{ row }">
            <el-button 
              type="primary" 
-             link 
-             :icon="Edit" 
+             :icon="Edit"
+             size="small" 
              @click="handleEditFromDetail(row)"
            >編輯</el-button>
            <el-button 
              type="danger" 
-             link 
-             :icon="Delete" 
+             :icon="Delete"
+             size="small" 
              @click="handleDeleteFromDetail(row)"
            >刪除</el-button>
         </template>
@@ -581,7 +619,36 @@
   </div>
   <template #footer>
     <span class="dialog-footer">
+      <el-button type="primary" @click="handleOpenAddAttendance">新增簽到</el-button>
       <el-button @click="attendanceDetailDialogVisible = false">關閉</el-button>
+    </span>
+  </template>
+</el-dialog>
+
+<!-- 新增簽到 Dialog -->
+<el-dialog v-model="addAttendanceDialogVisible" title="新增簽到" width="400px" append-to-body>
+  <el-form label-width="80px" :model="addAttendanceForm">
+    <el-form-item label="日期">
+      <el-date-picker 
+        v-model="addAttendanceForm.attendanceDate" 
+        type="date" 
+        value-format="YYYY-MM-DD"
+        placeholder="選擇日期"
+        style="width: 100%"
+      />
+    </el-form-item>
+    <el-form-item label="狀態">
+      <el-select v-model="addAttendanceForm.attendanceType" placeholder="請選擇狀態" style="width: 100%">
+        <el-option label="缺席" :value="0" />
+        <el-option label="出席" :value="1" />
+        <el-option label="請假" :value="2" />
+      </el-select>
+    </el-form-item>
+  </el-form>
+  <template #footer>
+    <span class="dialog-footer">
+      <el-button @click="addAttendanceDialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="submitAddAttendance" :loading="addAttendanceLoading">確定</el-button>
     </span>
   </template>
 </el-dialog>
@@ -616,7 +683,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { onMounted, reactive, ref, watch } from 'vue';
 import { CalendarOptions } from '@fullcalendar/core';
 import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
 import FullCalendar from '@fullcalendar/vue3'
@@ -691,6 +758,15 @@ const editAttendanceForm = reactive({
   attendanceType: 1
 });
 
+// 新增簽到 Dialog 控制
+const addAttendanceDialogVisible = ref(false);
+const addAttendanceLoading = ref(false);
+const addAttendanceForm = reactive({
+  studentPermissionId: 0,
+  attendanceDate: '',
+  attendanceType: 1
+});
+
 
 
 // 繳費 Dialog 控制
@@ -707,6 +783,14 @@ const paymentFormData = reactive({
   payDate: '' // 繳費日期
 });
 
+// 監聽折扣金額變動，自動計算應繳金額
+watch(() => paymentFormData.discountAmount, (newVal) => {
+  // 只有在對話框開啟時才自動計算 (避免初始化時覆蓋數值)
+  if (isShowPaymentDialog.value && paymentFormData.receivableAmount > 0) {
+    paymentFormData.pay = Math.max(0, paymentFormData.receivableAmount - (newVal || 0));
+  }
+});
+
 // 退款 Dialog 控制
 const isShowRefundDialog = ref(false);
 const isRefundLoading = ref(false); // [新增] Loading 狀態變數
@@ -716,6 +800,14 @@ const refundFormData = reactive({
   receivedAmount: 0,
   refundAmount: 0,
   remark: ''
+});
+
+// 編輯繳費資訊 Dialog 控制
+const isShowEditFeeDialog = ref(false);
+const editFeeFormData = reactive({
+  studentPermissionFeeId: 0,
+  courseName: '',
+  paymentDate: ''
 });
 
 // 退款資訊 Dialog 控制
@@ -1499,6 +1591,80 @@ const submitRefund = async () => {
   }
 };
 
+// 編輯繳費資訊
+const handleEditFeeInfo = (row: M_IStudentAttendanceSummary) => {
+  editFeeFormData.studentPermissionFeeId = row.studentPermissionFeeId;
+  editFeeFormData.courseName = row.courseName;
+  editFeeFormData.paymentDate = row.paymentDate ? formatDateToYYYYMMDD(row.paymentDate) : '';
+  isShowEditFeeDialog.value = true;
+};
+
+// 格式化日期 從 114/02/27 轉為 YYYY-MM-DD
+const formatDateToYYYYMMDD = (rocDate: string): string => {
+  if (!rocDate || rocDate === '-') return '';
+  const parts = rocDate.split('/');
+  if (parts.length !== 3) return '';
+  const year = parseInt(parts[0]);
+  const month = parts[1].padStart(2, '0');
+  const day = parts[2].padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// 提交編輯繳費資訊
+const submitEditFee = async () => {
+  try {
+    const response = await API.updateStudentPermissionFee({
+      studentPermissionFeeId: editFeeFormData.studentPermissionFeeId,
+      paymentDate: editFeeFormData.paymentDate || undefined,
+      isDelete: false
+    });
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    ElMessage.success('更新繳費資訊成功');
+    isShowEditFeeDialog.value = false;
+    // 重新載入繳費記錄
+    await handlePaymentRecord();
+  } catch (error) {
+    ElMessage.error((error as Error).message || '更新繳費資訊失敗');
+  }
+};
+
+// 刪除此期繳費資訊
+const deleteFeeInfo = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '確定要刪除此期繳費資訊嗎？此操作無法復原。',
+      '刪除確認',
+      {
+        confirmButtonText: '確定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    );
+
+    const response = await API.updateStudentPermissionFee({
+      studentPermissionFeeId: editFeeFormData.studentPermissionFeeId,
+      isDelete: true
+    });
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    ElMessage.success('刪除成功');
+    isShowEditFeeDialog.value = false;
+    // 重新載入繳費記錄
+    await handlePaymentRecord();
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error((error as Error).message || '刪除失敗');
+    }
+  }
+};
+
 // 查看退款資訊
 const handleViewRefundDetail = async (row: M_IStudentAttendanceSummary) => {
   try {
@@ -1627,6 +1793,62 @@ const handleEditFromDetail = (row: any) => {
   editAttendanceForm.attendanceDate = row.attendanceDate;
   editAttendanceForm.attendanceType = row.attendanceType !== undefined ? row.attendanceType : 1;
   editAttendanceDialogVisible.value = true;
+};
+
+// 開啟新增簽到 Dialog
+const handleOpenAddAttendance = () => {
+  // 從 courseDetail 或 attendanceDetailData 取得 studentPermissionId
+  const studentPermissionId = courseDetail.studentPermissionId || attendanceDetailData.value?.studentPermissionId;
+  
+  if (studentPermissionId) {
+    addAttendanceForm.studentPermissionId = studentPermissionId;
+    addAttendanceForm.attendanceDate = '';
+    addAttendanceForm.attendanceType = 1; // 預設為出席
+    addAttendanceDialogVisible.value = true;
+  } else {
+    ElMessage.error('無法取得學生權限資訊');
+  }
+};
+
+// 提交新增簽到
+const submitAddAttendance = async () => {
+  if (!addAttendanceForm.attendanceDate) {
+    ElMessage.warning('請選擇日期');
+    return;
+  }
+
+  addAttendanceLoading.value = true;
+  try {
+    const response = await API.createAttendance({
+      studentPermissionId: addAttendanceForm.studentPermissionId,
+      attendanceDate: addAttendanceForm.attendanceDate,
+      attendanceType: addAttendanceForm.attendanceType,
+      modifiedUserId: userInfoStore.userId
+    });
+
+    if (response.data.result === 1) {
+      ElMessage.success('新增簽到成功');
+      addAttendanceDialogVisible.value = false;
+      
+      // 重新載入詳情
+      if (currentDetailFeeId.value) {
+        const detailRes = await API.getStudentAttendanceDetail(currentDetailFeeId.value);
+        if (detailRes.data.result === 1) {
+          attendanceDetailData.value = detailRes.data.content;
+        }
+      }
+      
+      // 重新載入外層資料
+      if (isShowAttendanceRecordDialog.value) await handleAttendanceRecord();
+      if (isShowPaymentRecordDialog.value) await handlePaymentRecord();
+    } else {
+      ElMessage.error(response.data.msg);
+    }
+  } catch (error: any) {
+    ElMessage.error(error.message || '新增簽到失敗');
+  } finally {
+    addAttendanceLoading.value = false;
+  }
 };
 
 // 提交編輯

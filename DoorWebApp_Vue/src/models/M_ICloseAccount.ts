@@ -173,6 +173,16 @@ export interface M_IResCreateStudentPermissionFee {
 }
 
 /**
+ * 更新學生權限費用記錄請求
+ */
+export interface M_IReqUpdateStudentPermissionFee {
+  studentPermissionFeeId: number;  // 學生權限費用 ID
+  paymentDate?: string;            // 繳款日期 (格式: yyyy-MM-dd，可空不改)
+  totalAmount?: number;            // 總金額 (空為回歸原本計算)
+  isDelete?: boolean;              // 刪除標記 (true=假刪除，預設 false)
+}
+
+/**
  * 關帳記錄項目（TblCloseAccount）
  */
 export interface M_ICloseAccountRecord {

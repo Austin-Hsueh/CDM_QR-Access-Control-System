@@ -29,8 +29,11 @@ namespace DoorWebApp.Models.DTO
         /// <summary>應收金額（課程費用 + 教材費）</summary>
         public int ReceivableAmount { get; set; }
 
-        /// <summary>已收金額（tblPayment.Sum(Pay)）</summary>
+        /// <summary>已收金額（tblPayment.Pay）</summary>
         public int ReceivedAmount { get; set; }
+
+        /// <summary>折扣金額（tblPayment.DiscountAmount）</summary>
+        public int DiscountAmount { get; set; }
 
         /// <summary>剩餘欠款（應收 - 已收，不低於 0）</summary>
         public int OutstandingAmount { get; set; }

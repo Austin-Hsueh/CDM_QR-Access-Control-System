@@ -212,7 +212,7 @@ namespace DoorWebApp.Controllers
 
                     res.result = APIResultCode.success;
                     res.msg = "updated";
-                    res.content = new { existingRefund.Id, existingRefund.RefundDate, existingRefund.RefundAmount, existingRefund.Remark };
+                    res.content = new { existingRefund.Id, existingRefund.RefundDate, existingRefund.RefundAmount, existingRefund.Remark, RefundReceiptNumber = existingRefund.ReceiptNumber };
                 }
                 else
                 {
@@ -241,7 +241,7 @@ namespace DoorWebApp.Controllers
 
                     res.result = APIResultCode.success;
                     res.msg = "created";
-                    res.content = new { refund.Id, refund.RefundDate, refund.RefundAmount, refund.Remark, receiptNumber };
+                    res.content = new { refund.Id, refund.RefundDate, refund.RefundAmount, refund.Remark, RefundReceiptNumber = receiptNumber };
                 }
 
                 return Ok(res);

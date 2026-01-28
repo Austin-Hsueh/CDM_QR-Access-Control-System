@@ -243,8 +243,12 @@ namespace DoorWebApp.Controllers
 
                     var payment = fee.Payment;
                     var hasPayment = payment != null && !payment.IsDelete;
-                    int received = hasPayment ? payment.Pay + payment.DiscountAmount : 0;
-                    int outstanding = Math.Max(fee.TotalAmount - received, 0);
+                    
+                    int discount = hasPayment ? payment.DiscountAmount : 0;
+                    int paid = hasPayment ? payment.Pay : 0;
+                    int receivable = fee.TotalAmount;
+                    int outstanding = Math.Max(receivable - discount - paid, 0);
+
                     string? receiptNumber = hasPayment ? payment?.ReceiptNumber : null;
                     string? payDate = hasPayment ? payment?.PayDate : null;
 
@@ -260,8 +264,9 @@ namespace DoorWebApp.Controllers
                         CourseName = courseName,
                         PaymentDate = fee.PaymentDate?.ToString("yyy/MM/dd"),
                         PayDate = payDate,
-                        ReceivableAmount = fee.TotalAmount,
-                        ReceivedAmount = received,
+                        ReceivableAmount = receivable,
+                        ReceivedAmount = paid,
+                        DiscountAmount = discount,
                         OutstandingAmount = outstanding,
                         ReceiptNumber = receiptNumber,
                         Attendances = attendances

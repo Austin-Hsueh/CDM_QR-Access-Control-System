@@ -3,7 +3,7 @@ import IReqUserRoleDTO from "@/models/dto/IReqUserRoleDTO";
 import IResUserInfoDTO from "@/models/dto/IResUserInfoDTO";
 import { IBaseAPIResponse } from "@/models/IBaseAPIResponse";
 import IAPIResponse from "@/models/IAPIResponse";
-import { M_IResDailyScheduleStatus, M_ICheckInAllResult, M_ICloseAccountDetail, M_ISaveCloseAccountRequest, M_IReqCreateAttendance, M_IReqUpdateAttendance, M_IResAttendance, M_IResStudentAttendance, M_IReqCreatePayment, M_IReqUpdatePayment, M_IReqRebindPayment, M_IReqCreateStudentPermissionFee, M_IResCreateStudentPermissionFee, M_ICloseAccountRecord, M_IResStudentPaymentByStudent, M_IReqCreateRefund, M_IStudentRefundSummary, M_IStudentRefundDetail } from "@/models/M_ICloseAccount";
+import { M_IResDailyScheduleStatus, M_ICheckInAllResult, M_ICloseAccountDetail, M_ISaveCloseAccountRequest, M_IReqCreateAttendance, M_IReqUpdateAttendance, M_IResAttendance, M_IResStudentAttendance, M_IReqCreatePayment, M_IReqUpdatePayment, M_IReqRebindPayment, M_IReqCreateStudentPermissionFee, M_IResCreateStudentPermissionFee, M_IReqUpdateStudentPermissionFee, M_ICloseAccountRecord, M_IResStudentPaymentByStudent, M_IReqCreateRefund, M_IStudentRefundSummary, M_IStudentRefundDetail } from "@/models/M_ICloseAccount";
 import { useRouter } from "vue-router";
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import IReqLoginDTO from "@/models/dto/IReqLoginDTO";
@@ -658,6 +658,11 @@ class APIService {
   /** 建立學生權限費用記錄 */
   createStudentPermissionFee(request: M_IReqCreateStudentPermissionFee) {
     return this.axiosInstance.post<IAPIResponse<M_IResCreateStudentPermissionFee>>(`v1/StudentAttendance`, request);
+  }
+
+  /** 編輯或刪除學生權限費用記錄 */
+  updateStudentPermissionFee(request: M_IReqUpdateStudentPermissionFee) {
+    return this.axiosInstance.patch<IBaseAPIResponse>(`v2/StudentAttendance`, request);
   }
 
   /** 查詢學生所有繳費記錄 */
