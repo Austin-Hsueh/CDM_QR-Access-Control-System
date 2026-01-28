@@ -117,17 +117,7 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
-                // 1-2 重複日期 //todo 排除已經刪除的
-                TblAttendance? tblAttendance = ctx.TblAttendance.Where(x => x.IsDelete == false)
-                                               .Where(x => x.StudentPermissionId == AttendDTO.studentPermissionId)
-                                               .FirstOrDefault(x => x.AttendanceDate == AttendDTO.attendanceDate);
-                if (tblAttendance != null)
-                {
-                    log.LogWarning($"[{Request.Path}] Duplicate attendanceDate");
-                    res.result = APIResultCode.duplicate_attendanceDate;
-                    res.msg = "duplicate_attendanceDate";
-                    return Ok(res);
-                }
+
 
                 // 2. 新增簽到
                 TblAttendance NewAttend = new TblAttendance();
@@ -277,19 +267,7 @@ namespace DoorWebApp.Controllers
                     res.msg = "attendanceDate_is_required";
                     return Ok(res);
                 }
-                //重複
-                // 1-2 重複日期 //todo 排除已經刪除的
-                TblAttendance? tblAttendance = ctx.TblAttendance.Where(x => x.IsDelete == false)
-                                               .Where(x => x.StudentPermissionId == AttendDTO.studentPermissionId)
-                                               .Where(x => x.Id != AttendDTO.id)
-                                               .FirstOrDefault(x => x.AttendanceDate == AttendDTO.attendanceDate);
-                if (tblAttendance != null)
-                {
-                    log.LogWarning($"[{Request.Path}] Duplicate attendanceDate");
-                    res.result = APIResultCode.duplicate_attendanceDate;
-                    res.msg = "duplicate_attendanceDate";
-                    return Ok(res);
-                }
+
 
 
 
