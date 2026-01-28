@@ -1526,12 +1526,14 @@ namespace DoorWebApp.Controllers
                 log.LogInformation($"[{Request.Path}] Target user found! UserId:{UserId}, Username:{targetUserEntity.Username}");
 
 
-                var userPermission = ctx.TblPermission.Include(x => x.PermissionGroups).Where(x => x.UserId == UserId).FirstOrDefault();
+                var userPermission = ctx.TblPermission.Include(x=>x.User).Include(x => x.PermissionGroups).Where(x => x.UserId == UserId).FirstOrDefault();
 
                 var QRCodeData = ctx.TbQRCodeStorages.FromSqlRaw(@"SELECT q.*
                                                             FROM tblqrcodestorage q
-                                                            LEFT JOIN tblqrcodestoragetbluser qu ON qu.QRCodesId = q.Id
-                                                            WHERE UsersId = @UsersId AND q.ModifiedTime >= CONCAT(CURDATE(), ' 00:00:00') ",
+                                                            INNER JOIN tblqrcodestoragetbluser qu ON qu.QRCodesId = q.Id
+                                                            WHERE qu.UsersId = @UsersId AND q.ModifiedTime >= CONCAT(CURDATE(), ' 00:00:00') 
+                                                            ORDER BY q.ModifiedTime DESC
+                                                            LIMIT 1",
                                                             new MySqlConnector.MySqlParameter("@UsersId", UserId))
                                                      .Select(x => new
                                                      {
@@ -1709,10 +1711,55 @@ namespace DoorWebApp.Controllers
                     qrcode = "";
                 }
 
-                log.LogInformation($"[{Request.Path}] DEBUG QRCODE now:{now.ToString() ?? ""} " +
+                var qrcodePreview = string.IsNullOrEmpty(qrcode)
+                ? ""
+                : qrcode.Length <= 10
+                    ? qrcode
+                    : qrcode.Substring(0, 10);
+
+                log.LogInformation(
+                    $"[{Request.Path}] DEBUG QRCODE now:{now} " +
                     $"UserId:{UserId} , " +
+                    $"UserName:{userPermission.User.DisplayName} , " +
+                    $"schedules.Any():{schedules.Any().ToString()} , " +
+                    $"qrcode:{qrcodePreview} , " +
                     $"qrcodeTxt:{qrcodeTxt} , " +
-                    $"ModifiedTime:{QRCodeData?.ModifiedTime.ToString() ?? ""}");
+                    $"QRCodeData.ModifiedTime:{QRCodeData?.ModifiedTime}"
+                );
+
+                var QRCodeDataDebug = ctx.TbQRCodeStorages.FromSqlRaw(@"SELECT q.*
+                                                            FROM tblqrcodestorage q
+                                                            INNER JOIN tblqrcodestoragetbluser qu ON qu.QRCodesId = q.Id
+                                                            WHERE qu.UsersId = @UsersId
+                                                            ORDER BY q.ModifiedTime DESC
+                                                            LIMIT 1",
+                                                            new MySqlConnector.MySqlParameter("@UsersId", UserId))
+                                                     .Select(x => new
+                                                     {
+                                                         x.QRCodeData,
+                                                         x.qrcodeTxt,
+                                                         x.ModifiedTime
+                                                     }
+                                                     ).FirstOrDefault();
+
+                string qrcodeDebug = QRCodeDataDebug == null ? "" : QRCodeDataDebug.QRCodeData.ToString();
+                string qrcodeTxtDebug = QRCodeDataDebug == null ? "" : QRCodeDataDebug.qrcodeTxt.ToString();
+
+                var qrcodePreviewDebugPreview = string.IsNullOrEmpty(qrcodeDebug)
+                ? ""
+                : qrcodeDebug.Length <= 10
+                    ? qrcodeDebug
+                    : qrcodeDebug.Substring(0, 10);
+
+                log.LogInformation(
+                    $"[{Request.Path}] DEBUG QRCODE IN DB now:{now} " +
+                    $"UserId:{UserId} , " +
+                    $"UserName:{userPermission.User.DisplayName} , " +
+                    $"schedules.Any():{schedules.Any().ToString()} , " +
+                    $"qrcode:{qrcodePreviewDebugPreview} , " +
+                    $"qrcodeTxt:{qrcodeTxtDebug} , " +
+                    $"ModifiedTime:{QRCodeData?.ModifiedTime}"
+                );
 
                 // Map the result to ManyPermissionsDTO
                 var userPermissions = new ManyPermissionsDTO
