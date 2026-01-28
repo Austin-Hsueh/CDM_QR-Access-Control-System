@@ -1715,7 +1715,7 @@ namespace DoorWebApp.Controllers
                 ? ""
                 : qrcode.Length <= 10
                     ? qrcode
-                    : qrcode.Substring(0, 10);
+                    : $"***{qrcode[^10..]}";
 
                 log.LogInformation(
                     $"[{Request.Path}] DEBUG QRCODE now:{now} " +
@@ -1749,7 +1749,7 @@ namespace DoorWebApp.Controllers
                 ? ""
                 : qrcodeDebug.Length <= 10
                     ? qrcodeDebug
-                    : qrcodeDebug.Substring(0, 10);
+                    : $"***{qrcodeDebug[^10..]}";
 
                 log.LogInformation(
                     $"[{Request.Path}] DEBUG QRCODE IN DB now:{now} " +
