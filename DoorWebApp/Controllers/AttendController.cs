@@ -117,23 +117,6 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
-
-
-                // 2. 新增簽到
-                TblAttendance NewAttend = new TblAttendance();
-                NewAttend.StudentPermissionId = AttendDTO.studentPermissionId; 
-                NewAttend.AttendanceDate = AttendDTO.attendanceDate;
-                NewAttend.AttendanceType = AttendDTO.attendanceType;
-                NewAttend.ModifiedUserId = OperatorId;
-                NewAttend.IsTrigger = false;
-                NewAttend.IsDelete = false;
-                NewAttend.CreatedTime = DateTime.Now;
-                NewAttend.ModifiedTime = DateTime.Now;
-
-                ctx.TblAttendance.Add(NewAttend);
-                await ctx.SaveChangesAsync(); // Save Attend to get Id
-                log.LogInformation($"[{Request.Path}] Create Attend : Id={NewAttend.Id}");
-
                 // 3. 檢查使用者是否為老師(RoleId=2)，若是則不建立 AttendanceFee
                 bool isTeacher = permission.User?.Roles?.Any(r => r.Id == 2 && !r.IsDelete && r.IsEnable) ?? false;
                 
@@ -181,6 +164,21 @@ namespace DoorWebApp.Controllers
                     int teacherShare = (int)Math.Round(totalAmount * (1 - minSplitRatio), MidpointRounding.AwayFromZero);
                     decimal SplitHourAmount = Math.Round((sourceHoursTotalAmount * (1 - minSplitRatio)), 2, MidpointRounding.AwayFromZero);
 
+                    // 2. 新增簽到
+                    TblAttendance NewAttend = new TblAttendance();
+                    NewAttend.StudentPermissionId = AttendDTO.studentPermissionId;
+                    NewAttend.AttendanceDate = AttendDTO.attendanceDate;
+                    NewAttend.AttendanceType = AttendDTO.attendanceType;
+                    NewAttend.ModifiedUserId = OperatorId;
+                    NewAttend.IsTrigger = false;
+                    NewAttend.IsDelete = false;
+                    NewAttend.CreatedTime = DateTime.Now;
+                    NewAttend.ModifiedTime = DateTime.Now;
+
+                    ctx.TblAttendance.Add(NewAttend);
+                    await ctx.SaveChangesAsync(); // Save Attend to get Id
+                    log.LogInformation($"[{Request.Path}] Create Attend : Id={NewAttend.Id}");
+
                     // 建立對應 AttendanceFee：Hours=1, Amount=teacherShare, AdjustmentAmount=0
                     var newFee = new TblAttendanceFee
                     {
@@ -199,6 +197,21 @@ namespace DoorWebApp.Controllers
                 }
                 else
                 {
+                    // 2. 新增簽到
+                    TblAttendance NewAttend = new TblAttendance();
+                    NewAttend.StudentPermissionId = AttendDTO.studentPermissionId;
+                    NewAttend.AttendanceDate = AttendDTO.attendanceDate;
+                    NewAttend.AttendanceType = AttendDTO.attendanceType;
+                    NewAttend.ModifiedUserId = OperatorId;
+                    NewAttend.IsTrigger = false;
+                    NewAttend.IsDelete = false;
+                    NewAttend.CreatedTime = DateTime.Now;
+                    NewAttend.ModifiedTime = DateTime.Now;
+
+                    ctx.TblAttendance.Add(NewAttend);
+                    await ctx.SaveChangesAsync(); // Save Attend to get Id
+                    log.LogInformation($"[{Request.Path}] Create Attend : Id={NewAttend.Id}");
+
                     log.LogInformation($"[{Request.Path}] Skip AttendanceFee creation - User is a teacher (RoleId=2)");
                 }
 
