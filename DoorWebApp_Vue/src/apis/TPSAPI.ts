@@ -594,6 +594,11 @@ class APIService {
     return this.axiosInstance.get<IAPIResponse<any>>(`v1/StudentAttendance/Detail/${studentPermissionFeeId}`);
   }
 
+  /** 修改指定簽到記錄的費用資訊 */
+  updateAttendanceFee(request: { attendanceId: number; hours?: number; amount?: number; adjustmentAmount?: number }) {
+    return this.axiosInstance.patch<IAPIResponse<any>>(`v1/StudentAttendance/AttendanceFee`, request);
+  }
+
   /** 批量簽到指定日期的所有未簽到課程 */
   checkInAllForDate(date: string) {
     return this.axiosInstance.post<IAPIResponse<M_ICheckInAllResult>>(`v1/CloseAccount/CheckInAll/${date}`);

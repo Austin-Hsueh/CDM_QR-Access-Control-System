@@ -123,11 +123,23 @@
     </el-row>    
     
     <el-row :gutter="20" v-show="addCourseFormData.type === '1'">
-      <el-col :span="8">
-        <el-form-item label="課程類別" prop="courseId">
+      <el-col :span="6">
+        <el-form-item label="課程類型" prop="courseTypeId">
+          <el-select filterable placeholder="請選擇" v-model="addCourseFormData.courseTypeId" style="width: 100%">
+            <el-option
+              v-for="item in courseTypeOptions"
+              :key="item.courseTypeId"
+              :label="item.courseTypeName"
+              :value="item.courseTypeId">
+            </el-option>
+          </el-select>
+        </el-form-item>
+      </el-col>
+      <el-col :span="6">
+        <el-form-item label="課程名稱" prop="courseId">
           <el-select filterable placeholder="請選擇" v-model="addCourseFormData.courseId" style="width: 100%">
             <el-option
-              v-for="item in courseList"
+              v-for="item in filteredCourseList"
               :key="item.courseId"
               :label="item.courseName"
               :value="item.courseId">
@@ -135,7 +147,7 @@
           </el-select>
         </el-form-item>
       </el-col>
-      <el-col :span="8">
+      <el-col :span="6">
         <el-form-item label="課程模式" prop="courseMode">
           <el-select filterable placeholder="請選擇" v-model="addCourseFormData.courseMode" style="width: 100%">
             <el-option label="現場" value="1"></el-option>
@@ -143,7 +155,7 @@
           </el-select>
         </el-form-item>
       </el-col>
-      <el-col :span="8">
+      <el-col :span="6">
         <el-form-item label="老師姓名" prop="teacherId">
           <el-select filterable placeholder="請選擇" v-model="addCourseFormData.teacherId" style="width: 100%">
             <el-option
@@ -326,7 +338,7 @@
           <div style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
             <el-button type="warning" size="small" @click="handleRefund(row)" v-if="(row.receivedAmount !== 0)"><el-icon><Money /></el-icon>{{ '退費' }}</el-button>
             <el-button type="info" size="small" @click="handleViewRefundDetail(row)"><el-icon><Edit /></el-icon>{{ '退費資訊' }}</el-button>
-            <el-button type="warning" size="small" @click="handleManageAttendance(row)"><el-icon><Edit /></el-icon>{{ '簽到記錄' }}</el-button>
+            <el-button type="warning" size="small" @click="handleManageAttendance(row)"><el-icon><Edit /></el-icon>{{ '查看細項' }}</el-button>
           </div>
         </div>
       </template>
@@ -561,11 +573,11 @@
   </template>
 </el-dialog>
 
-<!-- 簽到詳細記錄 Dialog -->
+<!-- 簽到及單堂費用詳細記錄 Dialog -->
 <el-dialog
   v-model="attendanceDetailDialogVisible"
-  title="簽到詳細記錄"
-  width="800px"
+  title="簽到及單堂費用詳細記錄"
+  width="1100px"
   append-to-body
 >
   <div v-if="attendanceDetailLoading" style="text-align: center; padding: 20px;">
@@ -582,9 +594,9 @@
     <el-table :data="attendanceDetailData?.attendanceRecords || []" border stripe>
       <el-table-column prop="attendanceDate" label="日期" width="120" align="center" />
       <el-table-column prop="dayOfWeek" label="星期" width="80" align="center" />
-      <el-table-column prop="checkInTime" label="簽到時間" width="180" align="center">
+      <el-table-column prop="checkInTime" label="簽到時間" width="100" align="center">
         <template #default="{ row }">
-          {{ row.checkInTime ? row.checkInTime.substring(0, 16).replace('T', ' ') : '-' }}
+          {{ row.checkInTime || '-' }}
         </template>
       </el-table-column>
 
@@ -598,6 +610,21 @@
       </el-table-column>
 
       <el-table-column prop="hours" label="時數" width="80" align="center" />
+      <el-table-column label="單堂學費" width="100" align="right">
+        <template #default="{ row }">
+          ${{ row.amount?.toLocaleString() ?? 0 }}
+        </template>
+      </el-table-column>
+      <el-table-column label="單堂增減" width="100" align="right">
+        <template #default="{ row }">
+          {{ row.adjustmentAmount >= 0 ? '+' : '' }}${{ row.adjustmentAmount?.toLocaleString() ?? 0 }}
+        </template>
+      </el-table-column>
+      <el-table-column label="實際金額" width="100" align="right">
+        <template #default="{ row }">
+          ${{ ((row.amount ?? 0) + (row.adjustmentAmount ?? 0)).toLocaleString() }}
+        </template>
+      </el-table-column>
       
       <el-table-column label="操作" min-width="150" align="center">
         <template #default="{ row }">
@@ -606,11 +633,16 @@
              :icon="Edit"
              size="small" 
              @click="handleEditFromDetail(row)"
-           >編輯</el-button>
-           <el-button 
-             type="danger" 
+           >編輯簽到</el-button>
+           <el-button
+             type="warning"
+             size="small"
+             @click="handleEditFeeFromDetail(row)"
+           >編輯費用</el-button>
+           <el-button
+             type="danger"
              :icon="Delete"
-             size="small" 
+             size="small"
              @click="handleDeleteFromDetail(row)"
            >刪除</el-button>
         </template>
@@ -619,7 +651,7 @@
   </div>
   <template #footer>
     <span class="dialog-footer">
-      <el-button type="primary" @click="handleOpenAddAttendance">新增簽到</el-button>
+      <el-button v-if="(attendanceDetailData?.attendanceRecords?.length ?? 0) < maxHours" type="primary" @click="handleOpenAddAttendance">新增簽到</el-button>
       <el-button @click="attendanceDetailDialogVisible = false">關閉</el-button>
     </span>
   </template>
@@ -680,10 +712,31 @@
     </span>
   </template>
 </el-dialog>
+
+<!-- 編輯單堂費用 Dialog -->
+<el-dialog v-model="editFeeDialogVisible" title="編輯單堂費用" width="400px" append-to-body>
+  <el-form label-width="100px" :model="editFeeForm">
+    <el-form-item label="扣課時數">
+      <el-input-number v-model="editFeeForm.hours" :min="0" :precision="0" style="width: 100%" />
+    </el-form-item>
+    <el-form-item label="單堂學費">
+      <el-input-number v-model="editFeeForm.amount" :min="0" style="width: 100%" />
+    </el-form-item>
+    <el-form-item label="單堂增減">
+      <el-input-number v-model="editFeeForm.adjustmentAmount" style="width: 100%" />
+    </el-form-item>
+  </el-form>
+  <template #footer>
+    <span class="dialog-footer">
+      <el-button @click="editFeeDialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="submitEditAttendanceFee" :loading="editFeeLoading">確定</el-button>
+    </span>
+  </template>
+</el-dialog>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { CalendarOptions } from '@fullcalendar/core';
 import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
 import FullCalendar from '@fullcalendar/vue3'
@@ -767,7 +820,15 @@ const addAttendanceForm = reactive({
   attendanceType: 1
 });
 
-
+// 編輯單堂費用 Dialog 控制
+const editFeeDialogVisible = ref(false);
+const editFeeLoading = ref(false);
+const editFeeForm = reactive({
+  attendanceId: 0,
+  hours: 0,
+  amount: 0,
+  adjustmentAmount: 0
+});
 
 // 繳費 Dialog 控制
 const isShowPaymentDialog = ref(false);
@@ -833,6 +894,25 @@ const courseList = ref<M_ICourseOptions[]>([]);
 const doors = [1, 2, 3, 4];
 const daysOfWeek = [1, 2, 3, 4, 5, 6, 7];
 
+// 課程類型選項（從 courseList 中提取不重複的類型）
+const courseTypeOptions = computed(() => {
+  const typeMap = new Map<number, string>();
+  courseList.value.forEach(course => {
+    if (course.courseTypeId && course.courseTypeName && !typeMap.has(course.courseTypeId)) {
+      typeMap.set(course.courseTypeId, course.courseTypeName);
+    }
+  });
+  return Array.from(typeMap, ([id, name]) => ({ courseTypeId: id, courseTypeName: name }));
+});
+
+// 根據選擇的課程類型過濾課程列表
+const filteredCourseList = computed(() => {
+  if (!addCourseFormData.courseTypeId) {
+    return courseList.value;
+  }
+  return courseList.value.filter(course => course.courseTypeId === Number(addCourseFormData.courseTypeId));
+});
+
 // 表單資料
 const addCourseFormData = reactive({
   // 從 calendar click 自動填入
@@ -846,6 +926,7 @@ const addCourseFormData = reactive({
   type: '',          // 門禁種類 (1:上課, 2:租借教室)
   courseMode: '',    // 課程模式 (1:現場, 2:視訊)
   scheduleMode: '',  // 週期模式 (1:每週, 2:每兩週, 3:單次)
+  courseTypeId: '',  // 課程類型
   courseId: '',
   teacherId: '',
   groupIds: [] as number[],
@@ -853,6 +934,11 @@ const addCourseFormData = reactive({
   timepicker: null as any,
   days: [] as number[],
   remark: ''         // 備註
+});
+
+// 監聽課程類型變動，自動清空課程名稱
+watch(() => addCourseFormData.courseTypeId, () => {
+  addCourseFormData.courseId = '';
 });
 
 // 表單驗證規則
@@ -1028,6 +1114,7 @@ const handleDateSelect = (selectInfo: any) => {
   addCourseFormData.type = '';
   addCourseFormData.courseMode = '';
   addCourseFormData.scheduleMode = '';
+  addCourseFormData.courseTypeId = '';
   addCourseFormData.courseId = '';
   addCourseFormData.teacherId = '';
   addCourseFormData.groupIds = [1]; // 預設帶大門
@@ -1793,6 +1880,51 @@ const handleEditFromDetail = (row: any) => {
   editAttendanceForm.attendanceDate = row.attendanceDate;
   editAttendanceForm.attendanceType = row.attendanceType !== undefined ? row.attendanceType : 1;
   editAttendanceDialogVisible.value = true;
+};
+
+// 從詳情頁點擊編輯單堂費用
+const handleEditFeeFromDetail = (row: any) => {
+  editFeeForm.attendanceId = row.attendanceId;
+  editFeeForm.hours = row.hours ?? 0;
+  editFeeForm.amount = row.amount ?? 0;
+  editFeeForm.adjustmentAmount = row.adjustmentAmount ?? 0;
+  editFeeDialogVisible.value = true;
+};
+
+// 提交編輯單堂費用
+const submitEditAttendanceFee = async () => {
+  editFeeLoading.value = true;
+  try {
+    const response = await API.updateAttendanceFee({
+      attendanceId: editFeeForm.attendanceId,
+      hours: editFeeForm.hours,
+      amount: editFeeForm.amount,
+      adjustmentAmount: editFeeForm.adjustmentAmount
+    });
+
+    if (response.data.result === 1) {
+      ElMessage.success('更新單堂費用成功');
+      editFeeDialogVisible.value = false;
+
+      // 重新載入詳情
+      if (currentDetailFeeId.value) {
+        const detailRes = await API.getStudentAttendanceDetail(currentDetailFeeId.value);
+        if (detailRes.data.result === 1) {
+          attendanceDetailData.value = detailRes.data.content;
+        }
+      }
+
+      // 重新載入外層 Summary
+      if (isShowAttendanceRecordDialog.value) await handleAttendanceRecord();
+      if (isShowPaymentRecordDialog.value) await handlePaymentRecord();
+    } else {
+      ElMessage.error(response.data.msg);
+    }
+  } catch (error: any) {
+    ElMessage.error(error.message || '更新單堂費用失敗');
+  } finally {
+    editFeeLoading.value = false;
+  }
 };
 
 // 開啟新增簽到 Dialog
