@@ -532,6 +532,13 @@ const updateCourseTypeFormData = reactive<M_ICourseTypeOptions>({
 const rules  = reactive<FormRules>({
   courseName: [{ required: true, message: () => t("validation_msg.coursename_is_required"), trigger: "blur" }],
   courseTypeName: [{ required: true, message: () => t("validation_msg.coursetype_is_required"), trigger: "blur" }],
+  courseTypeId: [{
+    required: true,
+    type: 'number',
+    min: 1,
+    message: '請選擇課程分類',
+    trigger: "change"
+  }],
 });
 
 const editRules  = reactive<FormRules>({
