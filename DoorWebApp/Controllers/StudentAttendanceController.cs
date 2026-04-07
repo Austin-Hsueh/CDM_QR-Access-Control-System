@@ -203,10 +203,28 @@ namespace DoorWebApp.Controllers
 
                 var list = new List<ResStudentAttendanceDTO>();
 
+                // 建立 Schedule 快速查詢字典：StudentPermissionId -> ScheduleDate 集合
+                // 將 ScheduleDate 格式統一為 YYYY-MM-DD (AttendanceDate 的格式)
+                var scheduleDict = permissions
+                    .ToDictionary(
+                        sp => sp.Id,
+                        sp => new HashSet<string>(
+                            (sp.Schedules ?? new List<TblSchedule>())
+                                .Where(s => !s.IsDelete)
+                                .Select(s => s.ScheduleDate.Replace("/", "-"))  // 將 YYYY/MM/DD 轉換為 YYYY-MM-DD
+                        )
+                    );
+
+                // 建立 StudentPermissionId -> StudentPermission 的映射（用於快速查詢）
+                var spDict = permissions.ToDictionary(sp => sp.Id, sp => sp);
+
                 // 合併「相同學生 + 相同課程」的簽到與費用，統一分組
+                // 只有當天有對應的schedule才撈取，且attendance schedule的tblstudentpermission要相同
                 var combinedAttendances = permissions
                     .SelectMany(sp => sp.Attendances ?? new List<TblAttendance>())
-                    .Where(a => !a.IsDelete)
+                    .Where(a => !a.IsDelete &&
+                               scheduleDict.TryGetValue(a.StudentPermissionId, out var dates) &&
+                               dates.Contains(a.AttendanceDate))
                     .OrderBy(a => a.AttendanceDate)
                     .ToList();
 
@@ -252,8 +270,8 @@ namespace DoorWebApp.Controllers
                     string? receiptNumber = hasPayment ? payment?.ReceiptNumber : null;
                     string? payDate = hasPayment ? payment?.PayDate : null;
 
-                    // 取得該費用所屬的學生權限與課程名稱
-                    var spOfFee = permissions.FirstOrDefault(sp => sp.StudentPermissionFees != null && sp.StudentPermissionFees.Any(f => f.Id == fee.Id));
+                    // 取得該費用所屬的學生權限與課程名稱（使用字典快速查詢）
+                    var spOfFee = spDict.TryGetValue(fee.StudentPermissionId, out var sp) ? sp : null;
                     string courseName = spOfFee?.Course?.Name ?? spTarget.Course?.Name ?? string.Empty;
 
                     list.Add(new ResStudentAttendanceDTO
@@ -361,6 +379,18 @@ namespace DoorWebApp.Controllers
                     .Include(sp => sp.Schedules)
                     .ToList();
 
+                // 建立 Schedule 快速查詢字典：StudentPermissionId -> ScheduleDate 集合
+                // 將 ScheduleDate 格式統一為 YYYY-MM-DD (AttendanceDate 的格式)
+                var scheduleDict = permissions
+                    .ToDictionary(
+                        sp => sp.Id,
+                        sp => new HashSet<string>(
+                            (sp.Schedules ?? new List<TblSchedule>())
+                                .Where(s => !s.IsDelete)
+                                .Select(s => s.ScheduleDate.Replace("/", "-"))  // 將 YYYY/MM/DD 轉換為 YYYY-MM-DD
+                        )
+                    );
+
                 // 2. 計算課程拆帳比和老師拆帳比
                 var courseFee = permission.Course?.CourseFee;
                 decimal? courseSplitRatio = permissionFee.CourseSplitRatio ?? courseFee?.SplitRatio ?? null;
@@ -417,9 +447,12 @@ namespace DoorWebApp.Controllers
 
                 // 5. 取得對應該序號的簽到記錄（根據每個 fee 的 Hours 動態計算）
                 // 合併「相同學生 + 相同課程」的簽到與費用，統一分組
+                // 只有當天有對應的schedule才撈取，且attendance schedule的tblstudentpermission要相同
                 var combinedAttendances = permissions
                     .SelectMany(sp => sp.Attendances ?? new List<TblAttendance>())
-                    .Where(a => !a.IsDelete)
+                    .Where(a => !a.IsDelete &&
+                               scheduleDict.TryGetValue(a.StudentPermissionId, out var dates) &&
+                               dates.Contains(a.AttendanceDate))
                     .OrderBy(a => a.AttendanceDate)
                     .ToList();
                 var allAttendances = combinedAttendances;
