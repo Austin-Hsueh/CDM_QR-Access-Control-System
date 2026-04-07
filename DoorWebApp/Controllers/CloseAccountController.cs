@@ -133,8 +133,8 @@ namespace DoorWebApp.Controllers
                 var checkedInSchedules = scheduleStatus.Where(s => s.Status == "已簽到").ToList();
                 var notCheckedInSchedules = scheduleStatus.Where(s => s.Status == "未簽到").ToList();
 
-                // 判斷是否可以關帳：總課程數 > 0 且所有課程都已簽到
-                var canCloseAccount = totalSchedules > 0 && notCheckedInCount == 0;
+                // 判斷是否可以關帳：無課或所有課程都已簽到
+                var canCloseAccount = (totalSchedules == 0) || (notCheckedInCount == 0);
 
                 res.result = APIResultCode.success;
                 res.msg = "success";
@@ -282,8 +282,10 @@ namespace DoorWebApp.Controllers
                         // 計算費用參數（參考 AttendController.AddAttend 邏輯）
                         var permission = schedule.StudentPermission;
                         var courseFee = permission?.Course?.CourseFee;
-                        decimal? courseSplitRatio = stf?.CourseSplitRatio ?? courseFee?.SplitRatio ?? null;
-                        decimal? teacherSplitRatio = stf?.TeacherSplitRatio ?? permission.Teacher?.TeacherSettlement?.SplitRatio ?? null;
+                        // TeacherSettlement.SplitRatio 是老師比例，需反轉為課程比例(0-1)
+                        var teacherSettlementRatio = permission.Teacher?.TeacherSettlement?.SplitRatio;
+                        decimal? courseSplitRatio = stf?.CourseSplitRatio ?? courseFee?.SplitRatio ?? (teacherSettlementRatio != null ? (1 - teacherSettlementRatio) : null);
+                        decimal? teacherSplitRatio = stf?.TeacherSplitRatio ?? teacherSettlementRatio ?? null;
 
                         // 正規化為 0~1
                         decimal? normalizedCourseRatio = courseSplitRatio.HasValue
