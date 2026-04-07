@@ -70,8 +70,10 @@ namespace DoorWebApp.Controllers
                 var correspondingFee = await attendance.GetCorrespondingStudentPermissionFeeAsync(ctx);
 
                 var courseFee = attendance.StudentPermission?.Course?.CourseFee;
-                decimal? courseSplitRatio = correspondingFee?.CourseSplitRatio ?? courseFee?.SplitRatio ?? null;
-                decimal? teacherSplitRatio = correspondingFee?.TeacherSplitRatio ?? attendance.StudentPermission?.Teacher?.TeacherSettlement?.SplitRatio ?? null;
+                // TeacherSettlement.SplitRatio 是老師比例，需反轉為課程比例(0-1)
+                var teacherSettlementRatio = attendance.StudentPermission?.Teacher?.TeacherSettlement?.SplitRatio;
+                decimal? courseSplitRatio = correspondingFee?.CourseSplitRatio ?? courseFee?.SplitRatio ?? (teacherSettlementRatio != null ? (1 - teacherSettlementRatio) : null);
+                decimal? teacherSplitRatio = correspondingFee?.TeacherSplitRatio ?? teacherSettlementRatio ?? null;
 
                 // 正規化為 0~1
                 decimal? normalizedCourseRatio = courseSplitRatio.HasValue 
@@ -393,8 +395,10 @@ namespace DoorWebApp.Controllers
 
                 // 2. 計算課程拆帳比和老師拆帳比
                 var courseFee = permission.Course?.CourseFee;
-                decimal? courseSplitRatio = permissionFee.CourseSplitRatio ?? courseFee?.SplitRatio ?? null;
-                decimal? teacherSplitRatio = permissionFee.TeacherSplitRatio ?? permission.Teacher?.TeacherSettlement?.SplitRatio ?? null;
+                // TeacherSettlement.SplitRatio 是老師比例，需反轉為課程比例(0-1)
+                var teacherSettlementRatio = permission.Teacher?.TeacherSettlement?.SplitRatio;
+                decimal? courseSplitRatio = permissionFee.CourseSplitRatio ?? courseFee?.SplitRatio ?? (teacherSettlementRatio != null ? (1 - teacherSettlementRatio) : null);
+                decimal? teacherSplitRatio = permissionFee.TeacherSplitRatio ?? teacherSettlementRatio ?? null;
 
                 if (permission.Teacher != null && permission.Teacher.TeacherSettlement == null)
                 {
@@ -629,14 +633,16 @@ namespace DoorWebApp.Controllers
                 // 取得當前 UTC+8 時間作為繳款日期
                 var nowUtc8 = DateTime.UtcNow.AddHours(8);
 
+                // 計算拆帳比：TeacherSettlement.SplitRatio 是老師比例，需反轉為課程比例(0-1)
+                var teacherSettlementRatio = permission.Teacher?.TeacherSettlement?.SplitRatio;
                 var fee = new TblStudentPermissionFee
                 {
                     StudentPermissionId = nowStudentPermission != null ? nowStudentPermission.Id : req.StudentPermissionId,
                     PaymentDate = nowUtc8, // 繳款日自動設為今天
                     TotalAmount = totalAmount,
                     Hours = courseFee?.Hours ?? 4,  // 設置課程時數，預設 4 小時
-                    CourseSplitRatio = courseFee?.SplitRatio ?? null,
-                    TeacherSplitRatio = permission.Teacher?.TeacherSettlement?.SplitRatio ?? null,
+                    CourseSplitRatio = courseFee?.SplitRatio ?? (teacherSettlementRatio != null ? (1 - teacherSettlementRatio) : null),
+                    TeacherSplitRatio = teacherSettlementRatio,
                     IsDelete = false,
                     CreatedTime = DateTime.Now,
                     ModifiedTime = DateTime.Now
