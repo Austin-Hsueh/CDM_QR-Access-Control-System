@@ -117,7 +117,60 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
-                // 3. 檢查使用者是否為老師(RoleId=2)，若是則不建立 AttendanceFee
+                // 1-2 檢查簽到日期是否有對應的 Schedule（同學生權限）
+                // 依「相同學生 + 相同課程」分組查詢所有學生權限
+                var sameGroupPermissions = ctx.TblStudentPermission
+                    .Where(sp => !sp.IsDelete
+                        && sp.UserId == permission.UserId
+                        && sp.CourseId == permission.CourseId)
+                    .Select(sp => sp.Id)
+                    .ToList();
+
+                if (sameGroupPermissions.Any())
+                {
+                    // 取得該組所有的 Schedule，轉換日期格式為 YYYY-MM-DD 統一比較
+                    var schedules = ctx.TblSchedule
+                        .Where(s => !s.IsDelete && sameGroupPermissions.Contains(s.StudentPermissionId))
+                        .Select(s => s.ScheduleDate)
+                        .ToList();
+
+                    var scheduleDates = new HashSet<string>(
+                        schedules.Select(s => s.Replace("/", "-"))
+                    );
+
+                    // 檢查簽到日期是否在 Schedule 日期中
+                    if (!scheduleDates.Contains(AttendDTO.attendanceDate))
+                    {
+                        log.LogWarning($"[{Request.Path}] No matching schedule for attendance date: {AttendDTO.attendanceDate}");
+                        res.result = APIResultCode.data_not_found;
+                        res.msg = "no_schedule_for_this_date";
+                        return Ok(res);
+                    }
+                }
+                else
+                {
+                    log.LogWarning($"[{Request.Path}] No same group permissions found for StudentPermissionId: {AttendDTO.studentPermissionId}");
+                    res.result = APIResultCode.data_not_found;
+                    res.msg = "no_same_group_permissions";
+                    return Ok(res);
+                }
+
+                // 1-3 檢查該日期是否已經有簽到記錄（同學生權限、同日期、未刪除）
+                var existingAttendance = ctx.TblAttendance
+                    .Where(a => !a.IsDelete 
+                        && a.StudentPermissionId == AttendDTO.studentPermissionId
+                        && a.AttendanceDate == AttendDTO.attendanceDate)
+                    .FirstOrDefault();
+
+                if (existingAttendance != null)
+                {
+                    log.LogWarning($"[{Request.Path}] Attendance already exists for StudentPermissionId: {AttendDTO.studentPermissionId}, Date: {AttendDTO.attendanceDate}");
+                    res.result = APIResultCode.duplicate_attendanceDate;
+                    res.msg = "attendance_already_exists";
+                    return Ok(res);
+                }
+
+                // 2. 檢查使用者是否為老師(RoleId=2)，若是則不建立 AttendanceFee
                 bool isTeacher = permission.User?.Roles?.Any(r => r.Id == 2 && !r.IsDelete && r.IsEnable) ?? false;
                 
                 if (!isTeacher)
@@ -166,7 +219,7 @@ namespace DoorWebApp.Controllers
                     int teacherShare = (int)Math.Round(totalAmount * (1 - minSplitRatio), MidpointRounding.AwayFromZero);
                     decimal SplitHourAmount = Math.Round((sourceHoursTotalAmount * (1 - minSplitRatio)), 2, MidpointRounding.AwayFromZero);
 
-                    // 2. 新增簽到
+                    // 3. 新增簽到
                     TblAttendance NewAttend = new TblAttendance();
                     NewAttend.StudentPermissionId = AttendDTO.studentPermissionId;
                     NewAttend.AttendanceDate = AttendDTO.attendanceDate;
@@ -199,7 +252,7 @@ namespace DoorWebApp.Controllers
                 }
                 else
                 {
-                    // 2. 新增簽到
+                    // 3. 新增簽到
                     TblAttendance NewAttend = new TblAttendance();
                     NewAttend.StudentPermissionId = AttendDTO.studentPermissionId;
                     NewAttend.AttendanceDate = AttendDTO.attendanceDate;
@@ -217,13 +270,13 @@ namespace DoorWebApp.Controllers
                     log.LogInformation($"[{Request.Path}] Skip AttendanceFee creation - User is a teacher (RoleId=2)");
                 }
 
-                // 4. 寫入資料庫
+                // 5. 寫入資料庫
                 log.LogInformation($"[{Request.Path}] Save changes (Attend + Fee)");
                 int EffectRow = await ctx.SaveChangesAsync();
                 log.LogInformation($"[{Request.Path}] Create Attend/Fee. (EffectRow:{EffectRow})");
 
 
-                // 5. 回傳結果
+                // 6. 回傳結果
                 res.result = APIResultCode.success;
                 res.msg = "success";
 
