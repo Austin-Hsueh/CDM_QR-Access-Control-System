@@ -91,8 +91,10 @@ public class ScheduledJobAttendanceFee : IJob
                     var stf = await permission.GetFirstAvailableStudentPermissionFeeAsync(ctx);
 
                     var courseFee = permission.Course?.CourseFee;
-                    decimal? courseSplitRatio = stf?.CourseSplitRatio ?? courseFee?.SplitRatio ?? null;
-                    decimal? teacherSplitRatio = stf?.TeacherSplitRatio ?? permission.Teacher?.TeacherSettlement?.SplitRatio ?? null;
+                    // TeacherSettlement.SplitRatio 是老師比例，需反轉為課程比例(0-1)
+                    var teacherSettlementRatio = permission.Teacher?.TeacherSettlement?.SplitRatio;
+                    decimal? courseSplitRatio = stf?.CourseSplitRatio ?? courseFee?.SplitRatio ?? (teacherSettlementRatio != null ? (1 - teacherSettlementRatio) : null);
+                    decimal? teacherSplitRatio = stf?.TeacherSplitRatio ?? teacherSettlementRatio ?? null;
 
                     // 正規化為 0~1
                     decimal? normalizedCourseRatio = courseSplitRatio.HasValue 
