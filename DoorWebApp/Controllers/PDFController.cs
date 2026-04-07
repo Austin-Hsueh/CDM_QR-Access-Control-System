@@ -264,6 +264,7 @@ namespace DoorWebApp.Controllers
                                dates.Contains(a.AttendanceDate))
                     .OrderBy(a => a.AttendanceDate)
                     .ToList();
+
                 var combinedFees = permissions
                     .SelectMany(sp => sp.StudentPermissionFees ?? new List<TblStudentPermissionFee>())
                     .Where(spf => !spf.IsDelete)
@@ -271,9 +272,14 @@ namespace DoorWebApp.Controllers
                     .ThenBy(spf => spf.Id)
                     .ToList();
 
-                // 檢查是否有未刪除的學生權限費用記錄
-                var hasStudentPermissionFee = sp.StudentPermissionFees?.Any(f => !f.IsDelete) ?? false;
-                if (!hasStudentPermissionFee)
+                // 檢查當前 att 是否有對應的 schedule（同學生權限同日期）
+                if (!scheduleDict.TryGetValue(att.StudentPermissionId, out var scheduleDates) || !scheduleDates.Contains(att.AttendanceDate))
+                {
+                    continue;  // 沒有對應的 schedule，跳過此 attendance
+                }
+
+                // 檢查是否有未刪除的費用記錄
+                if (!combinedFees.Any())
                 {
                     continue;
                 }
@@ -560,6 +566,7 @@ namespace DoorWebApp.Controllers
                                dates.Contains(a.AttendanceDate))
                     .OrderBy(a => a.AttendanceDate)
                     .ToList();
+
                 var combinedFees = permissions
                     .SelectMany(sp => sp.StudentPermissionFees ?? new List<TblStudentPermissionFee>())
                     .Where(spf => !spf.IsDelete)
@@ -567,9 +574,14 @@ namespace DoorWebApp.Controllers
                     .ThenBy(spf => spf.Id)
                     .ToList();
 
-                // 檢查是否有未刪除的學生權限費用記錄
-                var hasStudentPermissionFee = sp.StudentPermissionFees?.Any(f => !f.IsDelete) ?? false;
-                if (!hasStudentPermissionFee)
+                // 檢查當前 att 是否有對應的 schedule（同學生權限同日期）
+                if (!scheduleDict.TryGetValue(sp.Id, out var scheduleDates) || !scheduleDates.Contains(att.AttendanceDate))
+                {
+                    continue;  // 沒有對應的 schedule，跳過此 attendance
+                }
+
+                // 檢查是否有未刪除的費用記錄
+                if (!combinedFees.Any())
                 {
                     continue;
                 }
