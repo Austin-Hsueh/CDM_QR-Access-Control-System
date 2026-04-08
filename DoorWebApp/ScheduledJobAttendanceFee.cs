@@ -91,10 +91,8 @@ public class ScheduledJobAttendanceFee : IJob
                     var stf = await permission.GetFirstAvailableStudentPermissionFeeAsync(ctx);
 
                     var courseFee = permission.Course?.CourseFee;
-                    // TeacherSettlement.SplitRatio 是老師比例，需反轉為課程比例(0-1)
-                    var teacherSettlementRatio = permission.Teacher?.TeacherSettlement?.SplitRatio;
-                    decimal? courseSplitRatio = stf?.CourseSplitRatio ?? courseFee?.SplitRatio ?? (teacherSettlementRatio != null ? (1 - teacherSettlementRatio) : null);
-                    decimal? teacherSplitRatio = stf?.TeacherSplitRatio ?? teacherSettlementRatio ?? null;
+                    decimal? courseSplitRatio = stf?.CourseSplitRatio ?? courseFee?.SplitRatio ?? null;
+                    decimal? teacherSplitRatio = stf?.TeacherSplitRatio ?? permission.Teacher?.TeacherSettlement?.SplitRatio ?? null;
 
                     // 正規化為 0~1
                     decimal? normalizedCourseRatio = courseSplitRatio.HasValue 
@@ -104,23 +102,23 @@ public class ScheduledJobAttendanceFee : IJob
                         ? (teacherSplitRatio.Value > 1 ? teacherSplitRatio.Value / 100 : teacherSplitRatio.Value) 
                         : null;
 
-                    // 拆帳比處理邏輯：兩個都沒有=0.0，只有一個有=用該值，兩個都有=取小者
-                    decimal minSplitRatio;
+                    // 拆帳比處理邏輯：兩個都沒有=0.0，只有一個有=用該值，兩個都有=取大者
+                    decimal maxSplitRatio;
                     if (!normalizedCourseRatio.HasValue && !normalizedTeacherRatio.HasValue)
                     {
-                        minSplitRatio = 0m;
+                        maxSplitRatio = 0m;
                     }
                     else if (!normalizedCourseRatio.HasValue)
                     {
-                        minSplitRatio = Math.Clamp(normalizedTeacherRatio.Value, 0, 1);
+                        maxSplitRatio = Math.Clamp(normalizedTeacherRatio.Value, 0, 1);
                     }
                     else if (!normalizedTeacherRatio.HasValue)
                     {
-                        minSplitRatio = Math.Clamp(normalizedCourseRatio.Value, 0, 1);
+                        maxSplitRatio = Math.Clamp(normalizedCourseRatio.Value, 0, 1);
                     }
                     else
                     {
-                        minSplitRatio = Math.Clamp(Math.Min(normalizedCourseRatio.Value, normalizedTeacherRatio.Value), 0, 1);
+                        maxSplitRatio = Math.Clamp(Math.Max(normalizedCourseRatio.Value, normalizedTeacherRatio.Value), 0, 1);
                     }
 
                     int tuitionFee = courseFee?.Amount ?? 0;
@@ -129,7 +127,7 @@ public class ScheduledJobAttendanceFee : IJob
                     decimal totalHours = (stf?.Hours != 0 ? stf?.Hours ?? 4 : 4);
 
                     decimal sourceHoursTotalAmount = totalAmount / totalHours;
-                    decimal splitHourAmount = Math.Round((sourceHoursTotalAmount * (1 - minSplitRatio)), 2, MidpointRounding.AwayFromZero);
+                    decimal splitHourAmount = Math.Round((sourceHoursTotalAmount * maxSplitRatio), 2, MidpointRounding.AwayFromZero);
 
                     // 建立對應 AttendanceFee
                     var newFee = new TblAttendanceFee
@@ -139,7 +137,7 @@ public class ScheduledJobAttendanceFee : IJob
                         Amount = attendance.AttendanceType == 2 ? 0 : splitHourAmount,
                         AdjustmentAmount = 0M,
                         SourceHoursTotalAmount = attendance.AttendanceType == 2 ? 0 : sourceHoursTotalAmount,
-                        UseSplitRatio = minSplitRatio,
+                        UseSplitRatio = maxSplitRatio,
                         CreatedTime = now,
                         ModifiedTime = now
                     };
@@ -147,7 +145,7 @@ public class ScheduledJobAttendanceFee : IJob
                     ctx.TblAttendanceFee.Add(newFee);
                     processedCount++;
 
-                    log.LogInformation($"為出席記錄 AttendanceId={attendance.Id} 建立費用: Amount={splitHourAmount}, SourceHoursTotalAmount={sourceHoursTotalAmount}, UseSplitRatio={minSplitRatio}");
+                    log.LogInformation($"為出席記錄 AttendanceId={attendance.Id} 建立費用: Amount={splitHourAmount}, SourceHoursTotalAmount={sourceHoursTotalAmount}, UseSplitRatio={maxSplitRatio}");
                 }
                 catch (Exception ex)
                 {

@@ -79,8 +79,7 @@ namespace DoorWebApp.Extensions
                 .Include(x => x.Payment)
                 .Where(spf => !spf.IsDelete 
                     && sameGroupPermissions.Contains(spf.StudentPermissionId))
-                .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
-                .ThenBy(spf => spf.Id)
+                .OrderBy(spf => spf.Id)
                 .ToListAsync();
 
             if (!combinedFees.Any())
@@ -153,8 +152,7 @@ namespace DoorWebApp.Extensions
                 .Include(x=>x.Payment)
                 .Where(spf => !spf.IsDelete
                     && sameGroupPermissions.Contains(spf.StudentPermissionId))
-                .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
-                .ThenBy(spf => spf.Id)
+                .OrderBy(spf => spf.Id)
                 .ToListAsync();
 
             // 4. 取得所有該組的出席記錄（按日期排序）

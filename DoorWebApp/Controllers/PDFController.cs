@@ -268,8 +268,7 @@ namespace DoorWebApp.Controllers
                 var combinedFees = permissions
                     .SelectMany(sp => sp.StudentPermissionFees ?? new List<TblStudentPermissionFee>())
                     .Where(spf => !spf.IsDelete)
-                    .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
-                    .ThenBy(spf => spf.Id)
+                    .OrderBy(spf => spf.Id)
                     .ToList();
 
                 // 檢查當前 att 是否有對應的 schedule（同學生權限同日期）
@@ -570,8 +569,7 @@ namespace DoorWebApp.Controllers
                 var combinedFees = permissions
                     .SelectMany(sp => sp.StudentPermissionFees ?? new List<TblStudentPermissionFee>())
                     .Where(spf => !spf.IsDelete)
-                    .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
-                    .ThenBy(spf => spf.Id)
+                    .OrderBy(spf => spf.Id)
                     .ToList();
 
                 // 檢查當前 att 是否有對應的 schedule（同學生權限同日期）
