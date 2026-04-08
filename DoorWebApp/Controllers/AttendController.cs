@@ -155,21 +155,6 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
-                // 1-3 檢查該日期是否已經有簽到記錄（同學生權限、同日期、未刪除）
-                var existingAttendance = ctx.TblAttendance
-                    .Where(a => !a.IsDelete 
-                        && a.StudentPermissionId == AttendDTO.studentPermissionId
-                        && a.AttendanceDate == AttendDTO.attendanceDate)
-                    .FirstOrDefault();
-
-                if (existingAttendance != null)
-                {
-                    log.LogWarning($"[{Request.Path}] Attendance already exists for StudentPermissionId: {AttendDTO.studentPermissionId}, Date: {AttendDTO.attendanceDate}");
-                    res.result = APIResultCode.duplicate_attendanceDate;
-                    res.msg = "attendance_already_exists";
-                    return Ok(res);
-                }
-
                 // 2. 檢查使用者是否為老師(RoleId=2)，若是則不建立 AttendanceFee
                 bool isTeacher = permission.User?.Roles?.Any(r => r.Id == 2 && !r.IsDelete && r.IsEnable) ?? false;
                 
