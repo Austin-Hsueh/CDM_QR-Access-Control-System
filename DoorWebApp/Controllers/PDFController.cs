@@ -91,7 +91,7 @@ namespace DoorWebApp.Controllers
                 document.Page(page =>
                 {
                     page.Size(QuestPDF.Helpers.PageSizes.A4);
-                    page.Margin(20);
+                    page.Margin(10);
                     page.DefaultTextStyle(x => x.FontFamily("Microsoft JhengHei").FontSize(10));
 
                     page.Content().Column(col =>
@@ -113,17 +113,17 @@ namespace DoorWebApp.Controllers
                         {
                             table.ColumnsDefinition(columns =>
                             {
-                                columns.ConstantColumn(10);
-                                columns.RelativeColumn(1.5f);
-                                columns.RelativeColumn(1.8f);
+                                columns.ConstantColumn(20);
                                 columns.RelativeColumn(1.5f);
                                 columns.RelativeColumn(1.5f);
-                                columns.RelativeColumn(1.5f);
-                                columns.RelativeColumn(1.5f);
-                                columns.RelativeColumn(1.5f);
-                                columns.RelativeColumn(1.2f);
-                                columns.RelativeColumn(1.2f);
-                                columns.RelativeColumn(1.2f);
+                                columns.RelativeColumn(1.4f);
+                                columns.RelativeColumn(1.4f);
+                                columns.RelativeColumn(1.4f);
+                                columns.RelativeColumn(1.4f);
+                                columns.RelativeColumn(1.4f);
+                                columns.RelativeColumn(1.4f);
+                                columns.RelativeColumn(1.4f);
+                                columns.RelativeColumn(1.4f);
                                 columns.RelativeColumn(1.5f);
                                 columns.RelativeColumn(1.8f);
                             });
