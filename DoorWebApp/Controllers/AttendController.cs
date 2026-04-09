@@ -117,7 +117,46 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
-                // 3. 檢查使用者是否為老師(RoleId=2)，若是則不建立 AttendanceFee
+                // 1-2 檢查簽到日期是否有對應的 Schedule（同學生權限）
+                // 依「相同學生 + 相同課程 + 相同老師」分組查詢所有學生權限
+                var sameGroupPermissions = ctx.TblStudentPermission
+                    .Where(sp => !sp.IsDelete
+                        && sp.UserId == permission.UserId
+                        && sp.CourseId == permission.CourseId
+                        && sp.TeacherId == permission.TeacherId)
+                    .Select(sp => sp.Id)
+                    .ToList();
+
+                if (sameGroupPermissions.Any())
+                {
+                    // 取得該組所有的 Schedule，轉換日期格式為 YYYY-MM-DD 統一比較
+                    var schedules = ctx.TblSchedule
+                        .Where(s => !s.IsDelete && sameGroupPermissions.Contains(s.StudentPermissionId))
+                        .Select(s => s.ScheduleDate)
+                        .ToList();
+
+                    var scheduleDates = new HashSet<string>(
+                        schedules.Select(s => s.Replace("/", "-"))
+                    );
+
+                    // 檢查簽到日期是否在 Schedule 日期中
+                    if (!scheduleDates.Contains(AttendDTO.attendanceDate))
+                    {
+                        log.LogWarning($"[{Request.Path}] No matching schedule for attendance date: {AttendDTO.attendanceDate}");
+                        res.result = APIResultCode.data_not_found;
+                        res.msg = "no_schedule_for_this_date";
+                        return Ok(res);
+                    }
+                }
+                else
+                {
+                    log.LogWarning($"[{Request.Path}] No same group permissions found for StudentPermissionId: {AttendDTO.studentPermissionId}");
+                    res.result = APIResultCode.data_not_found;
+                    res.msg = "no_same_group_permissions";
+                    return Ok(res);
+                }
+
+                // 2. 檢查使用者是否為老師(RoleId=2)，若是則不建立 AttendanceFee
                 bool isTeacher = permission.User?.Roles?.Any(r => r.Id == 2 && !r.IsDelete && r.IsEnable) ?? false;
                 
                 if (!isTeacher)
@@ -136,23 +175,23 @@ namespace DoorWebApp.Controllers
                         ? (teacherSplitRatio.Value > 1 ? teacherSplitRatio.Value / 100 : teacherSplitRatio.Value)
                         : null;
 
-                    // 拆帳比處理邏輯：兩個都沒有=0.0，只有一個有=用該值，兩個都有=取小者
-                    decimal minSplitRatio;
+                    // 拆帳比處理邏輯：兩個都沒有=0.0，只有一個有=用該值，兩個都有=取大者
+                    decimal maxSplitRatio;
                     if (!normalizedCourseRatio.HasValue && !normalizedTeacherRatio.HasValue)
                     {
-                        minSplitRatio = 0m;
+                        maxSplitRatio = 0m;
                     }
                     else if (!normalizedCourseRatio.HasValue)
                     {
-                        minSplitRatio = Math.Clamp(normalizedTeacherRatio.Value, 0, 1);
+                        maxSplitRatio = Math.Clamp(normalizedTeacherRatio.Value, 0, 1);
                     }
                     else if (!normalizedTeacherRatio.HasValue)
                     {
-                        minSplitRatio = Math.Clamp(normalizedCourseRatio.Value, 0, 1);
+                        maxSplitRatio = Math.Clamp(normalizedCourseRatio.Value, 0, 1);
                     }
                     else
                     {
-                        minSplitRatio = Math.Clamp(Math.Min(normalizedCourseRatio.Value, normalizedTeacherRatio.Value), 0, 1);
+                        maxSplitRatio = Math.Clamp(Math.Max(normalizedCourseRatio.Value, normalizedTeacherRatio.Value), 0, 1);
                     }
 
                     int tuitionFee = courseFee?.Amount ?? 0;
@@ -161,10 +200,10 @@ namespace DoorWebApp.Controllers
                     decimal totalHours = (stf?.Hours != 0 ? stf?.Hours ?? 4 : 4);
 
                     decimal sourceHoursTotalAmount = totalAmount / totalHours;
-                    int teacherShare = (int)Math.Round(totalAmount * (1 - minSplitRatio), MidpointRounding.AwayFromZero);
-                    decimal SplitHourAmount = Math.Round((sourceHoursTotalAmount * (1 - minSplitRatio)), 2, MidpointRounding.AwayFromZero);
+                    int teacherShare = (int)Math.Round(totalAmount * maxSplitRatio, MidpointRounding.AwayFromZero);
+                    decimal SplitHourAmount = Math.Round((sourceHoursTotalAmount * maxSplitRatio), 2, MidpointRounding.AwayFromZero);
 
-                    // 2. 新增簽到
+                    // 3. 新增簽到
                     TblAttendance NewAttend = new TblAttendance();
                     NewAttend.StudentPermissionId = AttendDTO.studentPermissionId;
                     NewAttend.AttendanceDate = AttendDTO.attendanceDate;
@@ -187,7 +226,7 @@ namespace DoorWebApp.Controllers
                         Amount = AttendDTO.attendanceType == 2 ? 0 : SplitHourAmount,
                         AdjustmentAmount = 0M,
                         SourceHoursTotalAmount = AttendDTO.attendanceType == 2 ? 0 : sourceHoursTotalAmount,
-                        UseSplitRatio = minSplitRatio,
+                        UseSplitRatio = maxSplitRatio,
                         CreatedTime = DateTime.Now,
                         ModifiedTime = DateTime.Now
                     };
@@ -197,7 +236,7 @@ namespace DoorWebApp.Controllers
                 }
                 else
                 {
-                    // 2. 新增簽到
+                    // 3. 新增簽到
                     TblAttendance NewAttend = new TblAttendance();
                     NewAttend.StudentPermissionId = AttendDTO.studentPermissionId;
                     NewAttend.AttendanceDate = AttendDTO.attendanceDate;
@@ -215,13 +254,13 @@ namespace DoorWebApp.Controllers
                     log.LogInformation($"[{Request.Path}] Skip AttendanceFee creation - User is a teacher (RoleId=2)");
                 }
 
-                // 4. 寫入資料庫
+                // 5. 寫入資料庫
                 log.LogInformation($"[{Request.Path}] Save changes (Attend + Fee)");
                 int EffectRow = await ctx.SaveChangesAsync();
                 log.LogInformation($"[{Request.Path}] Create Attend/Fee. (EffectRow:{EffectRow})");
 
 
-                // 5. 回傳結果
+                // 6. 回傳結果
                 res.result = APIResultCode.success;
                 res.msg = "success";
 

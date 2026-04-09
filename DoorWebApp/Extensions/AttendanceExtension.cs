@@ -36,38 +36,57 @@ namespace DoorWebApp.Extensions
             if (studentPermission == null)
                 return null;
 
-            // 1. 依「相同學生 + 相同課程」分組查詢所有學生權限
+            // 1. 依「相同學生 + 相同課程 + 相同老師」分組查詢所有學生權限
             var sameGroupPermissions = await ctx.TblStudentPermission
                 .Where(sp => !sp.IsDelete
                     && sp.UserId == studentPermission.UserId
-                    && sp.CourseId == studentPermission.CourseId)
+                    && sp.CourseId == studentPermission.CourseId
+                    && sp.TeacherId == studentPermission.TeacherId)
                 .Select(sp => sp.Id)
                 .ToListAsync();
 
             if (!sameGroupPermissions.Any())
                 return null;
 
-            // 2. 合併「相同學生 + 相同課程」的簽到與費用，統一分組
+            // 2. 取得該組所有學生權限的 Schedule（按日期排序），建立快速查詢字典
+            var schedules = await ctx.TblSchedule
+                .Where(s => !s.IsDelete && sameGroupPermissions.Contains(s.StudentPermissionId))
+                .ToListAsync();
+
+            // 建立 StudentPermissionId -> ScheduleDate 集合的字典（日期格式統一為 YYYY-MM-DD）
+            var scheduleDict = schedules
+                .GroupBy(s => s.StudentPermissionId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => new HashSet<string>(g.Select(s => s.ScheduleDate.Replace("/", "-")))
+                );
+
+            // 3. 合併「相同學生 + 相同課程」的簽到與費用，統一分組
             // 取得所有該組的出席記錄（按日期排序）
-            var combinedAttendances = await ctx.TblAttendance
+            // 只有當天有對應的schedule才撈取，且attendance schedule的tblstudentpermission要相同
+            var allAttendances = await ctx.TblAttendance
                 .Where(a => !a.IsDelete 
                     && sameGroupPermissions.Contains(a.StudentPermissionId))
                 .OrderBy(a => a.AttendanceDate)
                 .ToListAsync();
 
-            // 3. 取得該組對應的 StudentPermissionFee（排除已刪除的記錄，按繳款日期排序）
+            var combinedAttendances = allAttendances
+                .Where(a => scheduleDict.TryGetValue(a.StudentPermissionId, out var dates)
+                    && dates.Contains(a.AttendanceDate))
+                .ToList();
+
+            // 4. 取得該組對應的 StudentPermissionFee（排除已刪除的記錄，按繳款日期排序）
             var combinedFees = await ctx.TblStudentPermissionFee
                 .Include(x => x.Payment)
                 .Where(spf => !spf.IsDelete 
                     && sameGroupPermissions.Contains(spf.StudentPermissionId))
-                .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
-                .ThenBy(spf => spf.Id)
+                .OrderBy(spf => spf.Id)
                 .ToListAsync();
 
             if (!combinedFees.Any())
                 return null;
 
-            // 4. 找出當前 attendance 在 combinedAttendances 中的索引位置
+            // 5. 找出當前 attendance 在 combinedAttendances 中的索引位置
             int attendanceIndex = combinedAttendances.FindIndex(a => a.Id == attendance.Id);
             if (attendanceIndex == -1)
                 return null;
@@ -105,34 +124,53 @@ namespace DoorWebApp.Extensions
             if (studentPermission == null)
                 return null;
 
-            // 1. 依「相同學生 + 相同課程」分組查詢所有學生權限
+            // 1. 依「相同學生 + 相同課程 + 相同老師」分組查詢所有學生權限
             var sameGroupPermissions = await ctx.TblStudentPermission
                 .Where(sp => !sp.IsDelete
                     && sp.UserId == studentPermission.UserId
-                    && sp.CourseId == studentPermission.CourseId)
+                    && sp.CourseId == studentPermission.CourseId
+                    && sp.TeacherId == studentPermission.TeacherId)
                 .Select(sp => sp.Id)
                 .ToListAsync();
 
             if (!sameGroupPermissions.Any())
                 return null;
 
-            // 2. 取得該組對應的 StudentPermissionFee（按繳款日期排序，從最早的開始）
+            // 2. 取得該組所有學生權限的 Schedule（按日期排序），建立快速查詢字典
+            var schedules = await ctx.TblSchedule
+                .Where(s => !s.IsDelete && sameGroupPermissions.Contains(s.StudentPermissionId))
+                .ToListAsync();
+
+            // 建立 StudentPermissionId -> ScheduleDate 集合的字典（日期格式統一為 YYYY-MM-DD）
+            var scheduleDict = schedules
+                .GroupBy(s => s.StudentPermissionId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => new HashSet<string>(g.Select(s => s.ScheduleDate.Replace("/", "-")))
+                );
+
+            // 3. 取得該組對應的 StudentPermissionFee（按繳款日期排序，從最早的開始）
             var combinedFees = await ctx.TblStudentPermissionFee
                 .Include(x=>x.Payment)
                 .Where(spf => !spf.IsDelete
                     && sameGroupPermissions.Contains(spf.StudentPermissionId))
-                .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
-                .ThenBy(spf => spf.Id)
+                .OrderBy(spf => spf.Id)
                 .ToListAsync();
 
-            // 3. 取得所有該組的出席記錄（按日期排序）
-            var combinedAttendances = await ctx.TblAttendance
+            // 4. 取得所有該組的出席記錄（按日期排序）
+            // 只有當天有對應的schedule才撈取，且attendance schedule的tblstudentpermission要相同
+            var allAttendances = await ctx.TblAttendance
                 .Where(a => !a.IsDelete
                     && sameGroupPermissions.Contains(a.StudentPermissionId))
                 .OrderBy(a => a.AttendanceDate)
                 .ToListAsync();
 
-            // 4. 檢查每個費用，找出第一個還沒塞滿 Hours 的出席記錄的
+            var combinedAttendances = allAttendances
+                .Where(a => scheduleDict.TryGetValue(a.StudentPermissionId, out var dates)
+                    && dates.Contains(a.AttendanceDate))
+                .ToList();
+
+            // 5. 檢查每個費用，找出第一個還沒塞滿 Hours 的出席記錄的
             if (combinedFees.Any())
             {
                 int currentStart = 0;
@@ -158,7 +196,7 @@ namespace DoorWebApp.Extensions
                 }
             }
 
-            // 5. 所有費用都已滿，建立新的 StudentPermissionFee
+            // 6. 所有費用都已滿，建立新的 StudentPermissionFee
             // 讀取課程費用資訊
             var courseFee = await ctx.TblCourseFee
                 .Where(cf => cf.CourseId == studentPermission.CourseId)

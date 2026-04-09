@@ -133,8 +133,8 @@ namespace DoorWebApp.Controllers
                 var checkedInSchedules = scheduleStatus.Where(s => s.Status == "已簽到").ToList();
                 var notCheckedInSchedules = scheduleStatus.Where(s => s.Status == "未簽到").ToList();
 
-                // 判斷是否可以關帳：總課程數 > 0 且所有課程都已簽到
-                var canCloseAccount = totalSchedules > 0 && notCheckedInCount == 0;
+                // 判斷是否可以關帳：無課或所有課程都已簽到
+                var canCloseAccount = (totalSchedules == 0) || (notCheckedInCount == 0);
 
                 res.result = APIResultCode.success;
                 res.msg = "success";
@@ -293,23 +293,23 @@ namespace DoorWebApp.Controllers
                             ? (teacherSplitRatio.Value > 1 ? teacherSplitRatio.Value / 100 : teacherSplitRatio.Value)
                             : null;
 
-                        // 拆帳比處理邏輯
-                        decimal minSplitRatio;
+                        // 拆帳比處理邏輯：兩個都沒有=0.0，只有一個有=用該值，兩個都有=取大者
+                        decimal maxSplitRatio;
                         if (!normalizedCourseRatio.HasValue && !normalizedTeacherRatio.HasValue)
                         {
-                            minSplitRatio = 0m;
+                            maxSplitRatio = 0m;
                         }
                         else if (!normalizedCourseRatio.HasValue)
                         {
-                            minSplitRatio = Math.Clamp(normalizedTeacherRatio.Value, 0, 1);
+                            maxSplitRatio = Math.Clamp(normalizedTeacherRatio.Value, 0, 1);
                         }
                         else if (!normalizedTeacherRatio.HasValue)
                         {
-                            minSplitRatio = Math.Clamp(normalizedCourseRatio.Value, 0, 1);
+                            maxSplitRatio = Math.Clamp(normalizedCourseRatio.Value, 0, 1);
                         }
                         else
                         {
-                            minSplitRatio = Math.Clamp(Math.Min(normalizedCourseRatio.Value, normalizedTeacherRatio.Value), 0, 1);
+                            maxSplitRatio = Math.Clamp(Math.Max(normalizedCourseRatio.Value, normalizedTeacherRatio.Value), 0, 1);
                         }
 
                         int tuitionFee = courseFee?.Amount ?? 0;
@@ -319,7 +319,7 @@ namespace DoorWebApp.Controllers
 
                         decimal sourceHoursTotalAmount  = totalAmount / totalHours;
 
-                        decimal SplitHourAmount = Math.Round((sourceHoursTotalAmount * (1 - minSplitRatio)), 2, MidpointRounding.AwayFromZero);
+                        decimal SplitHourAmount = Math.Round((sourceHoursTotalAmount * maxSplitRatio), 2, MidpointRounding.AwayFromZero);
 
                         // 建立對應 AttendanceFee
                         var newFee = new TblAttendanceFee
@@ -329,7 +329,7 @@ namespace DoorWebApp.Controllers
                             Amount = SplitHourAmount,
                             AdjustmentAmount = 0M,
                             SourceHoursTotalAmount = sourceHoursTotalAmount,
-                            UseSplitRatio = minSplitRatio,
+                            UseSplitRatio = maxSplitRatio,
                             CreatedTime = now,
                             ModifiedTime = now
                         };

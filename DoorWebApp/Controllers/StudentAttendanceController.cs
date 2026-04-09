@@ -81,23 +81,23 @@ namespace DoorWebApp.Controllers
                     ? (teacherSplitRatio.Value > 1 ? teacherSplitRatio.Value / 100 : teacherSplitRatio.Value) 
                     : null;
 
-                // 拆帳比處理邏輯：兩個都沒有=0.0，只有一個有=用該值，兩個都有=取小者
-                decimal minSplitRatio;
+                // 拆帳比處理邏輯：兩個都沒有=0.0，只有一個有=用該值，兩個都有=取大者
+                decimal maxSplitRatio;
                 if (!normalizedCourseRatio.HasValue && !normalizedTeacherRatio.HasValue)
                 {
-                    minSplitRatio = 0m;
+                    maxSplitRatio = 0m;
                 }
                 else if (!normalizedCourseRatio.HasValue)
                 {
-                    minSplitRatio = Math.Clamp(normalizedTeacherRatio.Value, 0, 1);
+                    maxSplitRatio = Math.Clamp(normalizedTeacherRatio.Value, 0, 1);
                 }
                 else if (!normalizedTeacherRatio.HasValue)
                 {
-                    minSplitRatio = Math.Clamp(normalizedCourseRatio.Value, 0, 1);
+                    maxSplitRatio = Math.Clamp(normalizedCourseRatio.Value, 0, 1);
                 }
                 else
                 {
-                    minSplitRatio = Math.Clamp(Math.Min(normalizedCourseRatio.Value, normalizedTeacherRatio.Value), 0, 1);
+                    maxSplitRatio = Math.Clamp(Math.Max(normalizedCourseRatio.Value, normalizedTeacherRatio.Value), 0, 1);
                 }
 
                 int tuitionFee = courseFee?.Amount ?? 0;
@@ -107,7 +107,7 @@ namespace DoorWebApp.Controllers
 
                 // 查找同一學生權限的最近一筆 AttendanceFee（按建立時間排序）
                 decimal sourceHoursTotalAmount = totalAmount / totalHours;
-                decimal SplitHourAmount = Math.Round((sourceHoursTotalAmount * (1 - minSplitRatio)), 2, MidpointRounding.AwayFromZero);
+                decimal SplitHourAmount = Math.Round((sourceHoursTotalAmount * maxSplitRatio), 2, MidpointRounding.AwayFromZero);
 
                 // 記錄修改前的值用於審計
                 var originalHours = attendance.AttendanceFee?.Hours;
@@ -124,7 +124,7 @@ namespace DoorWebApp.Controllers
                 fee.Amount = dto.Amount ?? SplitHourAmount;
                 fee.AdjustmentAmount = dto.AdjustmentAmount ?? fee.AdjustmentAmount;
                 fee.SourceHoursTotalAmount = sourceHoursTotalAmount;  // 原始時數總金額（優先使用最近一筆）
-                fee.UseSplitRatio = minSplitRatio;  // 使用的拆帳比
+                fee.UseSplitRatio = maxSplitRatio;  // 使用的拆帳比
                 fee.ModifiedTime = DateTime.Now;
 
                 if (attendance.AttendanceFee == null)
@@ -188,11 +188,12 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
-                // 依「相同學生 + 相同課程」分組查詢所有學生權限
+                // 依「相同學生 + 相同課程 + 相同老師」分組查詢所有學生權限
                 var permissions = ctx.TblStudentPermission
                     .Where(sp => !sp.IsDelete
                                  && sp.UserId == spTarget.UserId
-                                 && sp.CourseId == spTarget.CourseId)
+                                 && sp.CourseId == spTarget.CourseId
+                                 && sp.TeacherId == spTarget.TeacherId)
                     .Include(sp => sp.Course)                 // 課程名稱
                         .ThenInclude(c => c.CourseFee)        // 課程費用 + 教材費
                     .Include(sp => sp.StudentPermissionFees)  // 學生權限費用列表
@@ -203,18 +204,35 @@ namespace DoorWebApp.Controllers
 
                 var list = new List<ResStudentAttendanceDTO>();
 
+                // 建立 Schedule 快速查詢字典：StudentPermissionId -> ScheduleDate 集合
+                // 將 ScheduleDate 格式統一為 YYYY-MM-DD (AttendanceDate 的格式)
+                var scheduleDict = permissions
+                    .ToDictionary(
+                        sp => sp.Id,
+                        sp => new HashSet<string>(
+                            (sp.Schedules ?? new List<TblSchedule>())
+                                .Where(s => !s.IsDelete)
+                                .Select(s => s.ScheduleDate.Replace("/", "-"))  // 將 YYYY/MM/DD 轉換為 YYYY-MM-DD
+                        )
+                    );
+
+                // 建立 StudentPermissionId -> StudentPermission 的映射（用於快速查詢）
+                var spDict = permissions.ToDictionary(sp => sp.Id, sp => sp);
+
                 // 合併「相同學生 + 相同課程」的簽到與費用，統一分組
+                // 只有當天有對應的schedule才撈取，且attendance schedule的tblstudentpermission要相同
                 var combinedAttendances = permissions
                     .SelectMany(sp => sp.Attendances ?? new List<TblAttendance>())
-                    .Where(a => !a.IsDelete)
+                    .Where(a => !a.IsDelete &&
+                               scheduleDict.TryGetValue(a.StudentPermissionId, out var dates) &&
+                               dates.Contains(a.AttendanceDate))
                     .OrderBy(a => a.AttendanceDate)
                     .ToList();
 
                 var combinedFees = permissions
                     .SelectMany(sp => sp.StudentPermissionFees ?? new List<TblStudentPermissionFee>())
                     .Where(spf => !spf.IsDelete)
-                    .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
-                    .ThenBy(spf => spf.Id)
+                    .OrderBy(spf => spf.Id)
                     .ToList();
 
                 // 取最大 Hours (費用 > 課程設定 > 預設 4)
@@ -252,8 +270,8 @@ namespace DoorWebApp.Controllers
                     string? receiptNumber = hasPayment ? payment?.ReceiptNumber : null;
                     string? payDate = hasPayment ? payment?.PayDate : null;
 
-                    // 取得該費用所屬的學生權限與課程名稱
-                    var spOfFee = permissions.FirstOrDefault(sp => sp.StudentPermissionFees != null && sp.StudentPermissionFees.Any(f => f.Id == fee.Id));
+                    // 取得該費用所屬的學生權限與課程名稱（使用字典快速查詢）
+                    var spOfFee = spDict.TryGetValue(fee.StudentPermissionId, out var sp) ? sp : null;
                     string courseName = spOfFee?.Course?.Name ?? spTarget.Course?.Name ?? string.Empty;
 
                     list.Add(new ResStudentAttendanceDTO
@@ -349,7 +367,8 @@ namespace DoorWebApp.Controllers
                 var permissions = ctx.TblStudentPermission
                     .Where(sp => !sp.IsDelete
                                  && sp.UserId == permission.UserId
-                                 && sp.CourseId == permission.CourseId)
+                                 && sp.CourseId == permission.CourseId
+                                 && sp.TeacherId == permission.TeacherId)
                     .Include(sp => sp.User)
                     .Include(sp => sp.Course)
                         .ThenInclude(c => c.CourseFee)
@@ -360,6 +379,18 @@ namespace DoorWebApp.Controllers
                         .ThenInclude(a => a.AttendanceFee)
                     .Include(sp => sp.Schedules)
                     .ToList();
+
+                // 建立 Schedule 快速查詢字典：StudentPermissionId -> ScheduleDate 集合
+                // 將 ScheduleDate 格式統一為 YYYY-MM-DD (AttendanceDate 的格式)
+                var scheduleDict = permissions
+                    .ToDictionary(
+                        sp => sp.Id,
+                        sp => new HashSet<string>(
+                            (sp.Schedules ?? new List<TblSchedule>())
+                                .Where(s => !s.IsDelete)
+                                .Select(s => s.ScheduleDate.Replace("/", "-"))  // 將 YYYY/MM/DD 轉換為 YYYY-MM-DD
+                        )
+                    );
 
                 // 2. 計算課程拆帳比和老師拆帳比
                 var courseFee = permission.Course?.CourseFee;
@@ -379,23 +410,23 @@ namespace DoorWebApp.Controllers
                     ? (teacherSplitRatio.Value > 1 ? teacherSplitRatio.Value / 100 : teacherSplitRatio.Value) 
                     : null;
 
-                // 拆帳比處理邏輯：兩個都沒有=0.0，只有一個有=用該值，兩個都有=取小者
-                decimal minSplitRatio;
+                // 拆帳比處理邏輯：兩個都沒有=0.0，只有一個有=用該值，兩個都有=取大者
+                decimal maxSplitRatio;
                 if (!normalizedCourseRatio.HasValue && !normalizedTeacherRatio.HasValue)
                 {
-                    minSplitRatio = 0m;
+                    maxSplitRatio = 0m;
                 }
                 else if (!normalizedCourseRatio.HasValue)
                 {
-                    minSplitRatio = Math.Clamp(normalizedTeacherRatio.Value, 0, 1);
+                    maxSplitRatio = Math.Clamp(normalizedTeacherRatio.Value, 0, 1);
                 }
                 else if (!normalizedTeacherRatio.HasValue)
                 {
-                    minSplitRatio = Math.Clamp(normalizedCourseRatio.Value, 0, 1);
+                    maxSplitRatio = Math.Clamp(normalizedCourseRatio.Value, 0, 1);
                 }
                 else
                 {
-                    minSplitRatio = Math.Clamp(Math.Min(normalizedCourseRatio.Value, normalizedTeacherRatio.Value), 0, 1);
+                    maxSplitRatio = Math.Clamp(Math.Max(normalizedCourseRatio.Value, normalizedTeacherRatio.Value), 0, 1);
                 }
 
                 // 3. 計算課程教材總應收金額
@@ -407,8 +438,7 @@ namespace DoorWebApp.Controllers
                 var combinedFees = permissions
                     .SelectMany(sp => sp.StudentPermissionFees ?? new List<TblStudentPermissionFee>())
                     .Where(spf => !spf.IsDelete)
-                    .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
-                    .ThenBy(spf => spf.Id)
+                    .OrderBy(spf => spf.Id)
                     .ToList();
                 var allFees = combinedFees;
                 
@@ -417,9 +447,12 @@ namespace DoorWebApp.Controllers
 
                 // 5. 取得對應該序號的簽到記錄（根據每個 fee 的 Hours 動態計算）
                 // 合併「相同學生 + 相同課程」的簽到與費用，統一分組
+                // 只有當天有對應的schedule才撈取，且attendance schedule的tblstudentpermission要相同
                 var combinedAttendances = permissions
                     .SelectMany(sp => sp.Attendances ?? new List<TblAttendance>())
-                    .Where(a => !a.IsDelete)
+                    .Where(a => !a.IsDelete &&
+                               scheduleDict.TryGetValue(a.StudentPermissionId, out var dates) &&
+                               dates.Contains(a.AttendanceDate))
                     .OrderBy(a => a.AttendanceDate)
                     .ToList();
                 var allAttendances = combinedAttendances;
@@ -444,8 +477,8 @@ namespace DoorWebApp.Controllers
                 var attendances = groupAttendances
                     .ToList();
 
-                // 老師可分得金額 B = T * (1 - r)（保留兩位小數）
-                decimal totalTeacherAmount = Math.Round(totalAmount * (1 - minSplitRatio), 2, MidpointRounding.AwayFromZero);
+                // 老師可分得金額 B = T * r（保留兩位小數）
+                decimal totalTeacherAmount = Math.Round(totalAmount * maxSplitRatio, 2, MidpointRounding.AwayFromZero);
 
                 // 6. 組裝收款記錄（使用當前 StudentPermissionFee 對應的 Payment）
                 PaymentRecordDTO? Payment = null;
@@ -515,7 +548,7 @@ namespace DoorWebApp.Controllers
                     Hours = permission.Course?.CourseFee?.Hours ?? 0,
                     CourseSplitRatio = courseSplitRatio ?? null,
                     TeacherSplitRatio = teacherSplitRatio ?? null,
-                    UseSplitRatio = minSplitRatio,
+                    UseSplitRatio = maxSplitRatio,
                     TotalAmount = totalAmount,
                     TotalTeacherAmount = totalTeacherAmount,
                     Payment = Payment,
@@ -596,6 +629,8 @@ namespace DoorWebApp.Controllers
                 // 取得當前 UTC+8 時間作為繳款日期
                 var nowUtc8 = DateTime.UtcNow.AddHours(8);
 
+                // 計算拆帳比：直接使用各自的值
+                var teacherSettlementRatio = permission.Teacher?.TeacherSettlement?.SplitRatio;
                 var fee = new TblStudentPermissionFee
                 {
                     StudentPermissionId = nowStudentPermission != null ? nowStudentPermission.Id : req.StudentPermissionId,
@@ -603,7 +638,7 @@ namespace DoorWebApp.Controllers
                     TotalAmount = totalAmount,
                     Hours = courseFee?.Hours ?? 4,  // 設置課程時數，預設 4 小時
                     CourseSplitRatio = courseFee?.SplitRatio ?? null,
-                    TeacherSplitRatio = permission.Teacher?.TeacherSettlement?.SplitRatio ?? null,
+                    TeacherSplitRatio = teacherSettlementRatio,
                     IsDelete = false,
                     CreatedTime = DateTime.Now,
                     ModifiedTime = DateTime.Now

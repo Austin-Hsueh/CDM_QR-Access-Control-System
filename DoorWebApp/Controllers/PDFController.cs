@@ -91,7 +91,7 @@ namespace DoorWebApp.Controllers
                 document.Page(page =>
                 {
                     page.Size(QuestPDF.Helpers.PageSizes.A4);
-                    page.Margin(20);
+                    page.Margin(10);
                     page.DefaultTextStyle(x => x.FontFamily("Microsoft JhengHei").FontSize(10));
 
                     page.Content().Column(col =>
@@ -113,19 +113,19 @@ namespace DoorWebApp.Controllers
                         {
                             table.ColumnsDefinition(columns =>
                             {
-                                columns.ConstantColumn(28);
+                                columns.ConstantColumn(20);
+                                columns.RelativeColumn(1.5f);
+                                columns.RelativeColumn(1.5f);
+                                columns.RelativeColumn(1.4f);
+                                columns.RelativeColumn(1.4f);
+                                columns.RelativeColumn(1.4f);
+                                columns.RelativeColumn(1.4f);
+                                columns.RelativeColumn(1.4f);
+                                columns.RelativeColumn(1.4f);
+                                columns.RelativeColumn(1.4f);
+                                columns.RelativeColumn(1.4f);
+                                columns.RelativeColumn(1.5f);
                                 columns.RelativeColumn(1.8f);
-                                columns.RelativeColumn(0.8f);
-                                columns.RelativeColumn(1f);
-                                columns.RelativeColumn(1f);
-                                columns.RelativeColumn(1f);
-                                columns.RelativeColumn(1f);
-                                columns.RelativeColumn(1f);
-                                columns.RelativeColumn(1f);
-                                columns.RelativeColumn(1f);
-                                columns.RelativeColumn(1f);
-                                columns.RelativeColumn(1f);
-                                columns.RelativeColumn(1.2f);
                             });
 
                             table.Header(header =>
@@ -215,7 +215,7 @@ namespace DoorWebApp.Controllers
                 .AsNoTracking()
                 .ToList();
 
-            var rowsByStudent = new Dictionary<int, SalaryRowBuilder>();
+            var rowsByStudentCourse = new Dictionary<(int userId, int courseId), SalaryRowBuilder>();
 
             // 對每個 StudentPermission 的 Attendance 進行分組處理
             var attendancesByPermission = attendances
@@ -234,28 +234,52 @@ namespace DoorWebApp.Controllers
                 var permissions = _ctx.TblStudentPermission
                     .Where(sp1 => !sp1.IsDelete
                                  && sp1.UserId == sp.UserId
-                                 && sp1.CourseId == sp.CourseId)
+                                 && sp1.CourseId == sp.CourseId
+                                 && sp1.TeacherId == sp.TeacherId)
                     .Include(sp => sp.Course)                 // 課程名稱
                         .ThenInclude(c => c.CourseFee)        // 課程費用 + 教材費
                     .Include(sp => sp.StudentPermissionFees)  // 學生權限費用列表
                         .ThenInclude(spf => spf.Payment)       // 已收金額 & 結帳單號 (一對一)
                     .Include(sp => sp.Attendances)            // 課程一~四
+                    .Include(sp => sp.Schedules)              // 用於判定當前權限
                     .ToList();
+
+                // 建立 Schedule 快速查詢字典：StudentPermissionId -> ScheduleDate 集合
+                // 將 ScheduleDate 格式統一為 YYYY-MM-DD (AttendanceDate 的格式)
+                var scheduleDict = permissions
+                    .ToDictionary(
+                        p => p.Id,
+                        p => new HashSet<string>(
+                            (p.Schedules ?? new List<TblSchedule>())
+                                .Where(s => !s.IsDelete)
+                                .Select(s => s.ScheduleDate.Replace("/", "-"))  // 將 YYYY/MM/DD 轉換為 YYYY-MM-DD
+                        )
+                    );
+
+                // 合併「相同學生 + 相同課程」的簽到與費用，統一分組
+                // 只有當天有對應的schedule才撈取，且attendance schedule的tblstudentpermission要相同
                 var combinedAttendances = permissions
                     .SelectMany(sp => sp.Attendances ?? new List<TblAttendance>())
-                    .Where(a => !a.IsDelete)
+                    .Where(a => !a.IsDelete &&
+                               scheduleDict.TryGetValue(a.StudentPermissionId, out var dates) &&
+                               dates.Contains(a.AttendanceDate))
                     .OrderBy(a => a.AttendanceDate)
                     .ToList();
+
                 var combinedFees = permissions
                     .SelectMany(sp => sp.StudentPermissionFees ?? new List<TblStudentPermissionFee>())
                     .Where(spf => !spf.IsDelete)
-                    .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
-                    .ThenBy(spf => spf.Id)
+                    .OrderBy(spf => spf.Id)
                     .ToList();
 
-                // 檢查是否有未刪除的學生權限費用記錄
-                var hasStudentPermissionFee = sp.StudentPermissionFees?.Any(f => !f.IsDelete) ?? false;
-                if (!hasStudentPermissionFee)
+                // 檢查當前 att 是否有對應的 schedule（同學生權限同日期）
+                if (!scheduleDict.TryGetValue(att.StudentPermissionId, out var scheduleDates) || !scheduleDates.Contains(att.AttendanceDate))
+                {
+                    continue;  // 沒有對應的 schedule，跳過此 attendance
+                }
+
+                // 檢查是否有未刪除的費用記錄
+                if (!combinedFees.Any())
                 {
                     continue;
                 }
@@ -297,16 +321,19 @@ namespace DoorWebApp.Controllers
                 var hours = fee?.Hours > 0 ? fee.Hours : 1m;
                 var amount = (fee?.Amount ?? 0) + (fee?.AdjustmentAmount ?? 0);
 
-                if (!rowsByStudent.TryGetValue(sp.UserId, out var builder))
+                // 使用 (UserId, CourseId) 作為複合 key，以支持同一學生多個課程
+                var courseId = sp.CourseId ?? 0;
+                var key = (sp.UserId, courseId);
+                if (!rowsByStudentCourse.TryGetValue(key, out var builder))
                 {
                     builder = new SalaryRowBuilder(studentName, instrument);
-                    rowsByStudent[sp.UserId] = builder;
+                    rowsByStudentCourse[key] = builder;
                 }
 
                 builder.Lessons.Add(new LessonItem(attendanceDate.Value.ToString("MM/dd"), amount, hours));
             }
 
-            var rows = rowsByStudent.Values
+            var rows = rowsByStudentCourse.Values
                 .Select(b => b.ToRow())
                 .OrderBy(r => r.StudentName)
                 .ToList();
@@ -370,36 +397,33 @@ namespace DoorWebApp.Controllers
         private static IContainer LeftHeaderCell(IContainer container)
         {
             return container
-                .BorderTop(1.2f)
-                .BorderLeft(1.2f)
-                .BorderBottom(1.2f)
+                .BorderTop(0.5f)
+                .BorderLeft(0.5f)
+                .BorderBottom(0.5f)
                 .BorderColor(Colors.Black)
-                .PaddingVertical(4)
+                .PaddingVertical(3)
                 .PaddingHorizontal(3)
-                .AlignCenter()
                 .AlignMiddle();
         }
         private static IContainer RightHeaderCell(IContainer container)
         {
             return container
-                .BorderTop(1.2f)
-                .BorderRight(1.2f)
-                .BorderBottom(1.2f)
+                .BorderTop(0.5f)
+                .BorderRight(0.5f)
+                .BorderBottom(0.5f)
                 .BorderColor(Colors.Black)
-                .PaddingVertical(4)
+                .PaddingVertical(3)
                 .PaddingHorizontal(3)
-                .AlignCenter()
                 .AlignMiddle();
         }
         private static IContainer HeaderCell(IContainer container)
         {
             return container
-                .BorderTop(1.2f)
-                .BorderBottom(1.2f)
+                .BorderTop(0.5f)
+                .BorderBottom(0.5f)
                 .BorderColor(Colors.Black)
-                .PaddingVertical(4)
+                .PaddingVertical(3)
                 .PaddingHorizontal(3)
-                .AlignCenter()
                 .AlignMiddle();
         }
 
@@ -512,28 +536,52 @@ namespace DoorWebApp.Controllers
                 var permissions = _ctx.TblStudentPermission
                     .Where(sp1 => !sp1.IsDelete
                                  && sp1.UserId == sp.UserId
-                                 && sp1.CourseId == sp.CourseId)
+                                 && sp1.CourseId == sp.CourseId
+                                 && sp1.TeacherId == sp.TeacherId)
                     .Include(sp => sp.Course)                 // 課程名稱
                         .ThenInclude(c => c.CourseFee)        // 課程費用 + 教材費
                     .Include(sp => sp.StudentPermissionFees)  // 學生權限費用列表
                         .ThenInclude(spf => spf.Payment)       // 已收金額 & 結帳單號 (一對一)
                     .Include(sp => sp.Attendances)            // 課程一~四
+                    .Include(sp => sp.Schedules)              // 用於判定當前權限
                     .ToList();
+
+                // 建立 Schedule 快速查詢字典：StudentPermissionId -> ScheduleDate 集合
+                // 將 ScheduleDate 格式統一為 YYYY-MM-DD (AttendanceDate 的格式)
+                var scheduleDict = permissions
+                    .ToDictionary(
+                        p => p.Id,
+                        p => new HashSet<string>(
+                            (p.Schedules ?? new List<TblSchedule>())
+                                .Where(s => !s.IsDelete)
+                                .Select(s => s.ScheduleDate.Replace("/", "-"))  // 將 YYYY/MM/DD 轉換為 YYYY-MM-DD
+                        )
+                    );
+
+                // 合併「相同學生 + 相同課程」的簽到與費用，統一分組
+                // 只有當天有對應的schedule才撈取，且attendance schedule的tblstudentpermission要相同
                 var combinedAttendances = permissions
                     .SelectMany(sp => sp.Attendances ?? new List<TblAttendance>())
-                    .Where(a => !a.IsDelete)
+                    .Where(a => !a.IsDelete &&
+                               scheduleDict.TryGetValue(a.StudentPermissionId, out var dates) &&
+                               dates.Contains(a.AttendanceDate))
                     .OrderBy(a => a.AttendanceDate)
                     .ToList();
+
                 var combinedFees = permissions
                     .SelectMany(sp => sp.StudentPermissionFees ?? new List<TblStudentPermissionFee>())
                     .Where(spf => !spf.IsDelete)
-                    .OrderBy(spf => spf.PaymentDate ?? DateTime.MinValue)
-                    .ThenBy(spf => spf.Id)
+                    .OrderBy(spf => spf.Id)
                     .ToList();
 
-                // 檢查是否有未刪除的學生權限費用記錄
-                var hasStudentPermissionFee = sp.StudentPermissionFees?.Any(f => !f.IsDelete) ?? false;
-                if (!hasStudentPermissionFee)
+                // 檢查當前 att 是否有對應的 schedule（同學生權限同日期）
+                if (!scheduleDict.TryGetValue(sp.Id, out var scheduleDates) || !scheduleDates.Contains(att.AttendanceDate))
+                {
+                    continue;  // 沒有對應的 schedule，跳過此 attendance
+                }
+
+                // 檢查是否有未刪除的費用記錄
+                if (!combinedFees.Any())
                 {
                     continue;
                 }
