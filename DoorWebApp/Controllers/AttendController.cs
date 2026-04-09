@@ -118,11 +118,12 @@ namespace DoorWebApp.Controllers
                 }
 
                 // 1-2 檢查簽到日期是否有對應的 Schedule（同學生權限）
-                // 依「相同學生 + 相同課程」分組查詢所有學生權限
+                // 依「相同學生 + 相同課程 + 相同老師」分組查詢所有學生權限
                 var sameGroupPermissions = ctx.TblStudentPermission
                     .Where(sp => !sp.IsDelete
                         && sp.UserId == permission.UserId
-                        && sp.CourseId == permission.CourseId)
+                        && sp.CourseId == permission.CourseId
+                        && sp.TeacherId == permission.TeacherId)
                     .Select(sp => sp.Id)
                     .ToList();
 

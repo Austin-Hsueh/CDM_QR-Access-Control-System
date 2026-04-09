@@ -234,7 +234,8 @@ namespace DoorWebApp.Controllers
                 var permissions = _ctx.TblStudentPermission
                     .Where(sp1 => !sp1.IsDelete
                                  && sp1.UserId == sp.UserId
-                                 && sp1.CourseId == sp.CourseId)
+                                 && sp1.CourseId == sp.CourseId
+                                 && sp1.TeacherId == sp.TeacherId)
                     .Include(sp => sp.Course)                 // 課程名稱
                         .ThenInclude(c => c.CourseFee)        // 課程費用 + 教材費
                     .Include(sp => sp.StudentPermissionFees)  // 學生權限費用列表
@@ -535,7 +536,8 @@ namespace DoorWebApp.Controllers
                 var permissions = _ctx.TblStudentPermission
                     .Where(sp1 => !sp1.IsDelete
                                  && sp1.UserId == sp.UserId
-                                 && sp1.CourseId == sp.CourseId)
+                                 && sp1.CourseId == sp.CourseId
+                                 && sp1.TeacherId == sp.TeacherId)
                     .Include(sp => sp.Course)                 // 課程名稱
                         .ThenInclude(c => c.CourseFee)        // 課程費用 + 教材費
                     .Include(sp => sp.StudentPermissionFees)  // 學生權限費用列表

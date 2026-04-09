@@ -36,11 +36,12 @@ namespace DoorWebApp.Extensions
             if (studentPermission == null)
                 return null;
 
-            // 1. 依「相同學生 + 相同課程」分組查詢所有學生權限
+            // 1. 依「相同學生 + 相同課程 + 相同老師」分組查詢所有學生權限
             var sameGroupPermissions = await ctx.TblStudentPermission
                 .Where(sp => !sp.IsDelete
                     && sp.UserId == studentPermission.UserId
-                    && sp.CourseId == studentPermission.CourseId)
+                    && sp.CourseId == studentPermission.CourseId
+                    && sp.TeacherId == studentPermission.TeacherId)
                 .Select(sp => sp.Id)
                 .ToListAsync();
 
@@ -123,11 +124,12 @@ namespace DoorWebApp.Extensions
             if (studentPermission == null)
                 return null;
 
-            // 1. 依「相同學生 + 相同課程」分組查詢所有學生權限
+            // 1. 依「相同學生 + 相同課程 + 相同老師」分組查詢所有學生權限
             var sameGroupPermissions = await ctx.TblStudentPermission
                 .Where(sp => !sp.IsDelete
                     && sp.UserId == studentPermission.UserId
-                    && sp.CourseId == studentPermission.CourseId)
+                    && sp.CourseId == studentPermission.CourseId
+                    && sp.TeacherId == studentPermission.TeacherId)
                 .Select(sp => sp.Id)
                 .ToListAsync();
 
