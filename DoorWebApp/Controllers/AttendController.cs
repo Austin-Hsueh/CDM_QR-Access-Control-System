@@ -144,7 +144,7 @@ namespace DoorWebApp.Controllers
                     {
                         log.LogWarning($"[{Request.Path}] No matching schedule for attendance date: {AttendDTO.attendanceDate}");
                         res.result = APIResultCode.data_not_found;
-                        res.msg = "no_schedule_for_this_date";
+                        res.msg = "此日期沒有課表，無法簽到出席";
                         return Ok(res);
                     }
                 }
