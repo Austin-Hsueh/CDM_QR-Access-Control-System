@@ -142,10 +142,36 @@ namespace DoorWebApp.Controllers
                     // 檢查簽到日期是否在 Schedule 日期中
                     if (!scheduleDates.Contains(AttendDTO.attendanceDate))
                     {
-                        log.LogWarning($"[{Request.Path}] No matching schedule for attendance date: {AttendDTO.attendanceDate}");
-                        res.result = APIResultCode.data_not_found;
-                        res.msg = "此日期沒有課表，無法簽到出席";
-                        return Ok(res);
+                        log.LogWarning($"[{Request.Path}] No matching schedule for attendance date: {AttendDTO.attendanceDate}, auto-creating schedule");
+                        
+                        // 從該學生權限的現有課表中獲取教室ID
+                        var existingSchedule = ctx.TblSchedule
+                            .Where(s => s.StudentPermissionId == AttendDTO.studentPermissionId && !s.IsDelete)
+                            .FirstOrDefault();
+                        
+                        var classroomId = existingSchedule?.ClassroomId ?? 0;
+                        
+                        // 自動為該學生權限添加課表
+                        var newSchedule = new TblSchedule
+                        {
+                            StudentPermissionId = AttendDTO.studentPermissionId,
+                            ClassroomId = classroomId, // 從該權限現有課表取得教室ID
+                            ScheduleDate = AttendDTO.attendanceDate.Replace("-", "/"), // 轉換為 yyyy/MM/dd
+                            StartTime = permission.TimeFrom,
+                            EndTime = permission.TimeTo,
+                            CourseMode = existingSchedule?.CourseMode ?? 0, // 使用現有課表的課程模式
+                            ScheduleMode = 3, // 3 = 單次課程（動態添加）
+                            Status = 1, // 正常
+                            Remark = "簽到時系統自動添加",
+                            IsEnable = true,
+                            IsDelete = false,
+                            CreatedTime = DateTime.Now,
+                            ModifiedTime = DateTime.Now
+                        };
+                        
+                        ctx.TblSchedule.Add(newSchedule);
+                        await ctx.SaveChangesAsync();
+                        log.LogInformation($"[{Request.Path}] Auto-created schedule for StudentPermissionId: {AttendDTO.studentPermissionId}, Date: {AttendDTO.attendanceDate}, ClassroomId: {classroomId}");
                     }
                 }
                 else
