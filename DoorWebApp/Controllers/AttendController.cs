@@ -117,52 +117,100 @@ namespace DoorWebApp.Controllers
                     return Ok(res);
                 }
 
-                // 1-2 檢查簽到日期是否有對應的 Schedule（同學生權限）
-                // 依「相同學生 + 相同課程 + 相同老師」分組查詢所有學生權限
-                var sameGroupPermissions = ctx.TblStudentPermission
-                    .Where(sp => !sp.IsDelete
-                        && sp.UserId == permission.UserId
-                        && sp.CourseId == permission.CourseId
-                        && sp.TeacherId == permission.TeacherId)
-                    .Select(sp => sp.Id)
-                    .ToList();
+                var attendanceDateFormatted = AttendDTO.attendanceDate.Replace("-", "/");
 
-                if (sameGroupPermissions.Any())
+                // 1-2 檢查該學生權限是否有課表
+                var existingSchedule = ctx.TblSchedule
+                    .Where(s => s.StudentPermissionId == AttendDTO.studentPermissionId && !s.IsDelete)
+                    .FirstOrDefault();
+
+                // 如果該權限沒有課表，從同組權限中取得課表資訊
+                if (existingSchedule == null)
                 {
-                    // 取得該組所有的 Schedule，轉換日期格式為 YYYY-MM-DD 統一比較
-                    var schedules = ctx.TblSchedule
-                        .Where(s => !s.IsDelete && sameGroupPermissions.Contains(s.StudentPermissionId))
-                        .Select(s => s.ScheduleDate)
+                    // 依「相同學生 + 相同課程 + 相同老師」分組查詢
+                    var sameGroupPermissions = ctx.TblStudentPermission
+                        .Where(sp => !sp.IsDelete
+                            && sp.UserId == permission.UserId
+                            && sp.CourseId == permission.CourseId
+                            && sp.TeacherId == permission.TeacherId)
+                        .Select(sp => sp.Id)
                         .ToList();
 
-                    var scheduleDates = new HashSet<string>(
-                        schedules.Select(s => s.Replace("/", "-"))
-                    );
+                    if (sameGroupPermissions.Any())
+                    {
+                        // 從同組權限中取得課表
+                        existingSchedule = ctx.TblSchedule
+                            .Where(s => !s.IsDelete && sameGroupPermissions.Contains(s.StudentPermissionId))
+                            .FirstOrDefault();
 
-                    // 檢查簽到日期是否在 Schedule 日期中
-                    if (!scheduleDates.Contains(AttendDTO.attendanceDate))
+                        if (existingSchedule != null)
+                        {
+                            log.LogInformation($"[{Request.Path}] Found schedule from same group permissions for StudentPermissionId: {AttendDTO.studentPermissionId}");
+                            
+                            // 自動為該學生權限添加課表
+                            var newSchedule = new TblSchedule
+                            {
+                                StudentPermissionId = AttendDTO.studentPermissionId,
+                                ClassroomId = existingSchedule.ClassroomId,
+                                ScheduleDate = attendanceDateFormatted,
+                                StartTime = permission.TimeFrom,
+                                EndTime = permission.TimeTo,
+                                CourseMode = existingSchedule.CourseMode,
+                                ScheduleMode = existingSchedule.ScheduleMode,
+                                Status = 1, // 正常
+                                Remark = existingSchedule.Remark,
+                                IsEnable = true,
+                                IsDelete = false,
+                                CreatedTime = DateTime.Now,
+                                ModifiedTime = DateTime.Now
+                            };
+                            
+                            ctx.TblSchedule.Add(newSchedule);
+                            await ctx.SaveChangesAsync();
+                            log.LogInformation($"[{Request.Path}] Auto-created schedule for StudentPermissionId: {AttendDTO.studentPermissionId}, Date: {AttendDTO.attendanceDate}, ClassroomId: {existingSchedule.ClassroomId}");
+                            
+                            existingSchedule = newSchedule;
+                        }
+                        else
+                        {
+                            log.LogWarning($"[{Request.Path}] No schedule found in same group permissions for StudentPermissionId: {AttendDTO.studentPermissionId}");
+                            res.result = APIResultCode.data_not_found;
+                            res.msg = "no_schedule_in_group";
+                            return Ok(res);
+                        }
+                    }
+                    else
+                    {
+                        log.LogWarning($"[{Request.Path}] No same group permissions found for StudentPermissionId: {AttendDTO.studentPermissionId}");
+                        res.result = APIResultCode.data_not_found;
+                        res.msg = "no_same_group_permissions";
+                        return Ok(res);
+                    }
+                }
+                else
+                {
+                    // 檢查簽到日期是否在該權限的課表中
+                    bool hasScheduleForDate = ctx.TblSchedule
+                        .Any(s => s.StudentPermissionId == AttendDTO.studentPermissionId
+                            && s.ScheduleDate == attendanceDateFormatted
+                            && !s.IsDelete);
+
+                    if (!hasScheduleForDate)
                     {
                         log.LogWarning($"[{Request.Path}] No matching schedule for attendance date: {AttendDTO.attendanceDate}, auto-creating schedule");
-                        
-                        // 從該學生權限的現有課表中獲取教室ID
-                        var existingSchedule = ctx.TblSchedule
-                            .Where(s => s.StudentPermissionId == AttendDTO.studentPermissionId && !s.IsDelete)
-                            .FirstOrDefault();
-                        
-                        var classroomId = existingSchedule?.ClassroomId ?? 0;
                         
                         // 自動為該學生權限添加課表
                         var newSchedule = new TblSchedule
                         {
                             StudentPermissionId = AttendDTO.studentPermissionId,
-                            ClassroomId = classroomId, // 從該權限現有課表取得教室ID
-                            ScheduleDate = AttendDTO.attendanceDate.Replace("-", "/"), // 轉換為 yyyy/MM/dd
+                            ClassroomId = existingSchedule.ClassroomId,
+                            ScheduleDate = attendanceDateFormatted,
                             StartTime = permission.TimeFrom,
                             EndTime = permission.TimeTo,
-                            CourseMode = existingSchedule?.CourseMode ?? 0, // 使用現有課表的課程模式
-                            ScheduleMode = 3, // 3 = 單次課程（動態添加）
+                            CourseMode = existingSchedule.CourseMode,
+                            ScheduleMode = existingSchedule.ScheduleMode,
                             Status = 1, // 正常
-                            Remark = "簽到時系統自動添加",
+                            Remark = existingSchedule.Remark,
                             IsEnable = true,
                             IsDelete = false,
                             CreatedTime = DateTime.Now,
@@ -171,15 +219,8 @@ namespace DoorWebApp.Controllers
                         
                         ctx.TblSchedule.Add(newSchedule);
                         await ctx.SaveChangesAsync();
-                        log.LogInformation($"[{Request.Path}] Auto-created schedule for StudentPermissionId: {AttendDTO.studentPermissionId}, Date: {AttendDTO.attendanceDate}, ClassroomId: {classroomId}");
+                        log.LogInformation($"[{Request.Path}] Auto-created schedule for StudentPermissionId: {AttendDTO.studentPermissionId}, Date: {AttendDTO.attendanceDate}, ClassroomId: {existingSchedule.ClassroomId}");
                     }
-                }
-                else
-                {
-                    log.LogWarning($"[{Request.Path}] No same group permissions found for StudentPermissionId: {AttendDTO.studentPermissionId}");
-                    res.result = APIResultCode.data_not_found;
-                    res.msg = "no_same_group_permissions";
-                    return Ok(res);
                 }
 
                 // 2. 檢查使用者是否為老師(RoleId=2)，若是則不建立 AttendanceFee
