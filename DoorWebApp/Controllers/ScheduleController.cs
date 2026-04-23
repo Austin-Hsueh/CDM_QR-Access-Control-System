@@ -554,7 +554,7 @@ namespace DoorWebApp.Controllers
         [HttpPatch("v1/Schedule")]
         public async Task<IActionResult> UpdateSchedule(ReqUpdateScheduleDTO scheduleDTO)
         {
-            APIResponse res = new APIResponse();
+            APIResponse<object> res = new();
 
             try
             {
@@ -623,6 +623,51 @@ namespace DoorWebApp.Controllers
                 // 3. 處理刪除請求
                 if (scheduleDTO.IsDelete)
                 {
+                    var modeText = scheduleDTO.UpdateMode switch
+                    {
+                        1 => "單次課表",
+                        2 => "某日後全部課表",
+                        3 => "全部課表",
+                        _ => "課表"
+                    };
+
+                    // 檢查是否有出席記錄 (StudentPermissionId + ScheduleDate)
+                    var attendanceConflicts = new List<dynamic>();
+                    foreach (var schedule in schedulesToUpdate)
+                    {
+                        var attendances = await ctx.TblAttendance
+                            .Where(x => x.StudentPermissionId == schedule.StudentPermissionId &&
+                                       x.AttendanceDate == schedule.ScheduleDate.Replace("/", "-") &&
+                                       x.IsDelete == false)
+                            .ToListAsync();
+
+                        if (attendances.Count > 0)
+                        {
+                            attendanceConflicts.Add(new
+                            {
+                                scheduleId = schedule.Id,
+                                scheduleDate = schedule.ScheduleDate,
+                                schedule.StartTime,
+                                schedule.EndTime,
+                                studentPermissionId = schedule.StudentPermissionId,
+                                attendanceCount = attendances.Count,
+                                attendanceTypes = string.Join(", ", attendances.Select(a => 
+                                    a.AttendanceType switch { 0 => "缺席", 1 => "出席", 2 => "請假", _ => "未知" }))
+                            });
+                        }
+                    }
+
+                    // 若有出席記錄則停止刪除並返回錯誤
+                    if (attendanceConflicts.Count > 0)
+                    {
+                        log.LogWarning($"[{Request.Path}] Cannot delete schedule. Found {attendanceConflicts.Count} schedule(s) with attendance records. Mode:{scheduleDTO.UpdateMode}");
+                        
+                        res.result = APIResultCode.item_is_being_used;
+                        res.msg = $"無法刪除{modeText}，因為以下課表已有出席記錄";
+                        res.content = attendanceConflicts;
+                        return Ok(res);
+                    }
+
                     foreach (var schedule in schedulesToUpdate)
                     {
                         schedule.IsDelete = true;
@@ -662,14 +707,6 @@ namespace DoorWebApp.Controllers
                             }
                         }
                     }
-
-                    var modeText = scheduleDTO.UpdateMode switch
-                    {
-                        1 => "單次課表",
-                        2 => "某日後全部課表",
-                        3 => "全部課表",
-                        _ => "課表"
-                    };
 
                     auditLog.WriteAuditLog(AuditActType.Modify, $"刪除{modeText}. StudentPermissionId: {scheduleEntity.StudentPermissionId}, 共 {schedulesToUpdate.Count} 筆", operatorUsername);
 
