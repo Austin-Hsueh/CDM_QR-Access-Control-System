@@ -1674,19 +1674,19 @@ namespace DoorWebApp.Controllers
                 {
                     if (QRCodeData != null)
                     {
-                        schedules = ctx.TblSchedule
+                        var newSchedules = ctx.TblSchedule
                             .Where(u => childUsers.Contains(u.StudentPermission.UserId))
                             .Where(s => !s.IsDelete)
                             .Where(s =>
-                                (
-                                (string.Compare(s.StartTime, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0 &&
-                                string.Compare(s.EndTime, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0)
-                                ||
-                                (string.Compare(s.StartTime, QRCodeData.ModifiedTime.ToString("HH:mm")) <= 0 &&
-                                string.Compare(s.EndTime, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0)
-                                )
-                                &&
-                                (string.Compare(s.ScheduleDate, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) == 0))
+                            (
+                            (string.Compare(s.StartTime, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0 &&
+                            string.Compare(s.EndTime, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0)
+                            ||
+                            (string.Compare(s.StartTime, QRCodeData.ModifiedTime.ToString("HH:mm")) <= 0 &&
+                            string.Compare(s.EndTime, QRCodeData.ModifiedTime.ToString("HH:mm")) >= 0)
+                            )
+                            &&
+                            (string.Compare(s.ScheduleDate, QRCodeData.ModifiedTime.ToString("yyyy/MM/dd")) == 0))
                             .OrderBy(s => s.ScheduleDate)
                             .ThenBy(s => s.StartTime)
                             .Select(s => new ResScheduleDTO
@@ -1703,6 +1703,8 @@ namespace DoorWebApp.Controllers
                                 Remark = s.Remark
                             })
                             .ToList();
+
+                        schedules = schedules.Concat(newSchedules).ToList();
                     }
                 }
 
