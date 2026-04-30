@@ -1373,7 +1373,14 @@ const handleDeleteCourse = async () => {
         });
       }
     } else {
-      ElMessage.error(response.data.msg || '刪除課程失敗');
+      // 如果是因為有出席記錄無法刪除，顯示詳細日期
+      const resData = response.data as any;
+      if (resData.result === 7 && resData.content?.length > 0) {
+        const dates = resData.content.map((item: any) => item.scheduleDate).join(', ');
+        ElMessage.error(`${resData.msg}：${dates}`);
+      } else {
+        ElMessage.error(response.data.msg || '刪除課程失敗');
+      }
     }
   } catch (error) {
     console.error('刪除課程排程失敗:', error);

@@ -1497,6 +1497,7 @@ namespace DoorWebApp.Controllers
         /// </summary>
         /// <returns></returns>
         [Authorize]
+        [ResponseCache(NoStore = true, Duration = 0, Location = ResponseCacheLocation.None)]
         [HttpGet("v1/User/PermissionSetting/{UserId}")]
         public IActionResult GetPermissionSetting(int UserId)
         {

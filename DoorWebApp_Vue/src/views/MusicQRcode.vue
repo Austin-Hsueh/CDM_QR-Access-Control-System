@@ -65,7 +65,7 @@ onMounted(() => {
 //#region Private Functions
 async function getUserSettingPermission() {
   try {
-    const getUserSettingPermission = await API.getUserSettingPermission(userInfoStore.userId);
+    const getUserSettingPermission = await API.getUserSettingPermission(userInfoStore.userId, Date.now());
     if (getUserSettingPermission.data.result != 1) throw new Error(getUserSettingPermission.data.msg);
     qrcode.value = getUserSettingPermission.data.content.qrcode || '';
     imageSrc.value = `data:image/png;base64,${qrcode.value}`;

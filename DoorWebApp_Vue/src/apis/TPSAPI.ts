@@ -494,8 +494,8 @@ class APIService {
   }
 
   /** 取得臨時QRcode */
-  getUserSettingPermission(userid: number){
-    return this.axiosInstance.get<IAPIResponse<any>>(`v1/User/PermissionSetting/${userid}`);
+  getUserSettingPermission(userid: number, _t?: number){
+    return this.axiosInstance.get<IAPIResponse<any>>(`v1/User/PermissionSetting/${userid}`, { params: { _t } });
   }
 
   /** 設定使用者門禁設定 */
