@@ -599,7 +599,7 @@ namespace DoorWebApp.Controllers
                         var fromDate = scheduleDTO.FromDate.Replace("-", "/");
                         schedulesToUpdate = await ctx.TblSchedule
                             .Where(x => x.StudentPermissionId == scheduleEntity.StudentPermissionId &&
-                                       x.IsDelete == false && x.Id >= scheduleDTO.ScheduleId)
+                                       x.IsDelete == false && string.Compare(x.ScheduleDate, fromDate) >= 0)
                             .ToListAsync();
 
                         log.LogInformation($"[{Request.Path}] Update from date mode. FromDate:{fromDate}, Count:{schedulesToUpdate.Count}");
