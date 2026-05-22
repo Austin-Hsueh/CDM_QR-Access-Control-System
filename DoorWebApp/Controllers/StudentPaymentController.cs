@@ -152,7 +152,7 @@ namespace DoorWebApp.Controllers
 
                 bool isDelete = dto.IsDelete ?? false;
 
-                if (dto.StudentPermissionFeeId <= 0 || (!isDelete && dto.Pay <= 0))
+                if (dto.StudentPermissionFeeId <= 0 || (!isDelete && dto.Pay < 0))
                 {
                     res.result = APIResultCode.unknow_error;
                     res.msg = "Missing required fields";
