@@ -90,6 +90,18 @@ namespace DoorWebApp.Controllers
                     );
                 }
 
+                // 排除「該日最新出席狀態為請假(AttendanceType=2)」的課程
+                // 取同學生權限+同日期、未刪除的出席紀錄中 Id 最大(最新)的一筆，其 AttendanceType==2 才排除
+                // 重新簽到/曠課後會新增較新的紀錄，最新狀態不再是請假即會恢復顯示
+                // 注意：課表 ScheduleDate 為 yyyy/MM/dd，出席 AttendanceDate 為 yyyy-MM-dd，需正規化日期格式
+                query = query.Where(x => ctx.TblAttendance
+                    .Where(a => a.IsDelete == false
+                        && a.StudentPermissionId == x.StudentPermissionId
+                        && a.AttendanceDate.Replace("-", "/") == x.ScheduleDate)
+                    .OrderByDescending(a => a.Id)
+                    .Select(a => (int?)a.AttendanceType)
+                    .FirstOrDefault() != 2);
+
                 // 排序
                 query = query.OrderBy(x => x.ScheduleDate).ThenBy(x => x.StartTime);
 
@@ -137,6 +149,7 @@ namespace DoorWebApp.Controllers
                     Status = x.Status,
                     StatusName = GetStatusName(x.Status),
                     Remark = x.Remark,
+                    StudentId = x.StudentPermission.UserId,
                     StudentName = x.StudentPermission?.User?.DisplayName,
                     CourseName = x.StudentPermission?.Course?.Name,
                     TeacherName = x.StudentPermission?.Teacher?.DisplayName,

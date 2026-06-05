@@ -252,7 +252,7 @@
   <el-row :gutter="20">
     <!-- 左側：課程資訊 (2/3) -->
     <el-col :span="16">
-      <el-descriptions :column="1" border>
+      <el-descriptions title="課程資料" :column="1" border>
         <el-descriptions-item label="學生" label-width="80px">{{ courseDetail.studentName }}</el-descriptions-item>
         <el-descriptions-item label="課程名稱" label-width="80px">{{ courseDetail.courseName }}</el-descriptions-item>
         <el-descriptions-item label="老師" label-width="80px">{{ courseDetail.teacherName }}</el-descriptions-item>
@@ -291,6 +291,18 @@
           <el-icon><Edit /></el-icon>學生簽到記錄
         </el-button>
       </div>
+    </el-col>
+  </el-row>
+  <el-row :gutter="20" class="mt-4">
+    <el-col :span="24">
+      <el-descriptions title="學生資料" :column="1" border>
+        <el-descriptions-item label="帳號" label-width="80px">{{ studentDetail?.username || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="Email" label-width="80px">{{ studentDetail?.email || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="聯絡電話" label-width="80px">{{ studentDetail?.phone || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="緊急聯絡人" label-width="80px">{{ studentDetail?.contactPerson || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="聯絡人電話" label-width="80px">{{ studentDetail?.contactPhone || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="關係稱謂" label-width="80px">{{ studentDetail?.relationshipTitle || '-' }}</el-descriptions-item>
+      </el-descriptions>
     </el-col>
   </el-row>
 </el-dialog>
@@ -751,6 +763,7 @@ import API from '@/apis/TPSAPI';
 
 import { M_IClassRoomOptions } from '@/models/M_IClassRoomOptions';
 import { M_IUsersOptions } from '@/models/M_IUsersOptions';
+import { M_IUsers } from '@/models/M_IUser';
 import { M_ICourseOptions } from '@/models/M_ICourseOptions';
 import { M_ITeachersOptions } from '@/models/M_ITeachersOptions';
 import { M_IStudentAttendanceSummary, M_IStudentRefundDetail, M_IResAttendance } from '@/models/M_ICloseAccount';
@@ -781,6 +794,7 @@ const addCourseFormRef = ref<FormInstance>();
 const isShowCourseDetailDialog = ref(false);
 const courseDetail = reactive({
   scheduleId: 0,
+  studentId: 0,
   studentName: '',
   courseName: '',
   teacherName: '',
@@ -790,6 +804,9 @@ const courseDetail = reactive({
   endTime: '',
   studentPermissionId: 0
 });
+
+// 學生詳細資料 (課程詳情彈窗唯讀顯示用)
+const studentDetail = ref<M_IUsers | null>(null);
 
 // 繳費紀錄 Dialog 控制
 const isShowPaymentRecordDialog = ref(false);
@@ -1067,6 +1084,7 @@ const handleClassroomFilterChange = async () => {
           extendedProps: {
             scheduleId: schedule.scheduleId,
             studentPermissionId: schedule.studentPermissionId,
+            studentId: schedule.studentId,
             courseName: schedule.courseName,
             studentName: schedule.studentName,
             classroomName: schedule.classroomName,
@@ -1264,6 +1282,7 @@ const handleEventClick = async (clickInfo: any) => {
   const event = clickInfo.event;
   const scheduleId = event.extendedProps.scheduleId;
   const studentPermissionId = event.extendedProps.studentPermissionId || 0;
+  const studentId = event.extendedProps.studentId || 0;
   const studentName = event.extendedProps.studentName || '';
   const courseName = event.extendedProps.courseName || '';
   const teacherName = event.extendedProps.teacherName || '';
@@ -1288,6 +1307,7 @@ const handleEventClick = async (clickInfo: any) => {
   // 填充課程詳情資料
   courseDetail.scheduleId = scheduleId;
   courseDetail.studentPermissionId = studentPermissionId;
+  courseDetail.studentId = studentId;
   courseDetail.studentName = studentName;
   courseDetail.courseName = courseName;
   courseDetail.teacherName = teacherName;
@@ -1296,8 +1316,26 @@ const handleEventClick = async (clickInfo: any) => {
   courseDetail.startTime = formatTime(startTime);
   courseDetail.endTime = formatTime(endTime);
 
+  // 載入學生詳細資料 (唯讀顯示用)
+  await loadStudentDetail(studentId);
+
   // 顯示課程詳情彈窗
   isShowCourseDetailDialog.value = true;
+};
+
+// 載入學生詳細資料
+const loadStudentDetail = async (studentId: number) => {
+  studentDetail.value = null;
+  if (!studentId) return;
+
+  try {
+    const response = await API.getOnerUser(studentId);
+    if (response.data.result !== 1) throw new Error(response.data.msg);
+    studentDetail.value = response.data.content;
+  } catch (error) {
+    console.error('載入學生資料失敗:', error);
+    studentDetail.value = null;
+  }
 };
 
 // 刪除課程
@@ -2196,6 +2234,7 @@ const handleDatesSet = async (dateInfo: any) => {
           extendedProps: {
             scheduleId: schedule.scheduleId,
             studentPermissionId: schedule.studentPermissionId,
+            studentId: schedule.studentId,
             courseName: schedule.courseName,
             studentName: schedule.studentName,
             classroomName: schedule.classroomName,
