@@ -252,7 +252,7 @@
   <el-row :gutter="20">
     <!-- 左側：課程資訊 (2/3) -->
     <el-col :span="16">
-      <el-descriptions title="課程資料" :column="1" border>
+      <el-descriptions class="course-detail-desc" title="課程資料" :column="1" border>
         <el-descriptions-item label="學生" label-width="80px">{{ courseDetail.studentName }}</el-descriptions-item>
         <el-descriptions-item label="課程名稱" label-width="80px">{{ courseDetail.courseName }}</el-descriptions-item>
         <el-descriptions-item label="老師" label-width="80px">{{ courseDetail.teacherName }}</el-descriptions-item>
@@ -295,7 +295,7 @@
   </el-row>
   <el-row :gutter="20" class="mt-4">
     <el-col :span="24">
-      <el-descriptions title="學生資料" :column="1" border>
+      <el-descriptions class="course-detail-desc" title="學生資料" :column="1" border>
         <el-descriptions-item label="帳號" label-width="80px">{{ studentDetail?.username || '-' }}</el-descriptions-item>
         <el-descriptions-item label="Email" label-width="80px">{{ studentDetail?.email || '-' }}</el-descriptions-item>
         <el-descriptions-item label="聯絡電話" label-width="80px">{{ studentDetail?.phone || '-' }}</el-descriptions-item>
@@ -2703,5 +2703,15 @@ async function getCourseOptions() {
 /* 事件容器 */
 .custom-calendar :deep(.fc-event-main) {
   padding: 1px !important;
+}
+
+/* 課程詳情/學生資料：固定 label 欄寬 80px，不隨內容變動 */
+.course-detail-desc :deep(table) {
+  table-layout: fixed;
+  width: 100%;
+}
+.course-detail-desc :deep(.el-descriptions__label) {
+  width: 200px;
+  min-width: 200px;
 }
 </style>
