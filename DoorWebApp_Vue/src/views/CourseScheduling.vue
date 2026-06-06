@@ -65,6 +65,18 @@
         style="width: 100%"
       />
     </el-form-item>
+    <el-form-item v-if="selectedUpdateMode === 2 && updateModeShowTime" label="上課時間：">
+      <el-time-picker
+        v-model="selectedTimeRange"
+        is-range
+        range-separator="~"
+        start-placeholder="開始時間"
+        end-placeholder="結束時間"
+        format="HH:mm"
+        value-format="HH:mm"
+        style="width: 100%"
+      />
+    </el-form-item>
   </el-form>
   <template #footer>
     <span class="dialog-footer">
@@ -902,7 +914,11 @@ const attendanceRecordData = ref<any[]>([]); // 修改類型以支援 M_IStudent
 const isShowUpdateModeDialog = ref(false);
 const selectedUpdateMode = ref(1);
 const selectedFromDate = ref('');
-let updateModeResolve: ((value: { updateMode: number; fromDate: string } | null) => void) | null = null;
+// 模式2 上課時間範圍 [開始, 結束]，格式 "HH:mm"
+const selectedTimeRange = ref<[string, string] | null>(null);
+// 是否顯示上課時間欄位（僅修改流程需要，刪除流程不需要）
+const updateModeShowTime = ref(false);
+let updateModeResolve: ((value: { updateMode: number; fromDate: string; startTime: string; endTime: string } | null) => void) | null = null;
 
 // 選項資料
 const usersOptions = ref<M_IUsersOptions[]>([]);
@@ -1154,10 +1170,18 @@ const cancelAddCourse = () => {
 };
 
 // 顯示更新模式 Dialog
-const showUpdateModeDialog = (defaultDate: string): Promise<{ updateMode: number; fromDate: string } | null> => {
+const showUpdateModeDialog = (
+  defaultDate: string,
+  defaultStartTime = '',
+  defaultEndTime = ''
+): Promise<{ updateMode: number; fromDate: string; startTime: string; endTime: string } | null> => {
   return new Promise((resolve) => {
     selectedUpdateMode.value = 1;
     selectedFromDate.value = defaultDate;
+    // 預設帶入該堂課現有時間（供模式2使用）
+    updateModeShowTime.value = !!(defaultStartTime && defaultEndTime);
+    selectedTimeRange.value =
+      defaultStartTime && defaultEndTime ? [defaultStartTime, defaultEndTime] : null;
     updateModeResolve = resolve;
     isShowUpdateModeDialog.value = true;
   });
@@ -1167,7 +1191,9 @@ const showUpdateModeDialog = (defaultDate: string): Promise<{ updateMode: number
 const confirmUpdateMode = () => {
   const result = {
     updateMode: selectedUpdateMode.value,
-    fromDate: selectedFromDate.value
+    fromDate: selectedFromDate.value,
+    startTime: selectedTimeRange.value?.[0] ?? '',
+    endTime: selectedTimeRange.value?.[1] ?? ''
   };
   isShowUpdateModeDialog.value = false;
   if (updateModeResolve) {
@@ -2289,8 +2315,13 @@ const handleEventDrop = async (dropInfo: any) => {
     const startTime = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`; // "15:00"
     const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`; // "17:00"
 
-    // 詢問使用者更新模式
-    const result = await showUpdateModeDialog(scheduleDate);
+    // 被拖曳課程的原始日期（拖曳前），作為「此日期後」的篩選起始邊界
+    const originalDate = dropInfo.oldEvent
+      ? new Date(dropInfo.oldEvent.start).toISOString().split('T')[0]
+      : scheduleDate;
+
+    // 詢問使用者更新模式（起始日期預設帶入原始日期）
+    const result = await showUpdateModeDialog(originalDate, startTime, endTime);
 
     if (!result) {
       // 使用者取消操作
@@ -2318,11 +2349,15 @@ const handleEventDrop = async (dropInfo: any) => {
       // 單次修改：需要 scheduleDate
       cmd.scheduleDate = scheduleDate;
     } else if (updateMode === 2) {
-      // 某日後全部修改：需要 fromDate
+      // 某日後全部修改：fromDate 為篩選起始邊界(原始日期)，scheduleDate 為拖曳後新日期(計算位移天數) + 使用者於 Dialog 指定的上課時間
       cmd.fromDate = fromDate;
+      cmd.scheduleDate = scheduleDate;
+      if (result.startTime) cmd.startTime = result.startTime;
+      if (result.endTime) cmd.endTime = result.endTime;
     } else if (updateMode === 3) {
-      // 全部修改：需要 fromDate
+      // 全部修改：scheduleDate 為拖曳後新日期(計算位移天數)
       cmd.fromDate = fromDate;
+      cmd.scheduleDate = scheduleDate;
     }
 
     console.log('更新課程排程:', cmd);
@@ -2388,7 +2423,7 @@ const handleEventResize = async (resizeInfo: any) => {
     const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`; // "17:00"
 
     // 詢問使用者更新模式
-    const result = await showUpdateModeDialog(scheduleDate);
+    const result = await showUpdateModeDialog(scheduleDate, startTime, endTime);
 
     if (!result) {
       // 使用者取消操作
@@ -2416,8 +2451,10 @@ const handleEventResize = async (resizeInfo: any) => {
       // 單次修改：需要 scheduleDate
       cmd.scheduleDate = scheduleDate;
     } else if (updateMode === 2) {
-      // 某日後全部修改：需要 fromDate
+      // 某日後全部修改：需要 fromDate + 使用者於 Dialog 指定的上課時間
       cmd.fromDate = fromDate;
+      if (result.startTime) cmd.startTime = result.startTime;
+      if (result.endTime) cmd.endTime = result.endTime;
     } else if (updateMode === 3) {
       // 某日後全部修改：需要 fromDate
       cmd.fromDate = fromDate;

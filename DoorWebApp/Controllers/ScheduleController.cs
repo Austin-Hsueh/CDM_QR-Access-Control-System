@@ -745,13 +745,15 @@ namespace DoorWebApp.Controllers
                 }
 
                 // 計算日期差距（UpdateMode 2 和 3）
+                // 被拖曳課程從「原始日期(scheduleEntity.ScheduleDate)」移到「目標日期(ScheduleDate)」，
+                // 其餘符合條件的課程依相同天數位移。FromDate 僅作為篩選起始邊界，不再作為位移目標。
                 int dateDifference = 0;
-                if ((scheduleDTO.UpdateMode == 2 || scheduleDTO.UpdateMode == 3) && !string.IsNullOrEmpty(scheduleDTO.FromDate))
+                if ((scheduleDTO.UpdateMode == 2 || scheduleDTO.UpdateMode == 3) && !string.IsNullOrEmpty(scheduleDTO.ScheduleDate))
                 {
-                    // 原始課表日期
+                    // 原始課表日期（被拖曳課程的原日期）
                     DateTime originalScheduleDate = DateTime.ParseExact(scheduleEntity.ScheduleDate, "yyyy/MM/dd", null);
-                    // 新的目標日期
-                    DateTime newTargetDate = DateTime.ParseExact(scheduleDTO.FromDate.Replace("-", "/"), "yyyy/MM/dd", null);
+                    // 新的目標日期（被拖曳課程拖曳後的日期）
+                    DateTime newTargetDate = DateTime.ParseExact(scheduleDTO.ScheduleDate.Replace("-", "/"), "yyyy/MM/dd", null);
                     // 計算日期差距
                     dateDifference = (newTargetDate - originalScheduleDate).Days;
 
