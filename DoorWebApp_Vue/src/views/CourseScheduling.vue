@@ -325,8 +325,9 @@
   title="繳費紀錄"
   width="90%"
 >
-  <div style="margin-bottom: 15px;">
+  <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 15px;">
     <el-button type="primary" size="small" @click="handleCreatePayment"><el-icon><EditPen /></el-icon>{{ '新增一期繳費' }}</el-button>
+    <el-tag effect="dark">剩餘可上課堂數：{{ remainingClasses }} 堂</el-tag>
   </div>
   <el-table :data="paymentRecordData" border style="width: 100%">
     <el-table-column prop="serialNo" label="序號" width="80"/>
@@ -825,6 +826,48 @@ const isShowPaymentRecordDialog = ref(false);
 const paymentRecordData = ref<M_IStudentAttendanceSummary[]>([]);
 const maxHours = ref(0);
 
+// 計算剩餘可上課堂數：
+// 僅統計「已繳費 (receivedAmount > 0)」的期數，加總其中尚未簽到 (空白) 的格數
+const calcRemainingClasses = (attendances: M_IStudentAttendanceSummary[]): number => {
+  return (attendances ?? [])
+    .filter(row => row.receivedAmount > 0)
+    .reduce((sum, row) => sum + (row.attendances ?? []).filter(a => !a).length, 0);
+};
+
+// 繳費紀錄彈窗用：當前學生此課程的剩餘可上課堂數
+const remainingClasses = computed(() => calcRemainingClasses(paymentRecordData.value));
+
+// 課表事件用：studentPermissionId -> 剩餘可上課堂數
+// 為課表事件預先載入剩餘堂數，依「學生 + 課程 + 老師」分群 (與後端 GetStudentAttendance 分群一致)，避免重複呼叫
+const fetchRemainingClassesMap = async (schedules: any[]): Promise<Map<number, number>> => {
+  const map = new Map<number, number>();
+
+  // 只處理上課類型 (type === 1)；以群組鍵彙整需查詢的 studentPermissionId
+  const groups = new Map<string, number[]>();
+  schedules.forEach(s => {
+    const spId = s.studentPermissionId;
+    if (s.type !== 1 || !spId) return;
+    const key = `${s.studentId}|${s.courseName}|${s.teacherName}`;
+    const arr = groups.get(key) ?? [];
+    if (!arr.includes(spId)) arr.push(spId);
+    groups.set(key, arr);
+  });
+
+  await Promise.all(Array.from(groups.values()).map(async (spIds) => {
+    try {
+      const response = await API.getStudentAttendance(spIds[0]);
+      if (response.data.result !== 1) return;
+      const remaining = calcRemainingClasses(response.data.content.attendances);
+      // 同群組的每個 studentPermissionId 共用同一個剩餘堂數
+      spIds.forEach(id => map.set(id, remaining));
+    } catch (error) {
+      console.error('載入剩餘堂數失敗:', error);
+    }
+  }));
+
+  return map;
+};
+
 // 簽到詳細 Dialog 控制
 const attendanceDetailDialogVisible = ref(false);
 const attendanceDetailLoading = ref(false);
@@ -1073,6 +1116,9 @@ const handleClassroomFilterChange = async () => {
         });
       }
 
+      // 預先載入剩餘可上課堂數
+      const remainingMap = await fetchRemainingClassesMap(filteredSchedules);
+
       // 將課程加入 Calendar
       filteredSchedules.forEach((schedule: any) => {
         const scheduleDate = schedule.scheduleDate.replace(/\//g, '-');
@@ -1112,7 +1158,8 @@ const handleClassroomFilterChange = async () => {
             statusName: schedule.statusName,
             remark: schedule.remark,
             teacherName: schedule.teacherName,
-            type: schedule.type
+            type: schedule.type,
+            remainingClasses: remainingMap.get(schedule.studentPermissionId) ?? null
           }
         });
       });
@@ -2229,6 +2276,9 @@ const handleDatesSet = async (dateInfo: any) => {
         });
       }
 
+      // 預先載入剩餘可上課堂數
+      const remainingMap = await fetchRemainingClassesMap(filteredSchedules);
+
       // 將每個課程加入 Calendar
       filteredSchedules.forEach((schedule: any) => {
         // 組合日期和時間
@@ -2272,7 +2322,8 @@ const handleDatesSet = async (dateInfo: any) => {
             statusName: schedule.statusName,
             remark: schedule.remark,
             teacherName: schedule.teacherName,
-            type: schedule.type
+            type: schedule.type,
+            remainingClasses: remainingMap.get(schedule.studentPermissionId) ?? null
           }
         });
       });
@@ -2502,6 +2553,7 @@ const eventContent = (arg: any) => {
   const scheduleMode = arg.event.extendedProps.scheduleMode || 1;
   const courseMode = arg.event.extendedProps.courseMode || 1;
   const studentPermissionId = arg.event.extendedProps.studentPermissionId || null;
+  const remainingClasses = arg.event.extendedProps.remainingClasses;
 
   // 建立容器（使用 flexbox 兩欄佈局）
   const container = document.createElement('div');
@@ -2535,7 +2587,7 @@ const eventContent = (arg: any) => {
   column1.style.fontSize = '14px';
   column1.style.overflow = 'hidden';
   column1.style.lineHeight = '1.3';
-  
+
   if (studentName) {
     const studentLine = document.createElement('div');
     studentLine.style.overflow = 'hidden';
@@ -2556,6 +2608,20 @@ const eventContent = (arg: any) => {
     courseLine.style.textAlign = 'center';
     courseLine.textContent = `${courseName}`;
     column1.appendChild(courseLine);
+  }
+
+  // 第三行：剩餘可上課堂數 (僅上課類型且已取得數值時顯示)
+  if (type === 1 && remainingClasses !== null && remainingClasses !== undefined) {
+    const remainingLine = document.createElement('div');
+    remainingLine.style.overflow = 'hidden';
+    remainingLine.style.textOverflow = 'ellipsis';
+    remainingLine.style.whiteSpace = 'nowrap';
+    remainingLine.style.width = '100%';
+    remainingLine.style.textAlign = 'center';
+    // 剩餘 <= 1 堂 紅色提醒 (快用完)，> 1 堂 綠色
+    remainingLine.style.color = remainingClasses > 1 ? '#1f6f1f' : '#c0392b';
+    remainingLine.textContent = `餘 ${remainingClasses} 堂`;
+    column1.appendChild(remainingLine);
   }
 
   container.appendChild(column1);
