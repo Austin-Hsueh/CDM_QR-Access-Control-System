@@ -142,10 +142,19 @@ public class ScheduledJob : IJob
             userAccessProfiles.AddRange(teacherAccessProfiles);
             userAccessProfiles.AddRange(parentAccessProfiles);
 
-            // 移除重複的 userAddr
+            // 合併重複的 userAddr (連堂情境：同一人會有多筆 profile)
+            // beginTime 取最早、endTime 取最晚、doorList 取聯集，其餘欄位沿用第一筆
+            // beginTime/endTime 為字串格式 "yyyy-MM-ddTHH:mm:ss"，以 DateTime 解析後比較
             userAccessProfiles = userAccessProfiles
                 .GroupBy(x => x.userAddr)
-                .Select(g => g.First())
+                .Select(g => new UserAccessProfile()
+                {
+                    userAddr = g.Key,
+                    isGrant = g.First().isGrant,
+                    beginTime = g.OrderBy(x => DateTime.Parse(x.beginTime)).First().beginTime,
+                    endTime = g.OrderByDescending(x => DateTime.Parse(x.endTime)).First().endTime,
+                    doorList = g.SelectMany(x => x.doorList ?? new List<int>()).Distinct().ToList()
+                })
                 .ToList();
 
             //API 設定並取得QRcode

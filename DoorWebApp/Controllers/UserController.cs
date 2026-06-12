@@ -1706,6 +1706,17 @@ namespace DoorWebApp.Controllers
                             .ToList();
 
                         schedules = schedules.Concat(newSchedules).ToList();
+
+                        // 合併母帳號與子帳號課表後：
+                        // 1. 排除已結束的課 (EndTime < 現在時間)，避免母帳號已結束/未開始的課蓋掉子帳號正在上的課
+                        // 2. 依日期、開始時間重新排序，讓正在上課(或最接近現在)的課排在第一筆 (前端取 schedules[0])
+                        // EndTime/StartTime 為 "HH:mm"、ScheduleDate 為 "yyyy/MM/dd"，皆為零補位字串可直接比較
+                        string nowHHmm = DateTime.Now.ToString("HH:mm");
+                        schedules = schedules
+                            .Where(s => string.Compare(s.EndTime, nowHHmm) >= 0)
+                            .OrderBy(s => s.ScheduleDate)
+                            .ThenBy(s => s.StartTime)
+                            .ToList();
                     }
                 }
 
