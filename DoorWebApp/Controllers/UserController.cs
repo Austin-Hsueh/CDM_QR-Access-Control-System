@@ -539,7 +539,7 @@ namespace DoorWebApp.Controllers
         /// 取得使用者清單(含角色資訊)
         /// </summary>
         /// <returns></returns>
-        [AllowAnonymous]
+        [Authorize]
         [HttpPost("v1/User/{UserId}")]
         public IActionResult GetUserWithRoles(int UserId)
         {
@@ -575,8 +575,7 @@ namespace DoorWebApp.Controllers
                         timeto = x.Permission.TimeTo.ToString(),
                         days = x.Permission.Days,
                         type = x.Type,
-                        address = x.Address,
-                        idcard = x.IDcard,
+                        // 移除 address / idcard 投影：課程詳情彈窗與帳號管理頁皆未使用，避免不必要的個資外洩
                         contactPerson = x.ContactPerson,
                         contactPhone = x.ContactPhone,
                         relationshipTitle = x.RelationshipTitle,

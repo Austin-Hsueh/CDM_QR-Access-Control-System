@@ -31,6 +31,7 @@ namespace DoorWebApp.Controllers
         /// 取得課表清單
         /// </summary>
         /// <returns></returns>
+        [Authorize]
         [HttpPost("v1/Schedules")]
         public async Task<IActionResult> GetSchedules(ReqScheduleQueryDTO queryDTO)
         {
