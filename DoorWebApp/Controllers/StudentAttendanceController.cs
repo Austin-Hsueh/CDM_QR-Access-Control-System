@@ -224,6 +224,7 @@ namespace DoorWebApp.Controllers
                 var combinedAttendances = permissions
                     .SelectMany(sp => sp.Attendances ?? new List<TblAttendance>())
                     .Where(a => !a.IsDelete &&
+                               a.AttendanceType != 2 &&   // 排除請假：請假不消耗堂數，該簽到格視為未使用(算入剩餘)
                                scheduleDict.TryGetValue(a.StudentPermissionId, out var dates) &&
                                dates.Contains(a.AttendanceDate))
                     .OrderBy(a => a.AttendanceDate)
@@ -571,9 +572,12 @@ namespace DoorWebApp.Controllers
         private static string? FormatAttendance(TblAttendance? attendance)
         {
             if (attendance == null) return null;
-            // 格式：YYYY-MM-DD (type)
-            return $"{attendance.AttendanceDate}";
-            // return $"{attendance.AttendanceDate} (type:{attendance.AttendanceType})";
+            // 格式：YYYY-MM-DD 出席狀態 (請假已於上游排除，正常只會是出席/缺席)
+            string typeName = attendance.AttendanceType == 1 ? "出席"
+                            : attendance.AttendanceType == 0 ? "缺席"
+                            : attendance.AttendanceType == 2 ? "請假"
+                            : "未知";
+            return $"{attendance.AttendanceDate} {typeName}";
         }
 
         /// <summary>
