@@ -3,7 +3,7 @@ import IReqUserRoleDTO from "@/models/dto/IReqUserRoleDTO";
 import IResUserInfoDTO from "@/models/dto/IResUserInfoDTO";
 import { IBaseAPIResponse } from "@/models/IBaseAPIResponse";
 import IAPIResponse from "@/models/IAPIResponse";
-import { M_IResDailyScheduleStatus, M_ICheckInAllResult, M_ICloseAccountDetail, M_ISaveCloseAccountRequest, M_IReqCreateAttendance, M_IReqUpdateAttendance, M_IResAttendance, M_IResStudentAttendance, M_IReqCreatePayment, M_IReqUpdatePayment, M_IReqRebindPayment, M_IReqCreateStudentPermissionFee, M_IResCreateStudentPermissionFee, M_IReqUpdateStudentPermissionFee, M_ICloseAccountRecord, M_IResStudentPaymentByStudent, M_IReqCreateRefund, M_IStudentRefundSummary, M_IStudentRefundDetail } from "@/models/M_ICloseAccount";
+import { M_IResDailyScheduleStatus, M_ICheckInAllResult, M_ICloseAccountDetail, M_ISaveCloseAccountRequest, M_IReqCreateAttendance, M_IReqUpdateAttendance, M_IResAttendance, M_IResStudentAttendance, M_IReqCreatePayment, M_IReqUpdatePayment, M_IReqRebindPayment, M_IReqCreateStudentPermissionFee, M_IResCreateStudentPermissionFee, M_IReqUpdateStudentPermissionFee, M_ICloseAccountRecord, M_IResStudentPaymentByStudent, M_IReqCreateRefund, M_IStudentRefundSummary, M_IStudentRefundDetail, M_IMyCourse } from "@/models/M_ICloseAccount";
 import { useRouter } from "vue-router";
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import IReqLoginDTO from "@/models/dto/IReqLoginDTO";
@@ -582,6 +582,11 @@ class APIService {
   /** 建立簽到記錄 */
   createAttendance(request: M_IReqCreateAttendance) {
     return this.axiosInstance.post<IAPIResponse<M_IResAttendance>>(`v1/Attend`, request);
+  }
+
+  /** 取得登入者本人(含子帳號)的課程清單，供簽到表課程選擇器使用 */
+  getMyCourses() {
+    return this.axiosInstance.get<IAPIResponse<M_IMyCourse[]>>(`v1/StudentAttendance/MyCourses`);
   }
 
   /** 取得學生簽到記錄摘要 */

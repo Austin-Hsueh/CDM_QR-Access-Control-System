@@ -113,6 +113,17 @@ export interface M_IStudentAttendanceSummary {
 }
 
 /**
+ * 學生自己的課程項目 (簽到表課程選擇器用)
+ */
+export interface M_IMyCourse {
+  studentPermissionId: number;
+  studentId: number;
+  studentName: string;
+  courseName: string;
+  teacherName: string;
+}
+
+/**
  * 學生簽到記錄回應
  */
 export interface M_IResStudentAttendance {

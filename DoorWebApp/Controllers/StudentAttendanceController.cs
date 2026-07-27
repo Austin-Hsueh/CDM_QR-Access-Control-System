@@ -166,8 +166,77 @@ namespace DoorWebApp.Controllers
         /// 結帳單號 -> tblpayment
         /// 課程一~課程四 -> tblattendance
         /// </summary>
+        /// <summary>
+        /// 取得「登入者本人 (含其子帳號)」的課程清單，供簽到表的課程選擇器使用。
+        /// 不接受 UserId 參數，一律以 JWT 內的身分為準，避免查詢到他人資料。
+        /// </summary>
+        [HttpGet("v1/StudentAttendance/MyCourses")]
+        public IActionResult GetMyCourses()
+        {
+            var res = new APIResponse<List<ResMyCourseDTO>>();
+
+            try
+            {
+                int OperatorId = User.Claims.Where(x => x.Type == "Id").Select(x => int.Parse(x.Value)).FirstOrDefault();
+                log.LogInformation($"[{Request.Path}] GetMyCourses : OperatorId={OperatorId}");
+
+                if (OperatorId <= 0)
+                {
+                    res.result = APIResultCode.user_not_found;
+                    res.msg = "查無使用者";
+                    return Ok(res);
+                }
+
+                // 本人 + 子帳號 (母帳號需能查看子女的簽到表)
+                var userIds = new List<int> { OperatorId };
+                userIds.AddRange(ctx.TblUsers
+                    .Where(u => u.ParentId == OperatorId && !u.IsDelete)
+                    .Select(u => u.Id)
+                    .ToList());
+
+                // 僅取上課類型 (Type=1)，排除租借教室 (Type=2)
+                var permissions = ctx.TblStudentPermission
+                    .Where(sp => !sp.IsDelete && sp.Type == 1 && userIds.Contains(sp.UserId))
+                    .Include(sp => sp.Course)
+                    .Include(sp => sp.Teacher)
+                    .Include(sp => sp.User)
+                    .ToList();
+
+                // 依「學生 + 課程 + 老師」分組，每組取最新 (Id 最大) 的一筆當代表
+                var courses = permissions
+                    .GroupBy(sp => new { sp.UserId, sp.CourseId, sp.TeacherId })
+                    .Select(g =>
+                    {
+                        var latest = g.OrderByDescending(sp => sp.Id).First();
+                        return new ResMyCourseDTO
+                        {
+                            StudentPermissionId = latest.Id,
+                            StudentId = latest.UserId,
+                            StudentName = latest.User?.DisplayName ?? "",
+                            CourseName = latest.Course?.Name ?? "",
+                            TeacherName = latest.Teacher?.DisplayName ?? ""
+                        };
+                    })
+                    .OrderBy(x => x.StudentName)
+                    .ThenBy(x => x.CourseName)
+                    .ToList();
+
+                res.result = APIResultCode.success;
+                res.msg = "";
+                res.content = courses;
+                return Ok(res);
+            }
+            catch (Exception err)
+            {
+                log.LogError(err, $"[{Request.Path}] Error : {err.Message}");
+                res.result = APIResultCode.unknow_error;
+                res.msg = err.Message;
+                return Ok(res);
+            }
+        }
+
         /// <param name="studentPermissionId">學生權限 Id</param>
-        [HttpGet("v1/StudentAttendance/{studentPermissionId}")]
+        [HttpGet("v1/StudentAttendance/{studentPermissionId:int}")]
         public IActionResult GetStudentAttendance(int studentPermissionId)
         {
             var res = new APIResponse<ResStudentAttendanceListDTO>();
