@@ -1706,16 +1706,42 @@ namespace DoorWebApp.Controllers
 
                         schedules = schedules.Concat(newSchedules).ToList();
 
-                        // 合併母帳號與子帳號課表後：
-                        // 1. 排除已結束的課 (EndTime < 現在時間)，避免母帳號已結束/未開始的課蓋掉子帳號正在上的課
-                        // 2. 依日期、開始時間重新排序，讓正在上課(或最接近現在)的課排在第一筆 (前端取 schedules[0])
-                        // EndTime/StartTime 為 "HH:mm"、ScheduleDate 為 "yyyy/MM/dd"，皆為零補位字串可直接比較
+                        // 合併母帳號與子帳號課表後，決定畫面要顯示哪一堂 (前端只取 schedules[0])：
+                        // 1. 排除已結束的課 (EndTime < now)
+                        // 2. 提早 10 分鐘切換：每堂自「開始前 10 分鐘」起即視為可顯示 (與門禁提前 10 分鐘開放一致)；
+                        //    若有多堂已進入此視窗(含進行中)，取最接近的下一堂(開始時間最晚者)排第一；
+                        //    若尚無任何課進入視窗，取最早開始的未結束課。
+                        // EndTime/StartTime 為 "HH:mm"、ScheduleDate 為 "yyyy/MM/dd"，皆為零補位字串可直接比較。
                         string nowHHmm = DateTime.Now.ToString("HH:mm");
-                        schedules = schedules
+
+                        // 計算「開始前 10 分鐘」的時間字串 (HH:mm)
+                        string StartMinus10(string startTime)
+                        {
+                            if (!TimeSpan.TryParse(startTime, out var ts)) return startTime;
+                            var shifted = ts.Add(TimeSpan.FromMinutes(-10));
+                            if (shifted < TimeSpan.Zero) shifted = TimeSpan.Zero;
+                            return shifted.ToString(@"hh\:mm");
+                        }
+
+                        var notEnded = schedules
                             .Where(s => string.Compare(s.EndTime, nowHHmm) >= 0)
-                            .OrderBy(s => s.ScheduleDate)
-                            .ThenBy(s => s.StartTime)
                             .ToList();
+
+                        // 已進入顯示視窗(開始前10分鐘已到、含進行中)者取最接近的下一堂；都還沒進入則取最早開始的未結束課
+                        var current =
+                            notEnded.Where(s => string.Compare(StartMinus10(s.StartTime), nowHHmm) <= 0)
+                                    .OrderByDescending(s => s.ScheduleDate)
+                                    .ThenByDescending(s => s.StartTime)
+                                    .FirstOrDefault()
+                            ?? notEnded.OrderBy(s => s.ScheduleDate).ThenBy(s => s.StartTime).FirstOrDefault();
+
+                        schedules = current == null
+                            ? new List<ResScheduleDTO>()
+                            : new List<ResScheduleDTO> { current }
+                                .Concat(notEnded.Where(s => s != current)
+                                                .OrderBy(s => s.ScheduleDate)
+                                                .ThenBy(s => s.StartTime))
+                                .ToList();
                     }
                 }
 
