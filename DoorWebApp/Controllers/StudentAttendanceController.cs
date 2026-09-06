@@ -357,6 +357,9 @@ namespace DoorWebApp.Controllers
                         DiscountAmount = discount,
                         OutstandingAmount = outstanding,
                         ReceiptNumber = receiptNumber,
+                        CourseDeadline = fee.CourseDeadline?.ToString("yyyy-MM-dd"),
+                        StudentAbsenceDates = ParseAbsenceDates(fee.StudentAbsenceDates),
+                        TeacherAbsenceDates = ParseAbsenceDates(fee.TeacherAbsenceDates),
                         Attendances = attendances
                     });
 
@@ -638,6 +641,48 @@ namespace DoorWebApp.Controllers
                 return Ok(res);
             }
         }
+        /// <summary>
+        /// 將前端傳入的缺課日期陣列正規化為 DB 儲存格式 (逗號分隔、去重、排序)
+        /// 全空時回傳 null 代表清除；任一筆格式錯誤則回傳 false 並帶出該筆內容
+        /// </summary>
+        private static bool TryNormalizeAbsenceDates(List<string> input, out string? normalized, out string? invalidValue)
+        {
+            normalized = null;
+            invalidValue = null;
+
+            var validDates = new List<string>();
+            foreach (var raw in input)
+            {
+                if (string.IsNullOrWhiteSpace(raw)) continue;
+
+                if (!DateTime.TryParse(raw, out var absenceDate))
+                {
+                    invalidValue = raw;
+                    return false;
+                }
+                validDates.Add(absenceDate.ToString("yyyy-MM-dd"));
+            }
+
+            // 去重並排序，避免同一天重複記錄
+            normalized = validDates.Any()
+                ? string.Join(",", validDates.Distinct().OrderBy(d => d))
+                : null;
+            return true;
+        }
+
+        /// <summary>
+        /// 將 DB 儲存的逗號分隔缺課日期字串拆成陣列 (空值回傳空陣列)
+        /// </summary>
+        private static List<string> ParseAbsenceDates(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return new List<string>();
+
+            return raw.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                      .Select(d => d.Trim())
+                      .Where(d => !string.IsNullOrEmpty(d))
+                      .ToList();
+        }
+
         private static string? FormatAttendance(TblAttendance? attendance)
         {
             if (attendance == null) return null;
@@ -824,6 +869,51 @@ namespace DoorWebApp.Controllers
 
                     int defaultTotal = (permission?.Course?.CourseFee?.Amount ?? 0) + (permission?.Course?.CourseFee?.MaterialFee ?? 0);
                     feeEntity.TotalAmount = defaultTotal;
+                }
+
+                // 更新課程期限：null = 不異動，空字串 = 清除
+                if (feeDTO.courseDeadline != null)
+                {
+                    if (string.IsNullOrWhiteSpace(feeDTO.courseDeadline))
+                    {
+                        feeEntity.CourseDeadline = null;
+                    }
+                    else if (DateTime.TryParse(feeDTO.courseDeadline, out var deadline))
+                    {
+                        feeEntity.CourseDeadline = deadline;
+                    }
+                    else
+                    {
+                        log.LogWarning($"[{Request.Path}] Invalid courseDeadline format: {feeDTO.courseDeadline}");
+                        res.result = APIResultCode.unknow_error;
+                        res.msg = "courseDeadline 格式不正確，應為 yyyy-MM-dd";
+                        return Ok(res);
+                    }
+                }
+
+                // 更新缺課日期 (學生/老師)：null = 不異動，空陣列 = 清除
+                if (feeDTO.studentAbsenceDates != null)
+                {
+                    if (!TryNormalizeAbsenceDates(feeDTO.studentAbsenceDates, out var normalized, out var invalid))
+                    {
+                        log.LogWarning($"[{Request.Path}] Invalid student absenceDate format: {invalid}");
+                        res.result = APIResultCode.unknow_error;
+                        res.msg = $"學生缺課日期格式不正確 ({invalid})，應為 yyyy-MM-dd";
+                        return Ok(res);
+                    }
+                    feeEntity.StudentAbsenceDates = normalized;
+                }
+
+                if (feeDTO.teacherAbsenceDates != null)
+                {
+                    if (!TryNormalizeAbsenceDates(feeDTO.teacherAbsenceDates, out var normalized, out var invalid))
+                    {
+                        log.LogWarning($"[{Request.Path}] Invalid teacher absenceDate format: {invalid}");
+                        res.result = APIResultCode.unknow_error;
+                        res.msg = $"老師缺課日期格式不正確 ({invalid})，應為 yyyy-MM-dd";
+                        return Ok(res);
+                    }
+                    feeEntity.TeacherAbsenceDates = normalized;
                 }
 
                 // 記錄修改時間

@@ -41,6 +41,15 @@ namespace DoorWebApp.Models.DTO
         /// <summary>結帳單號（取最近一筆付款的 ReceiptNumber）</summary>
         public string? ReceiptNumber { get; set; }
 
+        /// <summary>課程期限（字串，格式 yyyy-MM-dd，未設定為 null）</summary>
+        public string? CourseDeadline { get; set; }
+
+        /// <summary>學生缺課日期（yyyy-MM-dd 字串陣列，未設定為空陣列）</summary>
+        public List<string> StudentAbsenceDates { get; set; } = new List<string>();
+
+        /// <summary>老師缺課日期（yyyy-MM-dd 字串陣列，未設定為空陣列）</summary>
+        public List<string> TeacherAbsenceDates { get; set; } = new List<string>();
+
         /// <summary>簽到記錄列表（根據該費用的 Hours 決定數量）</summary>
         public List<string?> Attendances { get; set; } = new List<string?>();
     }

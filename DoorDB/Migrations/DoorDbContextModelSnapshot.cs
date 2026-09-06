@@ -837,6 +837,10 @@ namespace DoorWebDB.Migrations
                         .HasColumnType("int")
                         .HasComment("Id");
 
+                    b.Property<DateTime?>("CourseDeadline")
+                        .HasColumnType("datetime(6)")
+                        .HasComment("課程期限");
+
                     b.Property<decimal?>("CourseSplitRatio")
                         .HasColumnType("decimal(65,30)")
                         .HasComment("課程拆帳比");
@@ -861,9 +865,17 @@ namespace DoorWebDB.Migrations
                         .HasColumnType("datetime(6)")
                         .HasComment("繳款日期");
 
+                    b.Property<string>("StudentAbsenceDates")
+                        .HasColumnType("varchar(255)")
+                        .HasComment("學生缺課日期(逗號分隔 yyyy-MM-dd)");
+
                     b.Property<int>("StudentPermissionId")
                         .HasColumnType("int")
                         .HasComment("學生權限Id");
+
+                    b.Property<string>("TeacherAbsenceDates")
+                        .HasColumnType("varchar(255)")
+                        .HasComment("老師缺課日期(逗號分隔 yyyy-MM-dd)");
 
                     b.Property<decimal?>("TeacherSplitRatio")
                         .HasColumnType("decimal(65,30)")

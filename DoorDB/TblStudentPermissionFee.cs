@@ -57,6 +57,26 @@ namespace DoorDB
         public decimal Hours { get; set; } = 4;
 
         /// <summary>
+        /// 課程期限 (該期課程的最後可上課日期，由管理者維護)
+        /// </summary>
+        [Comment("課程期限")]
+        public DateTime? CourseDeadline { get; set; }
+
+        /// <summary>
+        /// 學生缺課日期 (該期學生缺課日，可多筆，以逗號分隔的 yyyy-MM-dd 字串儲存，由管理者維護)
+        /// </summary>
+        [Comment("學生缺課日期(逗號分隔 yyyy-MM-dd)")]
+        [Column(TypeName = "varchar(255)")]
+        public string? StudentAbsenceDates { get; set; }
+
+        /// <summary>
+        /// 老師缺課日期 (該期老師缺課日，可多筆，以逗號分隔的 yyyy-MM-dd 字串儲存，由管理者維護)
+        /// </summary>
+        [Comment("老師缺課日期(逗號分隔 yyyy-MM-dd)")]
+        [Column(TypeName = "varchar(255)")]
+        public string? TeacherAbsenceDates { get; set; }
+
+        /// <summary>
         /// 是否刪除
         /// </summary>
         [Required]

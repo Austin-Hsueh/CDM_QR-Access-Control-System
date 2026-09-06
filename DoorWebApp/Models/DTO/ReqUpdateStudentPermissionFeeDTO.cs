@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace DoorWebApp.Models.DTO
 {
     /// <summary>
@@ -19,6 +21,24 @@ namespace DoorWebApp.Models.DTO
         /// 總金額 (選填)
         /// </summary>
         public int? totalAmount { get; set; }
+
+        /// <summary>
+        /// 課程期限 (格式: yyyy-MM-dd，選填)
+        /// null = 不異動；空字串 = 清除
+        /// </summary>
+        public string? courseDeadline { get; set; }
+
+        /// <summary>
+        /// 學生缺課日期 (yyyy-MM-dd 字串陣列，選填)
+        /// null = 不異動；空陣列 = 清除
+        /// </summary>
+        public List<string>? studentAbsenceDates { get; set; }
+
+        /// <summary>
+        /// 老師缺課日期 (yyyy-MM-dd 字串陣列，選填)
+        /// null = 不異動；空陣列 = 清除
+        /// </summary>
+        public List<string>? teacherAbsenceDates { get; set; }
 
         /// <summary>
         /// 是否刪除 (預設: false)
