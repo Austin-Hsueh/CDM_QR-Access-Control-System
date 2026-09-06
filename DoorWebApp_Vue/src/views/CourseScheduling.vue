@@ -322,49 +322,94 @@
 <!-- 繳費紀錄 Dialog -->
 <el-dialog
   v-model="isShowPaymentRecordDialog"
-  title="繳費紀錄"
+  :title="paymentRecordTitle"
   width="90%"
 >
   <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 15px;">
     <el-button type="primary" size="small" @click="handleCreatePayment"><el-icon><EditPen /></el-icon>{{ '新增一期繳費' }}</el-button>
     <el-tag effect="dark">剩餘可上課堂數：{{ remainingClasses }} 堂</el-tag>
   </div>
-  <el-table :data="paymentRecordData" border style="width: 100%">
-    <el-table-column prop="serialNo" label="序號" width="80"/>
-    <el-table-column prop="courseName" label="課程名稱"/>
-    <el-table-column prop="paymentDate" label="應繳款日"/>
-    <el-table-column prop="payDate" label="實際繳款日" />
-    <el-table-column prop="receivableAmount" label="應收金額" />
-    <el-table-column prop="discountAmount" label="折扣金額" />
-    <el-table-column prop="receivedAmount" label="已收金額" />
-    <el-table-column prop="outstandingAmount" label="欠款金額" />
-    <el-table-column prop="receiptNumber" label="結帳單號" />
+  <!-- max-height 交給 el-table 內建處理：表頭固定、表身超出高度即出現滾動條 (試上帳號期數多時尤其需要) -->
+  <el-table :data="displayedPaymentRecords" border style="width: 100%" max-height="60vh">
+    <el-table-column prop="serialNo" label="序號" width="60" align="center"/>
+    <!-- 課程名稱每列皆相同 (同一學生同一課程分組)，已移至標題不再佔用欄位 -->
+    <el-table-column prop="paymentDate" label="應繳款日" width="110"/>
+    <el-table-column prop="payDate" label="實際繳款日" width="110" />
 
-    <!-- 動態簽到欄位 -->
-    <el-table-column
-      v-for="i in maxHours"
-      :key="i"
-      :label="`簽到 ${i}`"
-    >
-      <template #default="{ row }">
-        {{ row.attendances[i - 1] ?? '-' }}
+    <!-- 金額四欄合併：欠款為 0 時不顯示該行，有欠款才會跳出來 -->
+    <el-table-column label="金額" width="150">
+      <template #default="{ row }: { row: M_IStudentAttendanceSummary }">
+        <div class="amount-cell">
+          <span>應收 {{ row.receivableAmount.toLocaleString() }}</span>
+          <span v-if="row.discountAmount">折扣 -{{ row.discountAmount.toLocaleString() }}</span>
+          <span class="amount-paid">已收 {{ row.receivedAmount.toLocaleString() }}</span>
+          <span v-if="row.outstandingAmount" class="amount-owed">欠 {{ row.outstandingAmount.toLocaleString() }}</span>
+        </div>
       </template>
     </el-table-column>
-    <el-table-column align="center" class="operateBtnGroup d-flex" label="操作" width="300" fixed="right">
-      <template #default="{ row }: { row: any }">
-        <div style="display: flex; flex-direction: column; gap: 5px; align-items: center;">
-          <!-- 第一行 -->
-          <div style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
-            <el-button type="primary" size="small" @click="handlePayment(row)" v-if="(row.receivedAmount === 0)"><el-icon><EditPen /></el-icon>{{ '繳費' }}</el-button>
-            <el-button type="primary" size="small" @click="handlePayment(row)" v-if="(row.receivedAmount !== 0)"><el-icon><EditPen /></el-icon>{{ '編輯繳費' }}</el-button>
-            <el-button type="success" size="small" @click="handleEditFeeInfo(row)" v-if="(row.receivedAmount === 0)"><el-icon><Edit /></el-icon>{{ '編輯此期' }}</el-button>
-          </div>
-          <!-- 第二行 -->
-          <div style="display: flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
-            <el-button type="warning" size="small" @click="handleRefund(row)" v-if="(row.receivedAmount !== 0)"><el-icon><Money /></el-icon>{{ '退費' }}</el-button>
-            <el-button type="info" size="small" @click="handleViewRefundDetail(row)"><el-icon><Edit /></el-icon>{{ '退費資訊' }}</el-button>
-            <el-button type="warning" size="small" @click="handleManageAttendance(row)"><el-icon><Edit /></el-icon>{{ '查看細項' }}</el-button>
-          </div>
+
+    <!-- 單號較長時以 tooltip 補足，不佔用欄寬 -->
+    <el-table-column prop="receiptNumber" label="結帳單號" width="100" show-overflow-tooltip />
+
+    <el-table-column label="課程期限" width="120">
+      <template #default="{ row }: { row: M_IStudentAttendanceSummary }">
+        <span v-if="row.courseDeadline">{{ row.courseDeadline }}</span>
+        <span v-else style="color: #C0C4CC;">未設定</span>
+      </template>
+    </el-table-column>
+
+    <el-table-column label="缺課日期(學生)" width="150">
+      <template #default="{ row }: { row: M_IStudentAttendanceSummary }">
+        <div v-if="row.studentAbsenceDates && row.studentAbsenceDates.length" class="absence-tags">
+          <el-tag v-for="d in row.studentAbsenceDates" :key="d" size="small" type="warning">{{ d }}</el-tag>
+        </div>
+        <span v-else style="color: #C0C4CC;">無</span>
+      </template>
+    </el-table-column>
+
+    <el-table-column label="缺課日期(老師)" width="150">
+      <template #default="{ row }: { row: M_IStudentAttendanceSummary }">
+        <div v-if="row.teacherAbsenceDates && row.teacherAbsenceDates.length" class="absence-tags">
+          <el-tag v-for="d in row.teacherAbsenceDates" :key="d" size="small" type="danger">{{ d }}</el-tag>
+        </div>
+        <span v-else style="color: #C0C4CC;">無</span>
+      </template>
+    </el-table-column>
+
+    <!-- 簽到記錄：原本每堂一欄，改為單欄內 tag 換行，避免 maxHours 越大表格越寬 -->
+    <el-table-column label="簽到記錄" min-width="230">
+      <template #default="{ row }: { row: M_IStudentAttendanceSummary }">
+        <div class="absence-tags">
+          <el-tag
+            v-for="i in maxHours"
+            :key="i"
+            size="small"
+            :type="attendanceTagType(row.attendances[i - 1])"
+            :effect="row.attendances[i - 1] ? 'dark' : 'plain'">
+            {{ i }}. {{ row.attendances[i - 1] || '未簽到' }}
+          </el-tag>
+        </div>
+      </template>
+    </el-table-column>
+    <!-- 最常用的繳費留在外層，其餘收進下拉。寬度需容納較長的「編輯繳費」+「更多」 -->
+    <el-table-column align="center" label="操作" width="220" fixed="right">
+      <template #default="{ row }: { row: M_IStudentAttendanceSummary }">
+        <div class="operate-cell">
+          <el-button type="primary" size="small" @click="handlePayment(row)">
+            <el-icon><EditPen /></el-icon>{{ row.receivedAmount === 0 ? '繳費' : '編輯繳費' }}
+          </el-button>
+          <el-dropdown trigger="click" @command="(cmd: string) => handleRowCommand(cmd, row)">
+            <el-button size="small">更多<el-icon class="el-icon--right"><ArrowDown /></el-icon></el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="editFee" v-if="row.receivedAmount === 0">編輯此期</el-dropdown-item>
+                <el-dropdown-item command="refund" v-if="row.receivedAmount !== 0">退費</el-dropdown-item>
+                <el-dropdown-item command="refundDetail">退費資訊</el-dropdown-item>
+                <el-dropdown-item command="attendance">查看細項</el-dropdown-item>
+                <el-dropdown-item command="deadline">期限/缺課</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </template>
     </el-table-column>
@@ -485,6 +530,58 @@
       <el-button @click="isShowEditFeeDialog = false">取消</el-button>
       <el-button type="danger" @click="deleteFeeInfo">刪除此期</el-button>
       <el-button type="primary" @click="submitEditFee">確定</el-button>
+    </span>
+  </template>
+</el-dialog>
+
+<!-- 編輯課程期限 / 缺課日期 Dialog -->
+<el-dialog
+  v-model="isShowDeadlineDialog"
+  title="編輯課程期限 / 缺課日期"
+  width="520px"
+>
+  <el-form :model="deadlineFormData" label-width="120px">
+    <el-form-item label="課程名稱">
+      <el-input v-model="deadlineFormData.courseName" disabled />
+    </el-form-item>
+    <el-form-item label="課程期限">
+      <el-date-picker
+        v-model="deadlineFormData.courseDeadline"
+        type="date"
+        placeholder="選擇課程期限（可清除）"
+        format="YYYY-MM-DD"
+        value-format="YYYY-MM-DD"
+        clearable
+        style="width: 100%"
+      />
+    </el-form-item>
+    <el-form-item label="缺課日期(學生)">
+      <el-date-picker
+        v-model="deadlineFormData.studentAbsenceDates"
+        type="dates"
+        placeholder="可複選多個學生缺課日期"
+        format="YYYY-MM-DD"
+        value-format="YYYY-MM-DD"
+        clearable
+        style="width: 100%"
+      />
+    </el-form-item>
+    <el-form-item label="缺課日期(老師)">
+      <el-date-picker
+        v-model="deadlineFormData.teacherAbsenceDates"
+        type="dates"
+        placeholder="可複選多個老師缺課日期"
+        format="YYYY-MM-DD"
+        value-format="YYYY-MM-DD"
+        clearable
+        style="width: 100%"
+      />
+    </el-form-item>
+  </el-form>
+  <template #footer>
+    <span class="dialog-footer">
+      <el-button @click="isShowDeadlineDialog = false">取消</el-button>
+      <el-button type="primary" @click="submitEditDeadline">確定</el-button>
     </span>
   </template>
 </el-dialog>
@@ -769,7 +866,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import { FormInstance, FormRules, ElMessage, ElMessageBox } from 'element-plus';
-import { Delete, Edit, CircleCheck, Money, EditPen, Loading } from '@element-plus/icons-vue';
+import { Delete, Edit, CircleCheck, Money, EditPen, Loading, ArrowDown } from '@element-plus/icons-vue';
 import { useUserInfoStore } from '@/stores/UserInfoStore';
 
 import API from '@/apis/TPSAPI';
@@ -835,7 +932,49 @@ const calcRemainingClasses = (attendances: M_IStudentAttendanceSummary[]): numbe
 };
 
 // 繳費紀錄彈窗用：當前學生此課程的剩餘可上課堂數
+// 注意：用完整資料計算，不受下方顯示筆數限制影響
 const remainingClasses = computed(() => calcRemainingClasses(paymentRecordData.value));
+
+// 只顯示最晚的 N 期
+const DISPLAY_PERIOD_LIMIT = 6;
+
+// 試上共用帳號 (DisplayName「試上」) 會累積大量單堂期數，需完整顯示不套用筆數限制
+const TRIAL_STUDENT_NAME = '試上';
+const isTrialStudent = computed(() => courseDetail.studentName === TRIAL_STUDENT_NAME);
+
+// 顯示用：以時間降冪 (最新的期數排最前面)；一般學生只取最晚的 6 期，試上帳號顯示全部
+// SerialNo 由後端依費用 Id 遞增指派，即為時間順序
+const displayedPaymentRecords = computed(() => {
+  const sorted = [...paymentRecordData.value].sort((a, b) => b.serialNo - a.serialNo);
+  return isTrialStudent.value ? sorted : sorted.slice(0, DISPLAY_PERIOD_LIMIT);
+});
+
+// 課程名稱每列皆相同，改放標題避免每列重複一整欄
+const paymentRecordTitle = computed(() => {
+  const parts = [courseDetail.studentName, paymentRecordData.value[0]?.courseName ?? courseDetail.courseName]
+    .filter(Boolean);
+  return parts.length ? `繳費紀錄 - ${parts.join(' / ')}` : '繳費紀錄';
+});
+
+// 簽到格顏色：後端回傳 "YYYY-MM-DD 出席/缺席/請假"
+// 缺席用 warning(橘)，與課程詳情的「曠課」按鈕同色
+const attendanceTagType = (value?: string | null): string => {
+  if (!value) return 'info';                      // 尚未簽到
+  if (value.includes('缺席')) return 'warning';
+  if (value.includes('請假')) return 'info';
+  return 'success';                               // 出席
+};
+
+// 操作欄下拉選單分派
+const handleRowCommand = (command: string, row: M_IStudentAttendanceSummary) => {
+  switch (command) {
+    case 'editFee': handleEditFeeInfo(row); break;
+    case 'refund': handleRefund(row); break;
+    case 'refundDetail': handleViewRefundDetail(row); break;
+    case 'attendance': handleManageAttendance(row); break;
+    case 'deadline': handleEditDeadline(row); break;
+  }
+};
 
 // 課表事件用：studentPermissionId -> 剩餘可上課堂數
 // 為課表事件預先載入剩餘堂數，依「學生 + 課程 + 老師」分群 (與後端 GetStudentAttendance 分群一致)，避免重複呼叫
@@ -941,6 +1080,18 @@ const editFeeFormData = reactive({
   studentPermissionFeeId: 0,
   courseName: '',
   paymentDate: ''
+});
+
+// 編輯課程期限 / 缺課日期 Dialog 控制
+const isShowDeadlineDialog = ref(false);
+const deadlineFormData = reactive({
+  studentPermissionFeeId: 0,
+  courseName: '',
+  courseDeadline: '' as string | null,
+  studentAbsenceDates: [] as string[],
+  teacherAbsenceDates: [] as string[],
+  // 送出時原值回填，避免後端把 TotalAmount 重設為課程預設金額 (見 submitEditDeadline)
+  receivableAmount: 0
 });
 
 // 退款資訊 Dialog 控制
@@ -1802,6 +1953,43 @@ const handleEditFeeInfo = (row: M_IStudentAttendanceSummary) => {
   editFeeFormData.courseName = row.courseName;
   editFeeFormData.paymentDate = row.paymentDate ? formatDateToYYYYMMDD(row.paymentDate) : '';
   isShowEditFeeDialog.value = true;
+};
+
+// 開啟「課程期限 / 缺課日期」編輯視窗
+const handleEditDeadline = (row: M_IStudentAttendanceSummary) => {
+  deadlineFormData.studentPermissionFeeId = row.studentPermissionFeeId;
+  deadlineFormData.courseName = row.courseName;
+  deadlineFormData.courseDeadline = row.courseDeadline || '';
+  deadlineFormData.studentAbsenceDates = [...(row.studentAbsenceDates ?? [])];
+  deadlineFormData.teacherAbsenceDates = [...(row.teacherAbsenceDates ?? [])];
+  deadlineFormData.receivableAmount = row.receivableAmount;
+  isShowDeadlineDialog.value = true;
+};
+
+// 送出「課程期限 / 缺課日期」
+const submitEditDeadline = async () => {
+  try {
+    const response = await API.updateStudentPermissionFee({
+      studentPermissionFeeId: deadlineFormData.studentPermissionFeeId,
+      // 後端在 totalAmount 為空時會把金額重設為課程預設值，
+      // 這裡回填原本的應收金額，避免只改期限卻連帶改掉金額
+      totalAmount: deadlineFormData.receivableAmount,
+      courseDeadline: deadlineFormData.courseDeadline || '',
+      studentAbsenceDates: deadlineFormData.studentAbsenceDates ?? [],
+      teacherAbsenceDates: deadlineFormData.teacherAbsenceDates ?? [],
+      isDelete: false
+    });
+
+    if (response.data.result !== 1) {
+      throw Error(response.data.msg);
+    }
+
+    ElMessage.success('更新課程期限 / 缺課日期成功');
+    isShowDeadlineDialog.value = false;
+    await handlePaymentRecord();
+  } catch (error) {
+    ElMessage.error((error as Error).message || '更新課程期限 / 缺課日期失敗');
+  }
 };
 
 // 格式化日期 從 114/02/27 轉為 YYYY-MM-DD
@@ -2816,5 +3004,46 @@ async function getCourseOptions() {
 .course-detail-desc :deep(.el-descriptions__label) {
   width: 200px;
   min-width: 200px;
+}
+
+/* 缺課日期 / 簽到記錄欄位：多筆時自動換行 */
+.absence-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* 金額欄位：應收/折扣/已收/欠款合併為一格 */
+.amount-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.amount-cell .amount-paid {
+  color: #67c23a;
+  font-weight: 600;
+}
+
+.amount-cell .amount-owed {
+  color: #f56c6c;
+  font-weight: 600;
+}
+
+/* 操作欄：繳費按鈕 + 更多下拉並排 */
+.operate-cell {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+}
+
+/* 「編輯繳費」字數較多，避免被壓縮換行 */
+.operate-cell :deep(.el-button) {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 </style>

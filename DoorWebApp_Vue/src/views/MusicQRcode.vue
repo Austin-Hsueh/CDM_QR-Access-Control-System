@@ -55,6 +55,25 @@
                 <el-tag size="small" type="info">第 {{ row.serialNo }} 期</el-tag>
               </div>
               <div class="card-meta">實際繳款日：{{ row.payDate || '未繳費' }}</div>
+
+              <!-- 學生 / 老師缺課並排於同一行 -->
+              <div class="card-absence-row">
+                <div class="card-absence">
+                  <span class="absence-label">缺課(學生)</span>
+                  <div v-if="row.studentAbsenceDates && row.studentAbsenceDates.length" class="absence-tags">
+                    <el-tag v-for="d in row.studentAbsenceDates" :key="d" size="small" type="warning">{{ d }}</el-tag>
+                  </div>
+                  <span v-else class="absence-none">無</span>
+                </div>
+
+                <div class="card-absence">
+                  <span class="absence-label">缺課(老師)</span>
+                  <div v-if="row.teacherAbsenceDates && row.teacherAbsenceDates.length" class="absence-tags">
+                    <el-tag v-for="d in row.teacherAbsenceDates" :key="d" size="small" type="danger">{{ d }}</el-tag>
+                  </div>
+                  <span v-else class="absence-none">無</span>
+                </div>
+              </div>
               <div class="card-checks">
                 <el-tag
                   v-for="i in maxHours"
@@ -62,7 +81,7 @@
                   size="small"
                   :type="attendanceTagType(row.attendances[i - 1])"
                   :effect="row.attendances[i - 1] ? 'dark' : 'plain'">
-                  {{ i }}. {{ row.attendances[i - 1] || '未簽到' }}
+                  {{ attendanceShortLabel(row.attendances[i - 1]) }}
                 </el-tag>
               </div>
             </div>
@@ -81,19 +100,38 @@
             <el-table-column prop="courseName" label="課程名稱" min-width="120" />
             <el-table-column prop="payDate" label="實際繳款日" min-width="110" />
 
+            <el-table-column label="缺課日期(學生)" min-width="140">
+              <template #default="{ row }: { row: M_IStudentAttendanceSummary }">
+                <div v-if="row.studentAbsenceDates && row.studentAbsenceDates.length" class="absence-tags">
+                  <el-tag v-for="d in row.studentAbsenceDates" :key="d" size="small" type="warning">{{ d }}</el-tag>
+                </div>
+                <span v-else style="color: #C0C4CC;">無</span>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="缺課日期(老師)" min-width="140">
+              <template #default="{ row }: { row: M_IStudentAttendanceSummary }">
+                <div v-if="row.teacherAbsenceDates && row.teacherAbsenceDates.length" class="absence-tags">
+                  <el-tag v-for="d in row.teacherAbsenceDates" :key="d" size="small" type="danger">{{ d }}</el-tag>
+                </div>
+                <span v-else style="color: #C0C4CC;">無</span>
+              </template>
+            </el-table-column>
+
             <!-- 動態簽到欄位 (欄數依後端回傳的 maxHours) -->
             <el-table-column
               v-for="i in maxHours"
               :key="i"
               :label="`簽到 ${i}`"
-              min-width="130">
+              min-width="90"
+              align="center">
               <template #default="{ row }: { row: M_IStudentAttendanceSummary }">
                 <el-tag
                   v-if="row.attendances[i - 1]"
                   size="small"
                   :type="attendanceTagType(row.attendances[i - 1])"
                   effect="dark">
-                  {{ row.attendances[i - 1] }}
+                  {{ attendanceShortLabel(row.attendances[i - 1]) }}
                 </el-tag>
                 <span v-else>-</span>
               </template>
@@ -157,6 +195,14 @@ const showStudentName = computed(() =>
 
 // 簽到格顏色：後端 FormatAttendance 回傳 "YYYY-MM-DD 出席/缺席/請假"
 // 缺席用 warning(橘)，與課程詳情的「曠課」按鈕同色
+// 簽到格文字：後端回傳 "YYYY-MM-DD 出席"，畫面只取月日
+// 出席/缺席已由 tag 顏色區分，不需重複用文字表達
+const attendanceShortLabel = (value?: string | null): string => {
+  if (!value) return '未簽到';
+  const matched = value.match(/\d{4}-(\d{2})-(\d{2})/);
+  return matched ? `${matched[1]}-${matched[2]}` : value;
+};
+
 const attendanceTagType = (value?: string | null): string => {
   if (!value) return 'info';                      // 尚未簽到
   if (value.includes('缺席')) return 'warning';
@@ -171,11 +217,16 @@ const courseLabel = (course: M_IMyCourse): string => {
   return showStudentName.value && course.studentName ? `${course.studentName}｜${label}` : label;
 };
 
-// 顯示用：以時間降冪 (最新的期數排最前面)
+// 只顯示最晚的 N 期
+const DISPLAY_PERIOD_LIMIT = 6;
+
+// 顯示用：以時間降冪 (最新的期數排最前面) 後取最晚的 6 期
 // 後端 SerialNo 依費用 Id 遞增指派，簽到記錄亦依日期順序填入各期，故 SerialNo 即為時間順序；
 // 不用 payDate 排序是因為未繳費的期數 payDate 為 null，會被排到最後面。
 const sortedAttendanceSummary = computed(() =>
-  [...attendanceSummary.value].sort((a, b) => b.serialNo - a.serialNo)
+  [...attendanceSummary.value]
+    .sort((a, b) => b.serialNo - a.serialNo)
+    .slice(0, DISPLAY_PERIOD_LIMIT)
 );
 
 // 剩餘可上課堂數：僅統計已繳費 (receivedAmount > 0) 的期數中尚未簽到的格數
@@ -501,6 +552,39 @@ const dayOfWeek = computed(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  justify-content: center;
+}
+
+/* 學生 / 老師缺課並排；空間不足時才折行 */
+.card-absence-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-bottom: 6px;
+}
+
+/* 缺課日期 (學生/老師)：標籤與日期同列，多筆時換行 */
+.card-absence {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.card-absence .absence-label {
+  flex-shrink: 0;
+  color: #909399;
+}
+
+.card-absence .absence-none {
+  color: #C0C4CC;
+}
+
+/* 表格與卡片共用：多筆日期自動換行 */
+.absence-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 /** Mobile - 手機直式瀏覽 (斷點同 MainLayout.vue) */

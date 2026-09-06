@@ -107,8 +107,12 @@ export interface M_IStudentAttendanceSummary {
   payDate?: string;             // 實際繳款日 民國年格式: 114/02/27
   receivableAmount: number;     // 應收金額
   receivedAmount: number;       // 已收金額
+  discountAmount: number;       // 折扣金額
   outstandingAmount: number;    // 欠款金額
   receiptNumber?: string;       // 結帳單號
+  courseDeadline?: string;      // 課程期限 yyyy-MM-dd (未設定為 null)
+  studentAbsenceDates: string[];  // 學生缺課日期 yyyy-MM-dd 陣列
+  teacherAbsenceDates: string[];  // 老師缺課日期 yyyy-MM-dd 陣列
   attendances: string[];        // 簽到記錄摘要列表
 }
 
@@ -190,6 +194,9 @@ export interface M_IReqUpdateStudentPermissionFee {
   studentPermissionFeeId: number;  // 學生權限費用 ID
   paymentDate?: string;            // 繳款日期 (格式: yyyy-MM-dd，可空不改)
   totalAmount?: number;            // 總金額 (空為回歸原本計算)
+  courseDeadline?: string;         // 課程期限 yyyy-MM-dd (undefined=不異動, ''=清除)
+  studentAbsenceDates?: string[];  // 學生缺課日期 (undefined=不異動, []=清除)
+  teacherAbsenceDates?: string[];  // 老師缺課日期 (undefined=不異動, []=清除)
   isDelete?: boolean;              // 刪除標記 (true=假刪除，預設 false)
 }
 
