@@ -364,3 +364,6 @@ FodyWeavers.xsd
 
 # Vue Web App
 wwwroot/
+# MCP server 本機機密設定與稽核 log
+appsettings.Local.json
+DoorMcpServer/logs/

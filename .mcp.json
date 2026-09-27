@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "door": {
+      "type": "http",
+      "url": "${DOOR_MCP_URL:-https://system.clair-de-musique-tw.com:8443/mcp}",
+      "headers": { "Authorization": "Bearer ${DOOR_MCP_API_KEY}" }
+    }
+  }
+}

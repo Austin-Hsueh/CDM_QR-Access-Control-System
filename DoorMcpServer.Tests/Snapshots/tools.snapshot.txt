@@ -1,0 +1,563 @@
+## create_schedule
+scope: write:schedule
+title: Schedule lessons (creates door access)
+read_only: False, destructive: False, idempotent: False, open_world: False
+description: Schedule recurring or one-off lessons (or a room rental) for a student. In this system scheduling and door access are one thing: this creates the enrolment, one timetable entry per lesson day, AND QR door access for the student (plus their parent account and the teacher) from 10 minutes before each lesson until it ends. TWO-STEP: call first WITHOUT confirm_token to get a preview (lesson dates, doors, possible clashes) and a token; show the preview to the user and get their approval; then call again with the SAME arguments plus confirm_token. It only CREATES: rescheduling, cancelling and deleting must be done in the web admin. It refuses to create a duplicate of an existing enrolment.
+input_schema:
+{
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "description": "The student's user_id (from search_students).",
+      "type": "integer"
+    },
+    "classroom_id": {
+      "description": "Classroom id (from list_classrooms).",
+      "type": "integer"
+    },
+    "date_from": {
+      "description": "First day of the enrolment, YYYY-MM-DD.",
+      "type": "string"
+    },
+    "date_to": {
+      "description": "Last day of the enrolment, YYYY-MM-DD (inclusive, at most 366 days after date_from). For one_time use the same day as date_from.",
+      "type": "string"
+    },
+    "start_time": {
+      "description": "Lesson start time, 24-hour HH:mm.",
+      "type": "string"
+    },
+    "end_time": {
+      "description": "Lesson end time, 24-hour HH:mm.",
+      "type": "string"
+    },
+    "weekdays": {
+      "description": "Lesson weekdays, e.g. [\"wed\"] or [\"mon\",\"thu\"]. Values: mon, tue, wed, thu, fri, sat, sun.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recurrence": {
+      "description": "weekly, biweekly (every other week starting with the week of date_from) or one_time (only the first matching day).",
+      "type": "string"
+    },
+    "kind": {
+      "description": "lesson (default) or room_rental. A lesson needs course_id and teacher_id; a room_rental must not have them.",
+      "type": "string",
+      "default": "lesson"
+    },
+    "course_id": {
+      "description": "Course id (from list_courses). Required for a lesson.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "default": null
+    },
+    "teacher_id": {
+      "description": "Teacher's user_id (from search_teachers). Required for a lesson.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "default": null
+    },
+    "door_ids": {
+      "description": "Doors this enrolment unlocks. Default [1] (main entrance only). Ids: 1 = 大門 main entrance, 2 = Car教室, 3 = Sunny教室, 4 = 儲藏室 storage room.",
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "integer"
+      },
+      "default": null
+    },
+    "course_mode": {
+      "description": "on_site (default) or online.",
+      "type": "string",
+      "default": "on_site"
+    },
+    "remark": {
+      "description": "Optional free-text remark stored on every lesson.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "confirm_token": {
+      "description": "Omit on the first call. On the second call pass the confirm_token returned by the preview.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "student_id",
+    "classroom_id",
+    "date_from",
+    "date_to",
+    "start_time",
+    "end_time",
+    "weekdays",
+    "recurrence"
+  ]
+}
+
+## get_attendance_records
+scope: read:schedule
+title: Get raw attendance records
+read_only: True, destructive: , idempotent: True, open_world: False
+description: Raw attendance records of exactly one permission_id, including 'leave'. Each record has the date, the type (present / absent / leave) and whether it was created automatically by a door QR scan.
+input_schema:
+{
+  "type": "object",
+  "properties": {
+    "permission_id": {
+      "description": "permission_id of the enrolment, from get_student_permissions.",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "permission_id"
+  ]
+}
+
+## get_close_account
+scope: read:finance
+title: Get a day's closing figures
+read_only: True, destructive: , idempotent: True, open_world: False
+description: Daily account-closing figures for one day: yesterday's petty cash, business income (payments minus refunds), closing amount, deposit and petty-cash balance. If the day has not been closed yet, is_closed is false and the figures are a live preview (deposit and petty_cash_balance are 0). Amounts are in TWD.
+input_schema:
+{
+  "type": "object",
+  "properties": {
+    "date": {
+      "description": "The day, YYYY-MM-DD.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "date"
+  ]
+}
+
+## get_daily_checkin_status
+scope: read:schedule
+title: Get a day's sign-in status
+read_only: True, destructive: , idempotent: True, open_world: False
+description: For one day: every scheduled student lesson and whether attendance has been recorded for it, plus whether the day can be closed (all lessons recorded). A lesson counts as recorded when ANY attendance record exists — check attendance_type (present / absent / leave) for what was recorded.
+input_schema:
+{
+  "type": "object",
+  "properties": {
+    "date": {
+      "description": "The day, YYYY-MM-DD.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "date"
+  ]
+}
+
+## get_fee_period_summary
+scope: read:finance
+title: Get one fee period's billing summary
+read_only: True, destructive: , idempotent: True, open_world: False
+description: Billing summary of one paid period (fee period): list price, discount, receivable, paid, outstanding, receipt number, and the refund if one was made. fee_period_id comes from get_student_attendance or get_student_payments. Amounts are in TWD.
+input_schema:
+{
+  "type": "object",
+  "properties": {
+    "fee_period_id": {
+      "description": "The fee period id (fee_period_id).",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "fee_period_id"
+  ]
+}
+
+## get_schedules
+scope: read:schedule
+title: Get the timetable
+read_only: True, destructive: , idempotent: True, open_world: False
+description: Get scheduled lessons (the timetable) in a date range, optionally for one student, teacher or classroom. Sorted by date then start time. Note: a lesson for which the student has been marked 'leave' is hidden by the backend, and so are lessons of enrolments that have no teacher assigned.
+input_schema:
+{
+  "type": "object",
+  "properties": {
+    "date_from": {
+      "description": "First day, YYYY-MM-DD (inclusive).",
+      "type": "string"
+    },
+    "date_to": {
+      "description": "Last day, YYYY-MM-DD (inclusive). The range may span at most 92 days.",
+      "type": "string"
+    },
+    "student_id": {
+      "description": "Only lessons of this student (user_id).",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "default": null
+    },
+    "teacher_name": {
+      "description": "Only lessons whose teacher's name contains this text.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "classroom_id": {
+      "description": "Only lessons in this classroom (classroom_id from list_classrooms).",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "default": null
+    },
+    "status": {
+      "description": "Lesson status filter: normal, cancelled, postponed. Omit for any.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "page": {
+      "description": "1-based page number. Default 1.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "default": null
+    },
+    "page_size": {
+      "description": "Items per page, 1-100. Default 20.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "date_from",
+    "date_to"
+  ]
+}
+
+## get_student_attendance
+scope: read:schedule
+title: Get attendance and remaining lessons
+read_only: True, destructive: , idempotent: True, open_world: False
+description: The sign-in sheet for one enrolment: every paid period (fee period) with its payment status, course deadline, absence dates, and the lessons already used in it. Use this to answer 'how many lessons does the student have left' (lessons_remaining of the last period) or 'has this period been paid'. 'leave' does not consume a lesson and is not listed here; use get_attendance_records to see leave. Periods are computed by the backend and cover all enrolments of the same student + course + teacher.
+input_schema:
+{
+  "type": "object",
+  "properties": {
+    "permission_id": {
+      "description": "permission_id of the enrolment, from get_student_permissions.",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "permission_id"
+  ]
+}
+
+## get_student_payments
+scope: read:finance
+title: Get a student's payment records
+read_only: True, destructive: , idempotent: True, open_world: False
+description: All payment records of one student across all courses, newest first. Only periods that HAVE a payment appear here; to find unpaid periods use get_student_attendance (is_paid = false). Amounts are in TWD.
+input_schema:
+{
+  "type": "object",
+  "properties": {
+    "student_id": {
+      "description": "The student's user_id.",
+      "type": "integer"
+    },
+    "include_voided": {
+      "description": "Also include voided (soft-deleted) payments. Default false.",
+      "type": "boolean",
+      "default": false
+    },
+    "page": {
+      "description": "1-based page number. Default 1.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "default": null
+    },
+    "page_size": {
+      "description": "Items per page, 1-100. Default 20.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "student_id"
+  ]
+}
+
+## get_student_permissions
+scope: read:people
+title: Get a student's enrolments
+read_only: True, destructive: , idempotent: True, open_world: False
+description: List a user's enrolments (internally 'student permissions'): which course, teacher, weekly time slot, date range and which doors the slot unlocks. Each enrolment has a permission_id, which get_student_attendance, get_attendance_records and mark_attendance need. One course may span several permission_ids if its timetable was edited.
+input_schema:
+{
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "description": "The student's (or teacher's) user_id.",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "user_id"
+  ]
+}
+
+## get_user
+scope: read:people
+title: Get one user
+read_only: True, destructive: , idempotent: True, open_world: False
+description: Get one user (student, teacher or staff) by user_id.
+input_schema:
+{
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "description": "The user's numeric id, as returned by search_students / search_teachers.",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "user_id"
+  ]
+}
+
+## list_classrooms
+scope: read:schedule
+title: List classrooms
+read_only: True, destructive: , idempotent: True, open_world: False
+description: List all classrooms with their classroom_id, name and description.
+input_schema:
+{
+  "type": "object",
+  "properties": {}
+}
+
+## list_close_accounts
+scope: read:finance
+title: List closed days
+read_only: True, destructive: , idempotent: True, open_world: False
+description: List the days that HAVE been closed within a date range, newest first, with their closing figures. Days missing from the list were not closed. Defaults to the last 30 days. Amounts are in TWD.
+input_schema:
+{
+  "type": "object",
+  "properties": {
+    "date_from": {
+      "description": "First day, YYYY-MM-DD (inclusive). Omit for 30 days ago.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "date_to": {
+      "description": "Last day, YYYY-MM-DD (inclusive). Omit for today.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "page": {
+      "description": "1-based page number. Default 1.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "default": null
+    },
+    "page_size": {
+      "description": "Items per page, 1-100. Default 31.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "default": null
+    }
+  }
+}
+
+## list_courses
+scope: read:schedule
+title: List courses
+read_only: True, destructive: , idempotent: True, open_world: False
+description: List the course catalogue: course name, type, category, fee code, tuition amount, material fee and lessons (hours) per paid period.
+input_schema:
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "Optional substring filter on the course name.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "page": {
+      "description": "1-based page number. Default 1.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "default": null
+    },
+    "page_size": {
+      "description": "Items per page, 1-100. Default 20.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "default": null
+    }
+  }
+}
+
+## mark_attendance
+scope: write:attendance
+title: Record attendance for a lesson
+read_only: False, destructive: False, idempotent: False, open_world: False
+description: Record a student's attendance (present / absent / leave) for a lesson that is on the timetable. TWO-STEP: call it first WITHOUT confirm_token to get a preview and a token; show the preview to the user and get their approval; then call again with the SAME arguments plus confirm_token to actually write. It only CREATES a record: if attendance already exists for that enrolment and day it refuses (changes and deletions must be done in the web admin). Writing 'present' or 'absent' consumes one lesson of the student's paid period and records the teacher's fee for it; 'leave' consumes nothing.
+input_schema:
+{
+  "type": "object",
+  "properties": {
+    "permission_id": {
+      "description": "permission_id of the enrolment (from get_schedules, get_daily_checkin_status or get_student_permissions).",
+      "type": "integer"
+    },
+    "date": {
+      "description": "The lesson day, YYYY-MM-DD. Must be today or earlier, and the enrolment must have a lesson scheduled on it.",
+      "type": "string"
+    },
+    "attendance_type": {
+      "description": "One of: present, absent, leave.",
+      "type": "string"
+    },
+    "confirm_token": {
+      "description": "Omit on the first call. On the second call pass the confirm_token returned by the preview.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "permission_id",
+    "date",
+    "attendance_type"
+  ]
+}
+
+## search_students
+scope: read:people
+title: Search students
+read_only: True, destructive: , idempotent: True, open_world: False
+description: Search students by name. Returns a page of students with their user_id (needed by most other tools), student code (username), contact details, enrollment status and parent account. Matching is a substring match on the display name only.
+input_schema:
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "Part of the student's display name. Omit to list all students.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "enrollment_status": {
+      "description": "Filter by enrollment status: enrolled, suspended, by_appointment. Omit for any.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "page": {
+      "description": "1-based page number. Default 1.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "default": null
+    },
+    "page_size": {
+      "description": "Items per page, 1-100. Default 20.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "default": null
+    }
+  }
+}
+
+## search_teachers
+scope: read:people
+title: Search teachers
+read_only: True, destructive: , idempotent: True, open_world: False
+description: Search teachers by name. Returns a page of teachers with their user_id and contact details. Matching is a substring match on the display name only.
+input_schema:
+{
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "Part of the teacher's display name. Omit to list all teachers.",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
+    },
+    "page": {
+      "description": "1-based page number. Default 1.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "default": null
+    },
+    "page_size": {
+      "description": "Items per page, 1-100. Default 20.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "default": null
+    }
+  }
+}
+

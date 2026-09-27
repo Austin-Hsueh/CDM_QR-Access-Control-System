@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\McpKit\McpKit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 本機機密設定只複製到建置輸出（stdio 開發用），絕不進發佈資料夾：
+         伺服器上有自己的一份 appsettings.Local.json，重新發佈覆蓋檔案時不可以被開發機的版本蓋掉。 -->
+    <Content Update="appsettings.Local.json" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
+</Project>

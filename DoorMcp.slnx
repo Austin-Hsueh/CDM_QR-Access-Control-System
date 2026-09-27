@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="DoorMcpServer.Tests/DoorMcpServer.Tests.csproj" />
+  <Project Path="DoorMcpServer/DoorMcpServer.csproj" />
+  <Project Path="McpKit/McpKit.csproj" />
+</Solution>
