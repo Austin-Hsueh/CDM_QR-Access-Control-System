@@ -688,8 +688,41 @@ namespace DoorWebApp.Controllers
                         schedule.ModifiedTime = DateTime.Now;
                     }
 
+                    // 同步刪除對應的老師課表（同時段已沒有其他學生上課時才刪，避免影響團體課）
+                    int teacherSchedulesDeleted = 0;
+                    var deletingPermission = scheduleEntity.StudentPermission;
+                    if (deletingPermission?.TeacherId > 0)
+                    {
+                        int teacherId = deletingPermission.TeacherId.Value;
+                        var deletingIds = schedulesToUpdate.Select(x => x.Id).ToList();
+                        foreach (var schedule in schedulesToUpdate)
+                        {
+                            var teacherSchedule = await GetTeacherSchedulesToUpdateAsync(
+                                teacherId,
+                                deletingPermission.CourseId,
+                                deletingPermission.Type,
+                                schedule,
+                                1,
+                                log);
+                            if (teacherSchedule == null)
+                                continue;
+
+                            bool otherStudentInSlot = await ctx.TblSchedule
+                                .Where(x => !deletingIds.Contains(x.Id) && x.IsDelete == false)
+                                .Where(x => x.ScheduleDate == schedule.ScheduleDate && x.StartTime == schedule.StartTime)
+                                .Where(x => x.StudentPermission.TeacherId == teacherId && x.StudentPermission.IsDelete == false)
+                                .AnyAsync();
+                            if (otherStudentInSlot)
+                                continue;
+
+                            teacherSchedule.IsDelete = true;
+                            teacherSchedule.ModifiedTime = DateTime.Now;
+                            teacherSchedulesDeleted++;
+                        }
+                    }
+
                     int effectRowDelete = await ctx.SaveChangesAsync();
-                    log.LogInformation($"[{Request.Path}] Delete schedules success. Mode:{scheduleDTO.UpdateMode}, Count:{schedulesToUpdate.Count}, EffectRow:{effectRowDelete}");
+                    log.LogInformation($"[{Request.Path}] Delete schedules success. Mode:{scheduleDTO.UpdateMode}, Count:{schedulesToUpdate.Count}, TeacherSchedules:{teacherSchedulesDeleted}, EffectRow:{effectRowDelete}");
 
                     // 更新門禁權限時間範圍
                     if (scheduleDTO.UpdateMode == 3)

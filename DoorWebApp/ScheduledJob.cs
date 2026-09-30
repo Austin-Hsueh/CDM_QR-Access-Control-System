@@ -67,17 +67,19 @@ public class ScheduledJob : IJob
             //                                      }).ToList();
 
             //多時段設定
-            var studentPermissions = ctx.TblStudentPermission.FromSqlRaw(@"SELECT p.* 
-                                                FROM TblStudentPermission p 
-                                                LEFT JOIN Tbluser s ON p.UserId = s.Id 
+            //課表需為有效(未刪除、啟用)；停課帳號(Type=2)不派發
+            var studentPermissions = ctx.TblStudentPermission.FromSqlRaw(@"SELECT p.*
+                                                FROM TblStudentPermission p
+                                                LEFT JOIN Tbluser s ON p.UserId = s.Id
                                                 INNER JOIN TblSchedule sch ON p.Id = sch.StudentPermissionId
+                                                                          AND sch.IsDelete = 0 AND sch.IsEnable = 1
                                                 WHERE (@nowDate BETWEEN p.DateFrom AND p.DateTo)
-                                                AND (  
+                                                AND (
                                                        (TIME(@time) BETWEEN TIME(p.TimeFrom) AND TIME(p.TimeTo))
                                                         OR
                                                        (TIME(p.TimeFrom) BETWEEN TIME(@time) AND TIME(@Endtime))
                                                     )
-                                                AND p.IsDelete = 0 AND s.IsDelete = 0 
+                                                AND p.IsDelete = 0 AND s.IsDelete = 0 AND s.Type <> 2
                                                 AND p.Days LIKE CONCAT('%', @day, '%')
                                                 AND (@nowDate = ScheduleDate)
                                                 AND p.UserId NOT IN (55, 56)",
