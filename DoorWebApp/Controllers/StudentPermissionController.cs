@@ -295,6 +295,17 @@ namespace DoorWebApp.Controllers
                 // 2. 更新資料
                 //更新門禁設定
                 var AssignPermissionEntity = ctx.TblStudentPermission.Include(x => x.PermissionGroups).Where(x => x.Id == PermissionDTO.Id).First();
+
+                // 已排入課表的門禁由課表連動維護，不允許在此刪除或編輯（避免課表/老師課表/簽到與門禁脫鉤）
+                bool hasSchedules = ctx.TblSchedule.Any(x => x.StudentPermissionId == AssignPermissionEntity.Id && x.IsDelete == false);
+                if (hasSchedules)
+                {
+                    log.LogWarning($"[{Request.Path}] StudentPermission (Id:{AssignPermissionEntity.Id}) has schedules, update/delete rejected");
+                    res.result = APIResultCode.item_is_being_used;
+                    res.msg = "此門禁已排入課表，請至課表頁操作";
+                    return Ok(res);
+                }
+
                 //1-1. 假刪除門禁設定
                 if (PermissionDTO.isDelete)
                 {
