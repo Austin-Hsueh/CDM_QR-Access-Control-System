@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment 與 Refund 單號一致性測試</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #555;
+            margin-top: 30px;
+        }
+        .test-section {
+            background: #f9f9f9;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            border-left: 4px solid #2196F3;
+        }
+        .test-item {
+            margin: 15px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 3px;
+        }
+        .label {
+            font-weight: bold;
+            color: #555;
+            display: inline-block;
+            width: 150px;
+        }
+        .value {
+            color: #333;
+        }
+        .success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ff9800;
+            font-weight: bold;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #263238;
+            color: #aed581;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 3px;
+        }
+        .log-time {
+            color: #90caf9;
+        }
+        .log-success {
+            color: #4CAF50;
+        }
+        .log-error {
+            color: #f44336;
+        }
+        .log-info {
+            color: #aed581;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .sequence-indicator {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #2196F3;
+            color: white;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Payment 與 Refund 單號一致性測試</h1>
+        
+        <div class="test-section">
+            <h2>🎯 測試目標</h2>
+            <p>驗證 Payment 和 Refund 的收據編號是否使用統一的序列，確保兩者單號順序一致且不重複。</p>
+            <ul>
+                <li>Payment 和 Refund 共用相同的單號生成邏輯</li>
+                <li>兩者會互相檢查對方的最大單號</li>
+                <li>單號格式：{民國年:003}B{月份:02}{序號:0004}</li>
+                <li>序號按月份遞增，不會重複</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>⚙️ 測試配置</h2>
+            <div class="test-item">
+                <label class="label">API Base URL:</label>
+                <input type="text" id="apiBaseUrl" value="https://localhost:7136/api/v1" style="width: 400px; padding: 5px;">
+            </div>
+            <div class="test-item">
+                <label class="label">Authorization Token:</label>
+                <input type="text" id="authToken" placeholder="輸入 JWT Token" style="width: 600px; padding: 5px;">
+            </div>
+            <div class="test-item">
+                <label class="label">StudentPermissionFeeId:</label>
+                <input type="number" id="studentPermissionFeeId" value="1" style="width: 200px; padding: 5px;">
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 測試操作</h2>
+            <button onclick="runSequenceTest()">執行序號一致性測試</button>
+            <button onclick="testConcurrentCreation()">測試並發創建</button>
+            <button onclick="queryRecentReceipts()">查詢最近單號</button>
+            <button onclick="clearLog()">清除日誌</button>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 測試結果</h2>
+            <div id="testResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📜 執行日誌</h2>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        // 日誌函數
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            document.getElementById('testResults').innerHTML = '';
+            log('日誌已清除', 'info');
+        }
+
+        // 獲取配置
+        function getConfig() {
+            return {
+                baseUrl: document.getElementById('apiBaseUrl').value,
+                token: document.getElementById('authToken').value,
+                studentPermissionFeeId: parseInt(document.getElementById('studentPermissionFeeId').value)
+            };
+        }
+
+        // API 請求封裝
+        async function apiRequest(url, method = 'GET', body = null) {
+            const config = getConfig();
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${config.token}`
+                }
+            };
+            
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+
+            try {
+                const response = await fetch(url, options);
+                const data = await response.json();
+                return { success: response.ok, data, status: response.status };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        // 創建 Payment
+        async function createPayment(amount, payDate = null) {
+            const config = getConfig();
+            const url = `${config.baseUrl}/StudentPayment`;
+            const body = {
+                StudentPermissionFeeId: config.studentPermissionFeeId,
+                Amount: amount,
+                PayDate: payDate || new Date().toISOString().split('T')[0].replace(/-/g, '/')
+            };
+            
+            log(`正在創建 Payment: Amount=${amount}`, 'info');
+            const result = await apiRequest(url, 'POST', body);
+            
+            if (result.success) {
+                log(`✓ Payment 創建成功: ${JSON.stringify(result.data.content)}`, 'success');
+                return result.data.content;
+            } else {
+                log(`✗ Payment 創建失敗: ${JSON.stringify(result.data)}`, 'error');
+                return null;
+            }
+        }
+
+        // 創建 Refund
+        async function createRefund(amount, remark = '') {
+            const config = getConfig();
+            const url = `${config.baseUrl}/StudentRefund`;
+            const body = {
+                StudentPermissionFeeId: config.studentPermissionFeeId,
+                RefundAmount: amount,
+                Remark: remark || '測試退款',
+                RefundDate: new Date().toISOString().split('T')[0].replace(/-/g, '/')
+            };
+            
+            log(`正在創建 Refund: Amount=${amount}`, 'info');
+            const result = await apiRequest(url, 'POST', body);
+            
+            if (result.success) {
+                log(`✓ Refund 創建成功: ${JSON.stringify(result.data.content)}`, 'success');
+                return result.data.content;
+            } else {
+                log(`✗ Refund 創建失敗: ${JSON.stringify(result.data)}`, 'error');
+                return null;
+            }
+        }
+
+        // 序號一致性測試
+        async function runSequenceTest() {
+            log('========== 開始序號一致性測試 ==========', 'info');
+            const results = [];
+
+            // 測試 1: 創建 Payment -> Refund -> Payment -> Refund
+            log('測試場景: 交替創建 Payment 和 Refund', 'info');
+            
+            const payment1 = await createPayment(1000);
+            if (payment1) results.push({ type: 'Payment', receiptNumber: payment1.ReceiptNumber, order: 1 });
+            await sleep(500);
+
+            const refund1 = await createRefund(200);
+            if (refund1) results.push({ type: 'Refund', receiptNumber: refund1.receiptNumber, order: 2 });
+            await sleep(500);
+
+            const payment2 = await createPayment(1500);
+            if (payment2) results.push({ type: 'Payment', receiptNumber: payment2.ReceiptNumber, order: 3 });
+            await sleep(500);
+
+            const refund2 = await createRefund(300);
+            if (refund2) results.push({ type: 'Refund', receiptNumber: refund2.receiptNumber, order: 4 });
+
+            // 分析結果
+            displaySequenceResults(results);
+        }
+
+        // 顯示序號測試結果
+        function displaySequenceResults(results) {
+            const resultsDiv = document.getElementById('testResults');
+            
+            let html = '<h3>序號順序驗證</h3>';
+            html += '<table><thead><tr><th>順序</th><th>類型</th><th>收據編號</th><th>序號</th><th>驗證結果</th></tr></thead><tbody>';
+            
+            let isValid = true;
+            let lastSequence = 0;
+
+            results.forEach((item, index) => {
+                const sequence = parseInt(item.receiptNumber.substring(6, 10));
+                const isSequential = sequence === lastSequence + 1;
+                
+                if (!isSequential && index > 0) {
+                    isValid = false;
+                }
+
+                html += `<tr>
+                    <td>${item.order}</td>
+                    <td><strong>${item.type}</strong></td>
+                    <td>${item.receiptNumber}</td>
+                    <td><span class="sequence-indicator">#${sequence}</span></td>
+                    <td class="${isSequential || index === 0 ? 'success' : 'error'}">
+                        ${isSequential || index === 0 ? '✓ 正確' : '✗ 序號不連續'}
+                    </td>
+                </tr>`;
+                
+                lastSequence = sequence;
+            });
+            
+            html += '</tbody></table>';
+            
+            html += `<div style="margin-top: 20px; padding: 15px; background: ${isValid ? '#e8f5e9' : '#ffebee'}; border-radius: 5px;">`;
+            html += `<h3 class="${isValid ? 'success' : 'error'}">${isValid ? '✓ 測試通過' : '✗ 測試失敗'}</h3>`;
+            html += `<p>${isValid ? 'Payment 和 Refund 的單號序列完全一致，沒有重複或跳號' : '單號序列存在問題，請檢查生成邏輯'}</p>`;
+            html += '</div>';
+            
+            resultsDiv.innerHTML = html;
+            
+            if (isValid) {
+                log('✓ 序號一致性測試通過', 'success');
+            } else {
+                log('✗ 序號一致性測試失敗', 'error');
+            }
+        }
+
+        // 測試並發創建
+        async function testConcurrentCreation() {
+            log('========== 開始並發創建測試 ==========', 'info');
+            log('同時創建 2 個 Payment 和 2 個 Refund', 'info');
+
+            const promises = [
+                createPayment(1000),
+                createPayment(1500),
+                createRefund(200),
+                createRefund(300)
+            ];
+
+            const results = await Promise.all(promises);
+            
+            const receiptNumbers = results
+                .filter(r => r !== null)
+                .map(r => r.ReceiptNumber || r.receiptNumber);
+
+            // 檢查是否有重複
+            const uniqueNumbers = new Set(receiptNumbers);
+            const hasDuplicates = uniqueNumbers.size !== receiptNumbers.length;
+
+            log(`創建結果: ${receiptNumbers.join(', ')}`, 'info');
+            
+            if (hasDuplicates) {
+                log('✗ 發現重複的單號！', 'error');
+            } else {
+                log('✓ 所有單號唯一，無重複', 'success');
+            }
+        }
+
+        // 查詢最近單號
+        async function queryRecentReceipts() {
+            log('========== 查詢最近單號 ==========', 'info');
+            // 這裡可以添加查詢最近 Payment 和 Refund 的邏輯
+            log('功能開發中...', 'warning');
+        }
+
+        // 延遲函數
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // 頁面載入時的初始化
+        window.onload = function() {
+            log('Payment 與 Refund 單號一致性測試頁面已載入', 'info');
+            log('請先配置 API Base URL 和 Authorization Token', 'warning');
+        };
+    </script>
+</body>
+</html>

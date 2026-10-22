@@ -29,10 +29,37 @@
         .btn-small { padding: 5px 15px; font-size: 12px; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 16px; background: white; }
-        th, td { padding: 12px; text-align: left; border: 1px solid #ddd; }
+        th, td { padding: 10px; text-align: left; border: 1px solid #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
         th { background: #f5f7fa; font-weight: bold; color: #333; }
         tr:nth-child(even) { background: #fafafa; }
         tr:hover { background: #f0f9ff; }
+        
+        /* 主簽到紀錄表格（attendanceContent）寬度優化 */
+        #attendanceContent table { display: block; overflow-x: auto; }
+        #attendanceContent table th:nth-child(1) { width: 60px; }    /* 序號 */
+        #attendanceContent table th:nth-child(2) { width: 90px; }    /* 學生權限ID */
+        #attendanceContent table th:nth-child(3) { width: 100px; }   /* StudentPermissionFeeId */
+        #attendanceContent table th:nth-child(4) { width: 90px; }    /* 課程名稱 */
+        #attendanceContent table th:nth-child(5) { width: 95px; }    /* 應繳款日 */
+        #attendanceContent table th:nth-child(6) { width: 95px; }    /* 實際繳款日 */
+        #attendanceContent table th:nth-child(7) { width: 80px; }    /* 應收金額 */
+        #attendanceContent table th:nth-child(8) { width: 80px; }    /* 已收金額 */
+        #attendanceContent table th:nth-child(9) { width: 80px; }    /* 剩餘欠款 */
+        #attendanceContent table th:nth-child(10) { width: 100px; }  /* 結帳單號 */
+        #attendanceContent table th:nth-child(11) { width: 150px; }  /* 簽到紀錄 */
+        #attendanceContent table th:nth-child(12) { width: 70px; }   /* 操作 */
+        
+        /* 細節課程記錄表格（attendanceDetailContent）寬度優化 */
+        #attendanceDetailContent > table { display: block; overflow-x: auto; }
+        #attendanceDetailContent > table th:nth-child(1) { width: 70px; }    /* 簽到ID */
+        #attendanceDetailContent > table th:nth-child(2) { width: 85px; }    /* 上課日期 */
+        #attendanceDetailContent > table th:nth-child(3) { width: 65px; }    /* 星期幾 */
+        #attendanceDetailContent > table th:nth-child(4) { width: 85px; }    /* 簽到時間 */
+        #attendanceDetailContent > table th:nth-child(5) { width: 85px; }    /* 老師名稱 */
+        #attendanceDetailContent > table th:nth-child(6) { width: 70px; }    /* 扣時數 */
+        #attendanceDetailContent > table th:nth-child(7) { width: 90px; }    /* 單堂學費 */
+        #attendanceDetailContent > table th:nth-child(8) { width: 90px; }    /* 單堂增減 */
+        #attendanceDetailContent > table th:nth-child(9) { width: 90px; }    /* 實際金額 */
         
         .empty { text-align: center; padding: 40px; color: #999; }
         .error { background: #fee; color: #c00; padding: 12px; border-radius: 4px; margin-top: 12px; }
