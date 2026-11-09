@@ -162,7 +162,7 @@ public sealed class ScheduleTools(DoorApiClient api, ToolJson json)
 
     /// <summary>取回日期範圍內的全部課表（後端沒有依學生篩選的參數，所以整段抓回來在記憶體內篩）。</summary>
     internal static async Task<List<WireSchedule>> FetchSchedulesAsync(
-        DoorApiClient api, DateOnly from, DateOnly to, int? classroomId, int status, CancellationToken ct)
+        DoorApiClient api, DateOnly from, DateOnly to, int? classroomId, int status, CancellationToken ct, string? searchText = null)
     {
         if (to < from) throw ToolException.InvalidArgument("date_to must not be earlier than date_from.");
         if (to.DayNumber - from.DayNumber >= MaxRangeDays)
@@ -177,7 +177,7 @@ public sealed class ScheduleTools(DoorApiClient api, ToolJson json)
                 DateTo = DoorConventions.ToSlash(to),
                 ClassroomId = classroomId is > 0 ? classroomId : null,
                 Status = status,
-                SearchText = "",
+                SearchText = searchText ?? "",   // 後端以「課程名稱或教室名稱包含」比對
                 SearchPage = ScheduleFetchLimit,
                 Page = page,
             };
@@ -197,13 +197,13 @@ public sealed class ScheduleTools(DoorApiClient api, ToolJson json)
 
     /// <summary>超過單次上限的長區間：切成多段抓回來。</summary>
     internal static async Task<List<WireSchedule>> FetchSchedulesChunkedAsync(
-        DoorApiClient api, DateOnly from, DateOnly to, int? classroomId, CancellationToken ct)
+        DoorApiClient api, DateOnly from, DateOnly to, int? classroomId, CancellationToken ct, string? searchText = null)
     {
         var all = new List<WireSchedule>();
         for (var start = from; start <= to; start = start.AddDays(MaxRangeDays))
         {
             var end = start.AddDays(MaxRangeDays - 1);
-            all.AddRange(await FetchSchedulesAsync(api, start, end < to ? end : to, classroomId, status: 0, ct));
+            all.AddRange(await FetchSchedulesAsync(api, start, end < to ? end : to, classroomId, status: 0, ct, searchText));
         }
         return all;
     }

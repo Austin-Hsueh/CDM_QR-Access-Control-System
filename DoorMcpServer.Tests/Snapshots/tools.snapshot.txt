@@ -2,7 +2,7 @@
 scope: write:schedule
 title: Schedule lessons (creates door access)
 read_only: False, destructive: False, idempotent: False, open_world: False
-description: Schedule recurring or one-off lessons (or a room rental) for a student. In this system scheduling and door access are one thing: this creates the enrolment, one timetable entry per lesson day, AND QR door access for the student (plus their parent account and the teacher) from 10 minutes before each lesson until it ends. TWO-STEP: call first WITHOUT confirm_token to get a preview (lesson dates, doors, possible clashes) and a token; show the preview to the user and get their approval; then call again with the SAME arguments plus confirm_token. It only CREATES: rescheduling, cancelling and deleting must be done in the web admin. It refuses to create a duplicate of an existing enrolment.
+description: Schedule recurring or one-off lessons (or a room rental) for a student. In this system scheduling and door access are one thing: this creates the enrolment, one timetable entry per lesson day, AND QR door access for the student (plus their parent account and the teacher) from 10 minutes before each lesson until it ends. TWO-STEP: call first WITHOUT confirm_token to get a preview (lesson dates, doors, possible clashes) and a token; show the preview to the user and get their approval; then call again with the SAME arguments plus confirm_token. It only CREATES: rescheduling, cancelling and deleting must be done in the web admin. It refuses to create a lesson the student already has on the timetable (same course, same day, overlapping time); an older enrolment that no longer has lessons on those days does not block it.
 input_schema:
 {
   "type": "object",

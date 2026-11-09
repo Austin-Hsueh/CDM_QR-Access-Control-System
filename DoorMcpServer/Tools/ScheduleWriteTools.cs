@@ -26,7 +26,8 @@ public sealed class ScheduleWriteTools(DoorApiClient api, DoorLookups lookups, T
                  "this creates the enrolment, one timetable entry per lesson day, AND QR door access for the student (plus their parent account and the teacher) " +
                  "from 10 minutes before each lesson until it ends. TWO-STEP: call first WITHOUT confirm_token to get a preview (lesson dates, doors, " +
                  "possible clashes) and a token; show the preview to the user and get their approval; then call again with the SAME arguments plus confirm_token. " +
-                 "It only CREATES: rescheduling, cancelling and deleting must be done in the web admin. It refuses to create a duplicate of an existing enrolment.")]
+                 "It only CREATES: rescheduling, cancelling and deleting must be done in the web admin. It refuses to create a lesson the student " +
+                 "already has on the timetable (same course, same day, overlapping time); an older enrolment that no longer has lessons on those days does not block it.")]
     public async Task<string> CreateSchedule(
         [Description("The student's user_id (from search_students).")] int student_id,
         [Description("Classroom id (from list_classrooms).")] int classroom_id,
@@ -57,7 +58,7 @@ public sealed class ScheduleWriteTools(DoorApiClient api, DoorLookups lookups, T
 
         // 兩次呼叫都重新檢查：預覽到確認之間資料可能已改變
         var context = await LoadContextAsync(request, cancellationToken);
-        EnsureNotDuplicate(request, context.ExistingEnrolments);
+        await EnsureNotDuplicateAsync(request, lessonDates, context, cancellationToken);
 
         var payload = request.Fingerprint();
 
@@ -214,32 +215,33 @@ public sealed class ScheduleWriteTools(DoorApiClient api, DoorLookups lookups, T
         return new Context(student, teacher, courseName, classroom.ClassroomName, existing, warnings);
     }
 
-    /// <summary>同一學生、同課程、同星期與時間、日期區間重疊 = 重複排課。後端不會擋，重送就是兩份課表與兩份門禁。</summary>
-    private static void EnsureNotDuplicate(Request request, List<WireStudentPermission> existing)
+    /// <summary>
+    /// 重複排課 = 要新增的某個上課日，該學生已有同課程、時間重疊的正常課表。後端不會擋，重送就是兩份課表與兩份門禁。
+    /// 只比對課表、不比對權限：調課會留下日期區間未縮短、底下已沒有課表的舊權限，拿權限比對會誤判。
+    /// </summary>
+    private async Task EnsureNotDuplicateAsync(Request request, List<DateOnly> lessonDates, Context context, CancellationToken ct)
     {
-        var duplicate = existing.FirstOrDefault(p =>
-            p.CourseId == request.CourseId
-            && p.Timefrom == request.TimeFrom
-            && p.Timeto == request.TimeTo
-            && (p.Days ?? []).Order().SequenceEqual(request.Days)
-            && Overlaps(p, request));
+        var courseByPermission = context.ExistingEnrolments.ToDictionary(p => p.Id, p => p.CourseId);
+        var dates = lessonDates.Select(DoorConventions.ToIso).ToHashSet();
+
+        // 後端課表查詢沒有學生參數；上課以課程名稱縮小範圍，租借以教室縮小範圍
+        var lessons = await ScheduleTools.FetchSchedulesChunkedAsync(api, request.From, request.To,
+            request.IsLesson ? null : request.ClassroomId, ct, request.IsLesson ? context.CourseName : null);
+
+        var duplicate = lessons
+            .Where(s => s.StudentId == request.StudentId && s.Status == 1)
+            .Where(s => courseByPermission.TryGetValue(s.StudentPermissionId, out var courseId) && courseId == request.CourseId)
+            .Where(s => dates.Contains(DoorConventions.NormalizeDate(s.ScheduleDate) ?? ""))
+            .Where(s => string.CompareOrdinal(s.StartTime, request.TimeTo) < 0 && string.CompareOrdinal(s.EndTime, request.TimeFrom) > 0)
+            .OrderBy(s => s.ScheduleDate, StringComparer.Ordinal).ThenBy(s => s.StartTime, StringComparer.Ordinal)
+            .FirstOrDefault();
 
         if (duplicate is not null)
             throw new ToolException("duplicate_enrolment",
-                $"The student already has the same enrolment (permission_id {duplicate.Id}: {DoorConventions.NormalizeDate(duplicate.Datefrom)} to " +
-                $"{DoorConventions.NormalizeDate(duplicate.Dateto)}, {duplicate.Timefrom}-{duplicate.Timeto}) overlapping this date range.",
-                "Nothing was created. To extend or change an existing enrolment, use the web admin.");
-    }
-
-    private static bool Overlaps(WireStudentPermission p, Request request)
-    {
-        var from = DoorConventions.NormalizeDate(p.Datefrom);
-        var to = DoorConventions.NormalizeDate(p.Dateto);
-        if (from is null || to is null) return false;
-
-        // ISO 日期字串可直接比大小
-        return string.CompareOrdinal(from, DoorConventions.ToIso(request.To)) <= 0
-               && string.CompareOrdinal(to, DoorConventions.ToIso(request.From)) >= 0;
+                $"The student already has this course on the timetable on {DoorConventions.NormalizeDate(duplicate.ScheduleDate)} " +
+                $"{duplicate.StartTime}-{duplicate.EndTime} (schedule_id {duplicate.ScheduleId}, permission_id {duplicate.StudentPermissionId}), " +
+                "which overlaps a lesson this call would create.",
+                "Nothing was created. Check that lesson with get_schedules; to reschedule or change it, use the web admin.");
     }
 
     private async Task<List<object>> FindClashesAsync(Request request, List<DateOnly> lessonDates, Context context, CancellationToken ct)
