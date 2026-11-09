@@ -76,11 +76,12 @@ namespace DoorWebApp.Controllers
 
                 // 1. 查詢當日課表（只查學生，且 User 角色包含 Id=3）
                 var schedules = await ctx.TblSchedule
-                    .Where(s => s.ScheduleDate == dateStr 
-                                && !s.IsDelete 
+                    .Where(s => s.ScheduleDate == dateStr
+                                && !s.IsDelete
                                 && s.IsEnable
                                 && s.Status == 1
                                 && s.StudentPermission != null
+                                && !s.StudentPermission.IsDelete
                                 && s.StudentPermission.Type == 1
                                 && s.StudentPermission.User != null
                                 && s.StudentPermission.User.Roles.Any(r => r.Id == 3 && !r.IsDelete && r.IsEnable))
@@ -206,7 +207,8 @@ namespace DoorWebApp.Controllers
                     .Where(s => s.ScheduleDate == dateStr
                         && !s.IsDelete
                         && s.IsEnable
-                        && s.Status == 1)
+                        && s.Status == 1
+                        && !s.StudentPermission.IsDelete)
                     .Include(s => s.StudentPermission)
                         .ThenInclude(sp => sp.User)
                             .ThenInclude(u => u.Roles)
@@ -431,6 +433,7 @@ namespace DoorWebApp.Controllers
                                 && s.IsEnable
                                 && s.Status == 1
                                 && s.StudentPermission != null
+                                && !s.StudentPermission.IsDelete
                                 && s.StudentPermission.Type == 1
                                 && s.StudentPermission.User != null
                                 && s.StudentPermission.User.Roles.Any(r => r.Id == 3 && !r.IsDelete && r.IsEnable))
@@ -882,6 +885,7 @@ namespace DoorWebApp.Controllers
                     && s.IsEnable
                     && s.Status == 1
                     && s.StudentPermission != null
+                    && !s.StudentPermission.IsDelete
                     && s.StudentPermission.Type == 1)
                 .CountAsync();
 

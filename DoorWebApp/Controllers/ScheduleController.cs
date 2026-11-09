@@ -213,7 +213,7 @@ namespace DoorWebApp.Controllers
                     .ThenInclude(x => x.Course)
                     .Include(x => x.StudentPermission)
                     .ThenInclude(x => x.User)
-                    .Where(x => x.IsDelete == false)
+                    .Where(x => x.IsDelete == false && x.StudentPermission.IsDelete == false)
                     .Where(x => x.StudentPermission.User.Id == currentUserId); // 只查詢當前使用者的課表
 
                 // 教室篩選
@@ -363,7 +363,7 @@ namespace DoorWebApp.Controllers
                     .ThenInclude(x => x.Course)
                     .Include(x => x.StudentPermission)
                     .ThenInclude(x => x.User)
-                    .Where(x => x.IsDelete == false)
+                    .Where(x => x.IsDelete == false && x.StudentPermission.IsDelete == false)
                     .Where(x => x.StudentPermission.User.Id == currentUserId)
                     .Where(x => x.ScheduleDate == today)
                     .Where(x => x.Status == (int)ScheduleStatusType.Normal) // 只顯示正常狀態的課程
