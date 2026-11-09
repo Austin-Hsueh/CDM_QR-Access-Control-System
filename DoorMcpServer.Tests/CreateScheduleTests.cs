@@ -151,19 +151,73 @@ public class CreateScheduleTests
         Assert.Equal(2, result.GetProperty("problems").GetArrayLength());
     }
 
-    [Fact]
-    public async Task Refuses_a_duplicate_of_an_overlapping_enrolment()
+    // 學生 7 既有的鋼琴個別班權限：週三 16:00-17:00，區間涵蓋這次要排的日期
+    private static readonly object[] ExistingWednesdayEnrolment =
+    [
+        new { id = 90, courseId = 5, teacherId = 20, datefrom = "2026/09/01", dateto = "2027/02/28", timefrom = "16:00", timeto = "17:00", days = new[] { 3 } },
+    ];
+
+    private static object Lesson(int scheduleId, string date, string start = "16:00", string end = "17:00", int studentId = 7, int permissionId = 90, int status = 1) => new
     {
-        var backend = Backend(studentPermissions:
-        [
-            new { id = 90, courseId = 5, teacherId = 20, datefrom = "2026/09/01", dateto = "2026/09/30", timefrom = "16:00", timeto = "17:00", days = new[] { 3 } },
-        ]);
+        scheduleId, studentPermissionId = permissionId, studentId, studentName = "王小明", courseName = "鋼琴個別班", classroomId = 2, classroomName = "Car教室",
+        teacherName = "陳老師", scheduleDate = date, startTime = start, endTime = end, status, type = 1,
+    };
+
+    [Fact]
+    public async Task Refuses_a_lesson_the_student_already_has_on_the_timetable()
+    {
+        var backend = Backend(studentPermissions: ExistingWednesdayEnrolment, schedules: [Lesson(300, "2026/09/30", "16:30", "17:30")]);
 
         var err = await Assert.ThrowsAsync<ToolException>(() => Call(Tool(backend.CreateHarness())));
 
         Assert.Equal("duplicate_enrolment", err.Code);
+        Assert.Contains("schedule_id 300", err.Message);
         Assert.Contains("permission_id 90", err.Message);
+        Assert.Contains("2026-09-30", err.Message);
         Assert.Equal(0, WriteCount(backend));
+    }
+
+    [Fact] // 調課留下的舊權限區間仍涵蓋目標日，但那天已沒有課表
+    public async Task An_old_enrolment_without_lessons_on_those_days_does_not_block()
+    {
+        var backend = Backend(studentPermissions: ExistingWednesdayEnrolment);
+
+        var preview = JsonDocument.Parse(await Call(Tool(backend.CreateHarness()))).RootElement;
+
+        Assert.Equal("preview_only_nothing_written", preview.GetProperty("status").GetString());
+        Assert.True(preview.TryGetProperty("confirm_token", out _));
+    }
+
+    [Fact]
+    public async Task Lessons_of_other_students_courses_days_times_or_cancelled_ones_are_not_duplicates()
+    {
+        var backend = Backend(studentPermissions:
+        [
+            ExistingWednesdayEnrolment[0],
+            new { id = 91, courseId = 6, teacherId = 20, datefrom = "2026/09/01", dateto = "2027/02/28", timefrom = "16:00", timeto = "17:00", days = new[] { 3 } },
+        ], schedules:
+        [
+            Lesson(301, "2026/09/23", studentId: 8),               // 別的學生
+            Lesson(302, "2026/09/23", permissionId: 91),           // 同學生、別的課程
+            Lesson(303, "2026/09/24"),                             // 不是要排的日期
+            Lesson(304, "2026/09/30", "17:00", "18:00"),           // 剛好接在後面，不重疊
+            Lesson(305, "2026/10/07", status: 2),                  // 已取消
+        ]);
+
+        var preview = JsonDocument.Parse(await Call(Tool(backend.CreateHarness()))).RootElement;
+
+        Assert.Equal("preview_only_nothing_written", preview.GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task The_duplicate_check_asks_the_backend_for_this_course_only()
+    {
+        var backend = Backend(studentPermissions: ExistingWednesdayEnrolment);
+
+        await Call(Tool(backend.CreateHarness()));
+
+        var first = JsonDocument.Parse(backend.Requests.First(r => r is { Method: "POST", Path: "/api/v1/Schedules" }).Body!).RootElement;
+        Assert.Equal("鋼琴個別班", first.GetProperty("searchText").GetString());
     }
 
     [Fact]
