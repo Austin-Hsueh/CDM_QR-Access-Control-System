@@ -942,11 +942,17 @@ const DISPLAY_PERIOD_LIMIT = 6;
 const TRIAL_STUDENT_NAME = '試上';
 const isTrialStudent = computed(() => courseDetail.studentName === TRIAL_STUDENT_NAME);
 
+// 個別學生的顯示期數上限 (DisplayName -> 期數)，未列出者使用 DISPLAY_PERIOD_LIMIT
+const STUDENT_PERIOD_LIMITS: Record<string, number> = {
+  '鄭翔宇': 12,
+};
+
 // 顯示用：以時間降冪 (最新的期數排最前面)；一般學生只取最晚的 6 期，試上帳號顯示全部
 // SerialNo 由後端依費用 Id 遞增指派，即為時間順序
 const displayedPaymentRecords = computed(() => {
   const sorted = [...paymentRecordData.value].sort((a, b) => b.serialNo - a.serialNo);
-  return isTrialStudent.value ? sorted : sorted.slice(0, DISPLAY_PERIOD_LIMIT);
+  if (isTrialStudent.value) return sorted;
+  return sorted.slice(0, STUDENT_PERIOD_LIMITS[courseDetail.studentName] ?? DISPLAY_PERIOD_LIMIT);
 });
 
 // 課程名稱每列皆相同，改放標題避免每列重複一整欄
